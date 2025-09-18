@@ -4,7 +4,7 @@ YAGNI approach - basic functionality tests only.
 """
 import pytest
 
-from src.domain.shared.value_objects import EmailAddress, EntityId, StorageSize, StorageUnit
+from src.domain.shared.value_objects import EmailAddress, EntityId, StorageSize, StorageUnit, TenantName
 from src.domain.tenant_management.customer_account import (
     CustomerAccount,
     CustomerAccountStatus,
@@ -26,7 +26,7 @@ class TestInMemoryTenantRepository:
         # Create a minimal account directly - YAGNI approach
         return CustomerAccount(
             id=EntityId(),
-            name="test-tenant",
+            name=TenantName("test-tenant"),
             email=EmailAddress("admin@test.com"),
         )
 
@@ -37,7 +37,7 @@ class TestInMemoryTenantRepository:
         
         found = await repository.find_by_id(sample_account.id.value)
         assert found is not None
-        assert found.name == "test-tenant"
+        assert found.name.value == "test-tenant"
 
     @pytest.mark.asyncio
     async def test_find_by_tenant_name(self, repository, sample_account):

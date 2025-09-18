@@ -7,6 +7,7 @@ from typing import List, Optional, Protocol, runtime_checkable
 from uuid import UUID
 
 from ...tenant_management.customer_account import CustomerAccount
+from ..value_objects import TenantName
 
 
 @runtime_checkable
@@ -41,4 +42,18 @@ class CustomerAccountRepository(Protocol):
 
     async def count_total(self) -> int:
         """Count total number of customer accounts."""
+        ...
+
+    async def find_by_tenant_name(
+        self, tenant_name: TenantName
+    ) -> Optional[CustomerAccount]:
+        """Find customer account by tenant name."""
+        ...
+
+    async def exists_by_tenant_name(self, tenant_name: TenantName) -> bool:
+        """Check whether a tenant name already exists."""
+        ...
+
+    async def list_all_customers(self) -> List[CustomerAccount]:
+        """Return all customer accounts (debug/diagnostics)."""
         ...

@@ -11,7 +11,7 @@ from src.application.dtos.customer_account import (
 from src.application.services.customer_account_service import CustomerAccountService
 from src.infrastructure.memory.cache_service import InMemoryCacheService
 from src.infrastructure.memory.notification_service import InMemoryNotificationService
-from src.infrastructure.memory.tenant_repository import InMemoryTenantRepository
+from src.infrastructure.dependencies import customer_repository
 
 router = APIRouter()
 
@@ -21,7 +21,7 @@ def get_customer_service() -> CustomerAccountService:
     from src.infrastructure.memory.auth_service import SimpleAuthService
     
     return CustomerAccountService(
-        account_repository=InMemoryTenantRepository(),
+        account_repository=customer_repository(),
         auth_service=SimpleAuthService(),
         notification_service=InMemoryNotificationService(),
         cache_service=InMemoryCacheService(),

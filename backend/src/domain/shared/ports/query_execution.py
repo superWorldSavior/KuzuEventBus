@@ -133,3 +133,43 @@ class DistributedLockService(Protocol):
     async def extend_lock(self, resource: str, token: str, extend_seconds: int) -> bool:
         """Extend lock expiration time."""
         ...
+
+
+@runtime_checkable
+class QueryExecutionService(Protocol):
+    """Protocol for direct (synchronous) Cypher query execution.
+
+    This is a lightweight port distinct from the transaction/queue model above.
+    It allows the application layer to execute a query immediately (Phase 3 MVP)
+    while the more advanced transactional & queue-based execution model can be
+    layered in later without breaking the contract.
+    """
+
+    async def execute_query(
+        self,
+        tenant_id: UUID,
+        database_id: UUID,
+        cypher: str,
+        parameters: Optional[Dict[str, Any]] = None,
+        timeout_seconds: int = 30,
+    ) -> Dict[str, Any]:
+        """Execute a Cypher query and return structured results.
+
+        Returns dict with keys:
+          - results: List[Dict[str, Any]] row-wise data
+          - execution_time_ms: float
+          - rows_returned: int
+          - meta: Optional diagnostic info
+        """
+        ...
+
+    async def explain_query(
+        self,
+        tenant_id: UUID,
+        database_id: UUID,
+        cypher: str,
+        parameters: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        """Return query execution plan / cost estimation (if supported)."""
+        ...
+

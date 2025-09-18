@@ -42,7 +42,29 @@ PostgreSQL becomes necessary when:
 - Backup/restore needed (compliance)
 ```
 
-### Decision 2: Console Notifications au lieu d'Email Service
+### Decision 2: In-Memory Database Metadata Service (pas le moteur Kuzu)
+
+**Choix :** `SimpleInMemoryDatabaseService` pour les métadonnées des bases de données
+
+**Rationnel :**
+- **Séparation claire** : Métadonnées (CRUD) vs Execution de requêtes (Kuzu)
+- **MVP Focus** : Valider les endpoints de gestion avant la complexité des requêtes
+- **API Design** : Se concentrer sur l'interface REST de management
+- **Strategic Logging** : Implémenter le monitoring complet des opérations
+
+**Note importante :** Le moteur Kuzu (`/infrastructure/kuzu/`) reste actif pour l'exécution des requêtes !
+
+**Triggers de Migration :**
+```
+Real Database Persistence becomes necessary when:
+- > 100 databases created (metadata volume)
+- Database persistence required across restarts
+- Multi-instance deployment (shared metadata)
+- Backup/restore of database configurations needed
+```
+
+
+### Decision 3: Console Notifications au lieu d'Email Service
 
 **Choix :** `InMemoryNotificationService` avec print statements
 
@@ -61,7 +83,7 @@ Real Email becomes necessary when:
 - Legal/compliance requires email audit trail
 ```
 
-### Decision 3: In-Memory Cache au lieu de Redis
+### Decision 4: In-Memory Cache au lieu de Redis
 
 **Choix :** `InMemoryCacheService` avec TTL en Python
 
@@ -86,25 +108,28 @@ Redis becomes necessary when:
 
 **Level 1: Memory Everything (Current)**
 ```
-Adaptateurs: InMemory*
+Adaptateurs: InMemory* + SimpleInMemoryDatabaseService (metadata only)
+Kuzu Engine: Active for query execution
 Deployment: Single instance
-Data: Lost on restart
+Data: Lost on restart (metadata), Kuzu data persisted
 Scale: 1-100 users
 ```
 
-**Level 2: Persistent Storage**
+**Level 2: Persistent Metadata + Kuzu Engine**
 ```
-Adaptateurs: PostgreSQL + InMemory cache + Console notifications
+Adaptateurs: PostgreSQL + InMemory cache + Console notifications + PostgreSQL Database Metadata
+Kuzu Engine: Active for query execution
 Deployment: Single instance with DB
-Data: Persisted
+Data: Persisted (metadata), Kuzu data persisted
 Scale: 100-1K users
 ```
 
-**Level 3: Distributed Infrastructure**
+**Level 3: Distributed Infrastructure + Kuzu**
 ```
-Adaptateurs: PostgreSQL + Redis + Email service
+Adaptateurs: PostgreSQL + Redis + Email service + Distributed Database Metadata
+Kuzu Engine: Optimized/clustered Kuzu
 Deployment: Multiple instances
-Data: Distributed + cached
+Data: Distributed + cached + optimized graph
 Scale: 1K-10K users
 ```
 
@@ -131,6 +156,16 @@ class MigrationDecisionEngine:
             metrics.data_loss_incidents > 0
         )
     
+    def should_migrate_to_postgres_metadata(self) -> bool:
+        """Décider quand persister les métadonnées de databases."""
+        metrics = self.get_current_metrics()
+        return (
+            metrics.databases_created > 100 or
+            metrics.uptime_requirement_hours > 24 or
+            metrics.instance_count > 1 or
+            metrics.database_metadata_loss_incidents > 0
+        )
+    
     def should_migrate_to_redis(self) -> bool:
         metrics = self.get_current_metrics()
         return (
@@ -155,6 +190,18 @@ def test_all_repository_implementations():
     for repo in repositories:
         # Test same business behavior
         assert_repository_contract(repo)
+
+def test_all_database_service_implementations():
+    """Tous les services DB doivent avoir le même comportement."""
+    
+    services = [
+        SimpleInMemoryDatabaseService(),
+        # KuzuDatabaseService(),  # When Phase 3 implemented
+    ]
+    
+    for service in services:
+        # Test same database management behavior
+        assert_database_service_contract(service)
 ```
 
 ### Performance Benchmarking
@@ -220,6 +267,8 @@ Switch Point: When memory limitations block business growth
 ### Path 1: Startup Success (High Growth)
 ```
 Memory → PostgreSQL → Multi-region PostgreSQL
+SimpleInMemoryDatabaseService → PostgreSQL Database Metadata → Distributed Metadata
+Kuzu Engine → Optimized Kuzu → Clustered Kuzu
 InMemory Cache → Redis → Redis Cluster
 Console Logs → SendGrid → Enterprise Email Platform
 ```
@@ -227,6 +276,8 @@ Console Logs → SendGrid → Enterprise Email Platform
 ### Path 2: Enterprise Customer (Compliance First)
 ```
 Memory → PostgreSQL (encrypted)
+SimpleInMemoryDatabaseService → PostgreSQL Database Metadata (audit-compliant)
+Kuzu Engine → Kuzu Engine (audit-compliant)
 Console → Audit-compliant Email Service
 Simple Auth → SSO/SAML Integration
 ```
@@ -234,6 +285,8 @@ Simple Auth → SSO/SAML Integration
 ### Path 3: Performance Critical (Latency Sensitive)
 ```
 Memory → Time-series DB (InfluxDB)
+SimpleInMemoryDatabaseService → High-performance Database Metadata Store
+Kuzu Engine → Ultra-optimized Kuzu Engine
 InMemory Cache → Multi-tier Caching
 Console → Real-time notifications
 ```

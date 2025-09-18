@@ -1,6 +1,6 @@
 # Kuzu Event Bus - Service Managé
 
-Un service managé pour gérer les transactions Kuzu via une API REST moderne avec support multi-tenant.
+Un service managé pour gérer les transactions et bases Kuzu via une API REST moderne avec support multi-tenant.
 
 ## 🎯 Vision
 
@@ -13,14 +13,12 @@ Service permettant aux clients de :
 ## 🏗️ Architecture & Principes
 
 ### Méthodologies de Développement
-
-- **TDD (Test-Driven Development)** : Tests d'abord, code ensuite
-- **XP (eXtreme Programming)** : Intégration continue, refactoring permanent
-- **DDD (Domain-Driven Design)** : Modélisation centrée sur le métier
-- **Fail Fast** : Détection rapide des erreurs, validation stricte
+- **TDD (Test-Driven Development)** : tests d'abord, code ensuite
+- **XP (eXtreme Programming)** : intégration continue, refactoring permanent
+- **DDD (Domain-Driven Design)** : modélisation centrée sur le métier
+- **Fail Fast** : détection rapide des erreurs, validation stricte
 
 ### Architecture Hexagonale (Clean Architecture)
-
 ```
 src/
 ├── domain/           # Cœur métier - Entités, règles business
@@ -40,85 +38,113 @@ src/
     └── api/          # Controllers FastAPI
 ```
 
+### Principes d'Implémentation
+- Ports & Adapters pour isoler le domaine
+- Implémentations YAGNI en mémoire possibles mais Postgres est maintenant la référence
+- Documentation modulaire (READMEs par couche)
+
 ## 🛠️ Stack Technique
 
-**Backend:**
-- **FastAPI** : API REST moderne avec validation automatique
-- **SQLAlchemy** : ORM pour métadonnées (PostgreSQL)
-- **Redis Streams** : Queue des transactions + cache
-- **Redlock** : Verrous distribués pour transactions longues
-- **MinIO** : Stockage S3-compatible pour DBs Kuzu
-- **Kuzu Python** : Interface avec les bases graphes
-- **JWT** : Authentification avec isolation par tenant
-- **Pydantic** :
+### Backend
+- **FastAPI** : API REST avec validation automatique
+- **SQLAlchemy** : ORM connecté à **PostgreSQL** (obligatoire)
+- **Kuzu Python** : exécution native des requêtes Cypher
+- **Pydantic v2** : DTO et validation
+- **Loguru** : logging structuré
+- **Pytest / pytest-asyncio** : tests unitaires et d'intégration
 
-**DevOps:**
-- **Docker** : Containerisation
-- **Pytest** : Tests unitaires et d'intégration
-- **Black/isort** : Formatage du code
-- **MyPy** : Typage statique
+### DevOps
+- **Docker Compose** : Postgres, Redis, MinIO, outils d'observation
+- **Black / isort** : formatage
+- **MyPy** : typage statique
+
+### Frontend
+- Sources React + Vite dans `frontend/` (héritées de `origin/main`). Non connectées au backend actuel mais conservées pour future intégration.
 
 ## 🚀 Fonctionnalités Core
 
 ### Multi-Tenant
-- Isolation complète des données par tenant
-- Gestion des quotas et permissions
-- Dossiers séparés dans MinIO
+- Isolation des tenants via CustomerAccount et clés API
+- Authentification Bearer avec lookup Postgres
+- Préparation des quotas et métriques
 
 ### API Kuzu
-- Exécution directe de requêtes Cypher
-- Support des transactions ACID
-- Gestion des requêtes longues avec SSE
-- Validation et sanitization des requêtes
+- Exécution directe (`POST /api/v1/databases/{database_id}/query`) via adaptateur Kuzu dédié
+- Logging détaillé des requêtes (tenant, hash, durée)
+- DTOs prêts pour futures routes (soumission async, statistiques)
 
 ### Stockage & Backup
-- Upload/download de DBs Kuzu
-- Versioning automatique
-- Backup incrémental
-- Migration entre versions
+- Moteur Kuzu persistant : fichiers `.kuzu` par tenant/db dans `KUZU_DATA_DIR`
+- Roadmap : intégration MinIO pour backups, Redis pour queue/cache
 
 ## 🧪 Philosophie Test-First
-
-1. **Red** : Écrire un test qui échoue
-2. **Green** : Code minimal pour passer le test
-3. **Refactor** : Améliorer sans casser les tests
+1. **Red** : écrire un test qui échoue
+2. **Green** : code minimal pour passer le test
+3. **Refactor** : améliorer sans casser les tests
 
 ### Structure des Tests
 ```
-tests/
-├── unit/           # Tests unitaires (domaine + usecases)
-├── integration/    # Tests d'intégration (adapters)
-├── e2e/           # Tests end-to-end (API complète)
-└── fixtures/      # Données de test
+backend/src/
+├── application/__tests__/     # tests services d'orchestration
+├── api/__tests__/             # tests d'intégration FastAPI
+├── infrastructure/**/__tests__# tests adaptateurs (memory / kuzu)
 ```
 
 ## 📋 Getting Started
 
+### 1. Lancer l'infrastructure
+PostgreSQL est désormais requis (Redis/MinIO démarrés mais pas encore branchés).
 ```bash
-# Setup environnement
+docker-compose up -d postgres redis minio
+```
+
+### 2. Setup Backend
+```bash
 cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
 
-# Lancer les services (Redis, PostgreSQL, MinIO)
-docker-compose up -d
+### 3. Variables d'environnement
+- `DATABASE_URL` (par défaut `postgresql+psycopg2://kuzu_user:kuzu_password@localhost:5432/kuzu_eventbus`)
+- `KUZU_DATA_DIR` : répertoire cible des bases Kuzu (ex: `./kuzu_data_query_endpoint`)
 
-# Tests
-pytest
+### 4. Tests
+```bash
+# Service application & domaine
+pytest src/application/__tests__/test_customer_account_service.py
 
-# Dev server
-uvicorn src.main:app --reload
+# Tests API (Postgres nécessaire)
+pytest src/api/__tests__/test_query_endpoint.py
+```
+
+### 5. Serveur de développement
+```bash
+uvicorn src.api.main:app --reload
 ```
 
 ## 🎯 Principes Fail Fast
+- Validation stricte des inputs (Pydantic)
+- Types obligatoires (MyPy / annotations)
+- Exceptions explicites plutôt que `None`
+- Health checks sur chaque composant
+- Logging structuré pour chaque requête
 
-- **Validation stricte** des inputs (Pydantic)
-- **Type hints** obligatoires (MyPy)
-- **Exceptions explicites** plutôt que valeurs None
-- **Circuit breakers** pour les services externes
-- **Health checks** sur tous les composants
+## 📚 Documentation
+- Instructions détaillées : `.github/instructions/backend.instructions.md` & `frontend.instructions.md`
+- READMEs dédiés : `backend/`, `backend/src/application/`, `backend/src/infrastructure/`, etc.
+- Roadmaps par domaine (ex: `backend/src/infrastructure/README.md` pour la stratégie YAGNI → migration Postgres/Redis/MinIO)
+
+## 🔜 Roadmap
+1. Adapter docs & tests pour refléter la persistance Postgres partout (en cours).
+2. Brancher Redis (queue + cache) et MinIO (backups), créer les adaptateurs + tests contractuels.
+3. Raccorder le frontend existant à l’API.
+
+## 🤝 Contributions
+- Respect de l’architecture hexagonale (pas de dépendances inverses)
+- Tests obligatoires
+- Documentation mise à jour pour chaque feature
 
 ---
-
-*Built with ❤️ using Clean Architecture, TDD, and modern Python practices*
+_Built with ❤️ using Clean Architecture, TDD, and YAGNI so the service can évoluer sereinement._

@@ -124,6 +124,10 @@ make test
 make coverage
 ```
 
+### Persistence (nouvelle implémentation)
+- Le service utilise désormais PostgreSQL **obligatoirement** (`DATABASE_URL` ou `postgres://kuzu_user:...`).
+- Démarrez les conteneurs `postgres`/`redis` via `docker-compose up -d` avant `uvicorn` ou les tests API pour conserver tenants et clés API.
+
 ## 📊 Current Status
 
 ### ✅ Production Ready

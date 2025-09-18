@@ -184,3 +184,38 @@ class NotificationMessage(BaseModel):
     metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
     created_at: datetime = Field(..., description="Creation timestamp")
     read: bool = Field(False, description="Whether notification has been read")
+
+
+class DirectQueryRequest(BaseModel):
+    """Lightweight direct (synchronous) query execution request.
+
+    Distinct from queued/transactional submission DTOs to avoid confusion.
+    """
+    query: str = Field(..., min_length=1, description="Cypher query text")
+    parameters: Optional[Dict[str, Any]] = Field(
+        default=None, description="Parameter map for the query"
+    )
+    timeout_seconds: int = Field(
+        30, ge=1, le=300, description="Max execution time (seconds)"
+    )
+
+    @field_validator("query")
+    @classmethod
+    def no_empty_query(cls, v: str):  # noqa: D401
+        if not v.strip():
+            raise ValueError("Query cannot be empty or whitespace only")
+        return v
+
+    def query_hash(self) -> str:  # type: ignore[override]
+        import hashlib
+
+        return hashlib.sha256(self.query.encode("utf-8")).hexdigest()[:16]
+
+
+class DirectQueryResponse(BaseModel):
+    results: List[Any]
+    rows_returned: int
+    execution_time_ms: float
+    meta: Dict[str, Any]
+    query_hash: str
+    error: Optional[str] = None

@@ -29,8 +29,8 @@ class SimpleAuthService(AuthenticationService):
     async def generate_api_key(
         self, tenant_id: UUID, key_name: str, permissions: List[str]
     ) -> str:
-        """Generate API key for YAGNI."""
-        return f"kuzu_{uuid4()}"
+        """Generate API key with correct kb_ prefix to satisfy validation."""
+        return f"kb_{uuid4().hex}"
 
     async def revoke_api_key(self, api_key: str) -> bool:
         """Revoke API key for YAGNI."""

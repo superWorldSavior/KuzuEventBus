@@ -1,5 +1,6 @@
 import { TrendUp, TrendDown, Minus } from "@phosphor-icons/react";
 import { cn } from "@/utils";
+import { LoadingSkeleton } from "../ui/LoadingSkeleton";
 
 interface MetricsCardProps {
   title: string;
@@ -38,17 +39,16 @@ export function MetricsCard({
       <div
         className={cn(
           "bg-white rounded-lg border border-gray-200 p-6 shadow-sm",
-          "animate-pulse",
           className
         )}
       >
         <div className="flex items-center justify-between mb-4">
-          <div className="w-8 h-8 bg-gray-200 rounded-md" />
-          <div className="w-16 h-4 bg-gray-200 rounded" />
+          <LoadingSkeleton variant="rectangular" width="2rem" height="2rem" />
+          <LoadingSkeleton width="4rem" height="1rem" />
         </div>
         <div className="space-y-2">
-          <div className="w-24 h-6 bg-gray-200 rounded" />
-          <div className="w-32 h-4 bg-gray-200 rounded" />
+          <LoadingSkeleton width="6rem" height="1.5rem" />
+          <LoadingSkeleton width="8rem" height="1rem" />
         </div>
       </div>
     );

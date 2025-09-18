@@ -1,9 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Database, Code } from "@phosphor-icons/react";
-import { DatabaseStatsWidget } from "@/components/dashboard/DatabaseStatsWidget";
+import { Database, Code, HardDrive, Pulse } from "@phosphor-icons/react";
 import { RecentQueriesWidget } from "@/components/dashboard/RecentQueriesWidget";
 import { ActivityTimeline } from "@/components/dashboard/ActivityTimeline";
 import { QuickActions } from "@/components/dashboard/QuickActions";
+import { MetricsGrid } from "@/components/dashboard/MetricsGrid";
+import { ChartShowcase } from "@/components/charts/ChartShowcase";
 import { useDashboardStats, useRecentQueries, useRecentActivity } from "@/hooks/useApi";
 
 export function DashboardPage() {
@@ -39,6 +40,42 @@ export function DashboardPage() {
     navigate("/queries", { state: { initialQuery: query } });
   };
 
+  // Mock metrics data with proper structure
+  const metricsData = [
+    {
+      id: "databases",
+      title: "Total Databases",
+      value: dashboardStats?.totalDatabases ?? 8,
+      icon: <Database className="w-5 h-5" />,
+      trend: { direction: "up" as const, percentage: 12 },
+      onClick: () => handleMetricClick("databases"),
+    },
+    {
+      id: "queries",
+      title: "Queries Today",
+      value: dashboardStats?.queriesToday ?? 143,
+      icon: <Code className="w-5 h-5" />,
+      trend: { direction: "up" as const, percentage: 8 },
+      onClick: () => handleMetricClick("queries"),
+    },
+    {
+      id: "storage",
+      title: "Storage Used",
+      value: `${dashboardStats?.totalStorageGB ?? 4.2}GB`,
+      icon: <HardDrive className="w-5 h-5" />,
+      trend: { direction: "up" as const, percentage: 5 },
+      onClick: () => handleMetricClick("storage"),
+    },
+    {
+      id: "performance",
+      title: "Avg Query Time",
+      value: `${dashboardStats?.avgQueryTimeMs ?? 42}ms`,
+      icon: <Pulse className="w-5 h-5" />,
+      trend: { direction: "down" as const, percentage: 15 },
+      onClick: () => handleMetricClick("performance"),
+    },
+  ];
+
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
@@ -73,7 +110,7 @@ export function DashboardPage() {
 
       {/* Metrics Overview */}
       <section>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-gray-900">Overview</h2>
           {statsError && (
             <div className="text-sm text-red-600">
@@ -81,11 +118,24 @@ export function DashboardPage() {
             </div>
           )}
         </div>
-        <DatabaseStatsWidget 
-          data={dashboardStats}
+        <MetricsGrid 
+          metrics={metricsData}
           isLoading={statsLoading}
-          onCardClick={handleMetricClick} 
         />
+      </section>
+
+      {/* Charts Section */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold text-gray-900">Performance Analytics</h2>
+          <button 
+            onClick={() => navigate("/analytics")}
+            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            View detailed analytics →
+          </button>
+        </div>
+        <ChartShowcase isLoading={statsLoading} />
       </section>
 
       {/* Main Content Grid */}

@@ -6,7 +6,7 @@ import {
   DotsThree,
   Database,
 } from "@phosphor-icons/react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/utils";
 
 interface QueryResult {
@@ -14,7 +14,7 @@ interface QueryResult {
   query: string;
   status: "success" | "error" | "running";
   executionTime?: number;
-  createdAt: Date;
+  createdAt: Date | string; // Can be either Date object or ISO string
   database: string;
   resultCount?: number;
 }
@@ -41,7 +41,7 @@ export function RecentQueriesWidget({
       query: "MATCH (n:Person) RETURN n.name LIMIT 10",
       status: "success",
       executionTime: 45,
-      createdAt: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+      createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString(), // 5 minutes ago
       database: "social-network",
       resultCount: 8,
     },
@@ -51,7 +51,7 @@ export function RecentQueriesWidget({
         "MATCH (a:Person)-[:KNOWS]->(b:Person) WHERE a.name = 'Alice' RETURN b",
       status: "success",
       executionTime: 123,
-      createdAt: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
+      createdAt: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
       database: "social-network",
       resultCount: 3,
     },
@@ -59,7 +59,7 @@ export function RecentQueriesWidget({
       id: "3",
       query: "MATCH (n) RETURN COUNT(n)",
       status: "error",
-      createdAt: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+      createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
       database: "inventory-db",
     },
     {
@@ -67,7 +67,7 @@ export function RecentQueriesWidget({
       query:
         "MATCH (p:Product) WHERE p.price > 100 RETURN p.name, p.price ORDER BY p.price DESC",
       status: "running",
-      createdAt: new Date(Date.now() - 1000 * 30), // 30 seconds ago
+      createdAt: new Date(Date.now() - 1000 * 30).toISOString(), // 30 seconds ago
       database: "ecommerce-db",
     },
   ];
@@ -171,9 +171,14 @@ export function RecentQueriesWidget({
                     </span>
                     <span className="text-xs text-gray-400">•</span>
                     <span className="text-xs text-gray-500">
-                      {formatDistanceToNow(query.createdAt, {
-                        addSuffix: true,
-                      })}
+                      {formatDistanceToNow(
+                        typeof query.createdAt === "string"
+                          ? parseISO(query.createdAt)
+                          : query.createdAt,
+                        {
+                          addSuffix: true,
+                        }
+                      )}
                     </span>
                     {query.executionTime && (
                       <>

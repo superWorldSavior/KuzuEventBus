@@ -1,5 +1,5 @@
 import { Pulse, User, Database, FileText, Clock } from "@phosphor-icons/react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, parseISO } from "date-fns";
 import { cn } from "@/utils";
 
 interface ActivityItem {
@@ -13,7 +13,7 @@ interface ActivityItem {
     | "file_uploaded";
   title: string;
   description: string;
-  timestamp: Date;
+  timestamp: Date | string; // Can be either Date object or ISO string
   user?: string;
   metadata?: Record<string, any>;
 }
@@ -38,7 +38,7 @@ export function ActivityTimeline({
       type: "query_executed",
       title: "Query executed successfully",
       description: "Retrieved 8 nodes from social-network database",
-      timestamp: new Date(Date.now() - 1000 * 60 * 2), // 2 minutes ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(), // 2 minutes ago
       user: "alice@example.com",
       metadata: { query_time: "45ms", result_count: 8 },
     },
@@ -47,7 +47,7 @@ export function ActivityTimeline({
       type: "database_created",
       title: "New database created",
       description: "Created 'inventory-system' database",
-      timestamp: new Date(Date.now() - 1000 * 60 * 15), // 15 minutes ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(), // 15 minutes ago
       user: "bob@example.com",
     },
     {
@@ -55,7 +55,7 @@ export function ActivityTimeline({
       type: "file_uploaded",
       title: "File uploaded",
       description: "Uploaded 'products.csv' to ecommerce-db",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 minutes ago
       user: "carol@example.com",
       metadata: { file_size: "2.4MB", records: 1250 },
     },
@@ -64,7 +64,7 @@ export function ActivityTimeline({
       type: "user_login",
       title: "User signed in",
       description: "New session started",
-      timestamp: new Date(Date.now() - 1000 * 60 * 45), // 45 minutes ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(), // 45 minutes ago
       user: "dave@example.com",
     },
     {
@@ -72,7 +72,7 @@ export function ActivityTimeline({
       type: "query_executed",
       title: "Query failed",
       description: "Syntax error in Cypher query",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), // 1 hour ago
       user: "alice@example.com",
       metadata: { error: "Invalid syntax" },
     },
@@ -81,7 +81,7 @@ export function ActivityTimeline({
       type: "database_deleted",
       title: "Database deleted",
       description: "Removed 'test-db' database",
-      timestamp: new Date(Date.now() - 1000 * 60 * 90), // 1.5 hours ago
+      timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(), // 1.5 hours ago
       user: "admin@example.com",
     },
   ];
@@ -199,9 +199,14 @@ export function ActivityTimeline({
                     </p>
                     <div className="flex items-center space-x-2 mt-2 text-xs text-gray-500">
                       <span>
-                        {formatDistanceToNow(activity.timestamp, {
-                          addSuffix: true,
-                        })}
+                        {formatDistanceToNow(
+                          typeof activity.timestamp === "string"
+                            ? parseISO(activity.timestamp)
+                            : activity.timestamp,
+                          {
+                            addSuffix: true,
+                          }
+                        )}
                       </span>
                       {activity.user && (
                         <>
@@ -223,7 +228,10 @@ export function ActivityTimeline({
                     )}
                   </div>
                   <div className="text-xs text-gray-400 ml-2">
-                    {activity.timestamp.toLocaleTimeString([], {
+                    {(typeof activity.timestamp === "string"
+                      ? parseISO(activity.timestamp)
+                      : activity.timestamp
+                    ).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}

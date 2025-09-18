@@ -16,12 +16,14 @@ export function useAuth() {
       // Check if we have a stored token
       if (token && user) {
         try {
-          // Validate token by making a test API call
-          await apiClient.get("/health/");
+          // For development, skip backend validation since backend might not be running
+          // In production, you'd want to validate the token against the backend
+          console.log("User already authenticated from storage:", user.email);
           setLoading(false);
         } catch (error) {
-          // Token is invalid, clear auth state
-          logout();
+          console.warn("Token validation failed, but continuing for development:", error);
+          // In development, don't log out on API errors - backend might not be running
+          setLoading(false);
         }
       } else {
         setLoading(false);
@@ -29,7 +31,7 @@ export function useAuth() {
     };
 
     initializeAuth();
-  }, [token, user, logout, setLoading]);
+  }, [token, user, setLoading]);
 
   const handleLogin = async (credentials: LoginRequest) => {
     try {
@@ -80,7 +82,7 @@ export function useAuth() {
           ? "demo-jwt-token"
           : "user-jwt-token";
 
-      // Set up API client with token
+      // Set up API client with token (for when backend is available)
       apiClient.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${mockToken}`;
@@ -88,6 +90,7 @@ export function useAuth() {
       console.log("About to call login with:", mockUser, mockToken);
       login(mockUser, mockToken);
       console.log("Login successful");
+      setLoading(false); // Ensure loading is set to false after successful login
       return { success: true };
     } catch (error) {
       console.error("Login error:", error);

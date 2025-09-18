@@ -1,6 +1,7 @@
-import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationInit } from "@/hooks/useNotifications";
+import { RealTimeProvider } from "@/contexts/RealTimeContext";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -11,9 +12,13 @@ import { AnalyticsPage } from "@/pages/analytics/AnalyticsPage";
 import { SettingsPage } from "@/pages/settings/SettingsPage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthDebug } from "@/components/debug/AuthDebug";
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Initialize mock notifications for development
+  useNotificationInit();
 
   if (isLoading) {
     return (
@@ -24,8 +29,20 @@ function App() {
   }
 
   return (
-    <>
+    <RealTimeProvider>
       <Routes>
+        {/* Root redirect */}
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
         {/* Public routes */}
         <Route
           path="/login"
@@ -61,7 +78,7 @@ function App() {
                   <Route path="/analytics/*" element={<AnalyticsPage />} />
                   <Route path="/settings/*" element={<SettingsPage />} />
                   <Route
-                    path="/"
+                    path="/*"
                     element={<Navigate to="/dashboard" replace />}
                   />
                 </Routes>
@@ -73,7 +90,8 @@ function App() {
         />
       </Routes>
       <Toaster />
-    </>
+      <AuthDebug />
+    </RealTimeProvider>
   );
 }
 

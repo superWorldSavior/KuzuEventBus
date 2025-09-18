@@ -10,34 +10,38 @@ import {
 } from "recharts";
 import { cn } from "@/utils";
 
-interface BarChartData {
+export interface BarChartDataPoint {
   name: string;
   value: number;
   [key: string]: any;
 }
 
-interface BarChartProps {
-  data: BarChartData[];
-  dataKey?: string;
-  xAxisKey?: string;
+export interface BarConfig {
+  dataKey: string;
+  fill: string;
+  name?: string;
+}
+
+export interface BarChartProps {
+  data: BarChartDataPoint[];
+  bars?: BarConfig[];
   className?: string;
   height?: number;
-  barColor?: string;
   showGrid?: boolean;
   showTooltip?: boolean;
   showLegend?: boolean;
+  xAxisKey?: string;
 }
 
 export function BarChart({
   data,
-  dataKey = "value",
-  xAxisKey = "name",
+  bars = [{ dataKey: "value", fill: "#3B82F6", name: "Value" }],
   className,
   height = 300,
-  barColor = "#3B82F6",
   showGrid = true,
   showTooltip = true,
   showLegend = false,
+  xAxisKey = "name",
 }: BarChartProps) {
   return (
     <div className={cn("w-full", className)}>
@@ -72,12 +76,15 @@ export function BarChart({
             />
           )}
           {showLegend && <Legend />}
-          <Bar
-            dataKey={dataKey}
-            fill={barColor}
-            radius={[4, 4, 0, 0]}
-            className="drop-shadow-sm"
-          />
+          {bars.map((bar) => (
+            <Bar
+              key={bar.dataKey}
+              dataKey={bar.dataKey}
+              fill={bar.fill}
+              name={bar.name}
+              radius={[2, 2, 0, 0]}
+            />
+          ))}
         </RechartsBarChart>
       </ResponsiveContainer>
     </div>

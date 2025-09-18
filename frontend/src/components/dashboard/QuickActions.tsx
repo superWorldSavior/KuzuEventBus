@@ -33,7 +33,7 @@ export function QuickActions({ className }: QuickActionsProps) {
     try {
       await runQueryMutation.mutateAsync({
         query: "MATCH (n) RETURN count(n) as node_count",
-        database: "default"
+        databaseId: "default"
       });
       navigate("/queries");
     } catch (error) {

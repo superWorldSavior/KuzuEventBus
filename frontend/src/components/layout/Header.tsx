@@ -1,32 +1,25 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
 import {
   List,
   MagnifyingGlass,
-  Bell,
-  CaretRight,
 } from "@phosphor-icons/react";
 import { cn } from "@/utils";
-import { useNavigationStore, generateBreadcrumbs } from "@/store/navigation";
+import { useNavigationStore } from "@/store/navigation";
 import { TenantSwitcher } from "./TenantSwitcher";
 import { UserMenu } from "./UserMenu";
 import { MobileSearchModal } from "./MobileSearchModal";
+import { Breadcrumbs } from "./Breadcrumbs";
+import { NotificationCenter } from "./NotificationCenter";
+import { SearchBar } from "./SearchBar";
+import { RealTimeStatus } from "@/components/ui/RealTimeIndicator";
 
 interface HeaderProps {
   className?: string;
 }
 
 export function Header({ className }: HeaderProps) {
-  const location = useLocation();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const { mobileMenuOpen, setMobileMenuOpen, breadcrumbs } =
-    useNavigationStore();
-
-  // Generate breadcrumbs from current path
-  const currentBreadcrumbs =
-    breadcrumbs.length > 0
-      ? breadcrumbs
-      : generateBreadcrumbs(location.pathname);
+  const { mobileMenuOpen, setMobileMenuOpen } = useNavigationStore();
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
@@ -45,44 +38,12 @@ export function Header({ className }: HeaderProps) {
           </button>
 
           {/* Breadcrumbs */}
-          <nav className="flex items-center space-x-1 text-sm ml-2 md:ml-0">
-            {currentBreadcrumbs.map((crumb, index) => (
-              <div
-                key={crumb.path || crumb.label}
-                className="flex items-center"
-              >
-                {index > 0 && (
-                  <CaretRight className="w-4 h-4 text-gray-400 mx-1" />
-                )}
-                {crumb.path ? (
-                  <a
-                    href={crumb.path}
-                    className="text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    {crumb.label}
-                  </a>
-                ) : (
-                  <span className="text-gray-900 font-medium">
-                    {crumb.label}
-                  </span>
-                )}
-              </div>
-            ))}
-          </nav>
+          <Breadcrumbs className="ml-2 md:ml-0" showHome={false} />
         </div>
 
         {/* Center section - Search */}
         <div className="flex-1 max-w-lg mx-4 hidden sm:block">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlass className="w-4 h-4 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search databases, queries..."
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+          <SearchBar />
         </div>
 
         {/* Right section - Tenant switcher + Notifications + User menu */}
@@ -101,11 +62,10 @@ export function Header({ className }: HeaderProps) {
           </button>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-md hover:bg-gray-100 transition-colors">
-            <Bell className="w-5 h-5 text-gray-500" />
-            {/* Notification badge */}
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          <NotificationCenter />
+          
+          {/* Real-time connection status */}
+          <RealTimeStatus />
 
           {/* User menu */}
           <UserMenu />

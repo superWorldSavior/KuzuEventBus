@@ -29,15 +29,18 @@ export const useAuthStore = create<AuthStore>()(
 
       // Actions
       login: (user: User, token: string) => {
+        console.log("AuthStore: Login called with user:", user.email);
         set({
           user,
           token,
           isAuthenticated: true,
           isLoading: false,
         });
+        console.log("AuthStore: Login completed, isAuthenticated:", true);
       },
 
       logout: () => {
+        console.log("AuthStore: Logout called");
         set({
           user: null,
           token: null,

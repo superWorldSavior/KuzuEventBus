@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # PostgreSQL - Métadonnées de l'application
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: kuzu_eventbus
+      POSTGRES_USER: kuzu_user
+      POSTGRES_PASSWORD: kuzu_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kuzu_user -d kuzu_eventbus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Cache, Sessions, Queues
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MinIO - Stockage S3-compatible pour les DBs Kuzu
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Adminer - Interface pour PostgreSQL (dev only)
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  # Redis Insight - Interface pour Redis (dev only)
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:8001"
+    volumes:
+      - redis_insight_data:/db
+    depends_on:
+      - redis
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  redis_insight_data:
+
+networks:
+  default:
+    name: kuzu_eventbus_network

@@ -1,0 +1,101 @@
+"""
+Database Management domain ports.
+
+Repository and service protocols for Kuzu database operations.
+"""
+from typing import (
+    Any,
+    AsyncGenerator,
+    Dict,
+    List,
+    Optional,
+    Protocol,
+    runtime_checkable,
+)
+from uuid import UUID
+
+
+@runtime_checkable
+class KuzuDatabaseRepository(Protocol):
+    """Protocol for Kuzu database metadata persistence."""
+
+    async def save_database_metadata(
+        self,
+        tenant_id: UUID,
+        database_name: str,
+        file_path: str,
+        size_bytes: int,
+        metadata: Dict[str, Any],
+    ) -> UUID:
+        """Save database metadata and return database ID."""
+        ...
+
+    async def find_by_id(self, database_id: UUID) -> Optional[Dict[str, Any]]:
+        """Find database metadata by ID."""
+        ...
+
+    async def find_by_tenant(self, tenant_id: UUID) -> List[Dict[str, Any]]:
+        """Find all databases for a tenant."""
+        ...
+
+    async def delete(self, database_id: UUID) -> bool:
+        """Delete database metadata."""
+        ...
+
+
+@runtime_checkable
+class FileStorageService(Protocol):
+    """Protocol for file storage operations (MinIO)."""
+
+    async def upload_database(
+        self, tenant_id: UUID, database_id: UUID, file_content: bytes, filename: str
+    ) -> str:
+        """Upload database file and return storage path."""
+        ...
+
+    async def download_database(self, file_path: str) -> bytes:
+        """Download database file content."""
+        ...
+
+    async def delete_database(self, file_path: str) -> bool:
+        """Delete database file."""
+        ...
+
+    async def file_exists(self, file_path: str) -> bool:
+        """Check if file exists in storage."""
+        ...
+
+    async def get_file_size(self, file_path: str) -> int:
+        """Get file size in bytes."""
+        ...
+
+
+@runtime_checkable
+class KuzuQueryService(Protocol):
+    """Protocol for Kuzu database query operations."""
+
+    async def validate_query(self, query: str) -> bool:
+        """Validate Cypher query syntax."""
+        ...
+
+    async def execute_query(
+        self,
+        database_path: str,
+        query: str,
+        parameters: Dict[str, Any] = None,
+        timeout_seconds: int = 300,
+    ) -> AsyncGenerator[Dict[str, Any], None]:
+        """Execute query and stream results."""
+        ...
+
+    async def get_database_schema(self, database_path: str) -> Dict[str, Any]:
+        """Get database schema information."""
+        ...
+
+    async def get_database_stats(self, database_path: str) -> Dict[str, Any]:
+        """Get database statistics."""
+        ...
+
+    async def create_empty_database(self, database_path: str) -> bool:
+        """Create new empty Kuzu database."""
+        ...

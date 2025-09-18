@@ -51,6 +51,7 @@ src/
 - **Kuzu Python** : Interface avec les bases graphes
 - **JWT** : Authentification avec isolation par tenant
 - **Pydantic** :
+- **Loguru** : 
 
 **DevOps:**
 - **Docker** : Containerisation

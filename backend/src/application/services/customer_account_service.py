@@ -89,7 +89,10 @@ class CustomerAccountService:
             tenant_id=customer_id.value,
             notification_type="welcome",
             title="Welcome to Kuzu Event Bus",
-            message=f"Your account has been created successfully. Organization: {organization_name}",
+            message=(
+                f"Your account has been created successfully. "
+                f"Organization: {organization_name}"
+            ),
         )
 
         # Cache account for quick access

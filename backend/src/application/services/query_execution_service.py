@@ -94,7 +94,8 @@ class QueryExecutionService:
         )
         if not quota_check["allowed"]:
             raise ValueError(
-                f"Query quota exceeded. Used: {quota_check['used']}/{quota_check['limit']}"
+                f"Query quota exceeded. "
+                f"Used: {quota_check['used']}/{quota_check['limit']}"
             )
 
         # Verify database ownership
@@ -131,7 +132,7 @@ class QueryExecutionService:
             tenant_id=tenant_id,
             notification_type="query_submitted",
             title="Query Submitted",
-            message=f"Query has been submitted for execution",
+            message="Query has been submitted for execution",
             metadata={
                 "transaction_id": str(transaction_id),
                 "database_id": str(database_id),

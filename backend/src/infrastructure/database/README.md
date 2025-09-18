@@ -24,7 +24,7 @@ database/
 - Fichier `__init__.py` vide
 - En attente des besoins de persistance production
 
-**Implémentation temporaire :** Actuellement utilisée dans `memory/tenant_repository.py`
+**Implémentation temporaire :** Actuellement utilisée dans `memory/database_service.py`
 
 ## 🔄 Implémentations Futures
 

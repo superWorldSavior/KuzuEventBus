@@ -13,7 +13,7 @@ from pydantic import BaseModel, Field
 from src.api.middleware.authentication import get_current_customer
 from src.domain.tenant_management.customer_account import CustomerAccount
 from src.infrastructure.memory.database_service import SimpleInMemoryDatabaseService
-from src.infrastructure.memory.tenant_repository import InMemoryTenantRepository
+from src.infrastructure.dependencies import customer_repository
 from src.infrastructure.logging.config import api_logger, get_logger
 
 # Get dedicated logger for database operations
@@ -22,7 +22,7 @@ db_logger = get_logger("database_operations")
 router = APIRouter()
 
 # Global service instance for YAGNI approach
-_customer_repository = InMemoryTenantRepository()
+_customer_repository = customer_repository()
 _database_service = SimpleInMemoryDatabaseService(_customer_repository)
 
 
@@ -60,19 +60,17 @@ class DatabaseListResponse(BaseModel):
     total_size_bytes: int
 
 
-# Dependency injection - placeholder for now
-async def get_database_service() -> DatabaseManagementService:
+# Dependency injection - Simple implementation for YAGNI
+async def get_database_service() -> SimpleInMemoryDatabaseService:
     """Get database management service instance."""
-    # TODO: Implement proper dependency injection
-    # For now, return a placeholder
-    db_logger.warning("⚠️  Using placeholder database service - implement proper DI")
-    return None
+    db_logger.info("🔧 Returning SimpleInMemoryDatabaseService instance")
+    return _database_service
 
 
 @router.get("/", response_model=DatabaseListResponse)
 async def list_databases(
     request: Request,
-    service: DatabaseManagementService = Depends(get_database_service)
+    service: SimpleInMemoryDatabaseService = Depends(get_database_service)
 ) -> DatabaseListResponse:
     """
     List all databases for authenticated tenant.
@@ -163,7 +161,7 @@ async def list_databases(
 async def create_database(
     request: Request,
     create_request: CreateDatabaseRequest,
-    service: DatabaseManagementService = Depends(get_database_service)
+    service: SimpleInMemoryDatabaseService = Depends(get_database_service)
 ) -> DatabaseResponse:
     """
     Create a new database for authenticated tenant.
@@ -310,7 +308,7 @@ async def create_database(
 async def get_database(
     request: Request,
     database_id: str,
-    service: DatabaseManagementService = Depends(get_database_service)
+    service: SimpleInMemoryDatabaseService = Depends(get_database_service)
 ) -> DatabaseResponse:
     """
     Get detailed information about a specific database.
@@ -393,7 +391,7 @@ async def get_database(
 async def delete_database(
     request: Request,
     database_id: str,
-    service: DatabaseManagementService = Depends(get_database_service)
+    service: SimpleInMemoryDatabaseService = Depends(get_database_service)
 ) -> None:
     """
     Delete a database and all its data.

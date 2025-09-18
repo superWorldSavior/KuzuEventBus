@@ -74,14 +74,19 @@ class CustomerAccountService:
             status=CustomerAccountStatus.ACTIVE,
         )
 
-        # Generate initial API key
-        api_key = await self._auth_service.generate_api_key(
+        # Persist organization name alongside the account (not part of aggregate yet)
+        setattr(account, "organization_name", organization_name)
+
+        # Generate initial API key and attach to account (domain ApiKey requires kb_ prefix)
+        raw_key = await self._auth_service.generate_api_key(
             tenant_id=customer_id.value,
             key_name="default",
             permissions=["database:read", "database:write", "query:execute"],
         )
+        from src.domain.tenant_management.customer_account import ApiKey
+        account.api_key = ApiKey(raw_key)
 
-        # Save account
+        # Save account after assigning API key
         await self._account_repository.save(account)
 
         # Send welcome notification
@@ -113,7 +118,7 @@ class CustomerAccountService:
             "tenant_name": tenant_name,
             "organization_name": organization_name,
             "admin_email": admin_email,
-            "api_key": api_key,
+            "api_key": raw_key,
             "subscription_status": account.status.value,
             "created_at": account.created_at.isoformat(),
         }

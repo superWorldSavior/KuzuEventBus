@@ -91,7 +91,7 @@ warn_unreachable = true
 strict_equality = true
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "src"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
@@ -118,3 +118,7 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError"
 ]
+
+[tool.coverage.html]
+# Force a single consistent HTML coverage output directory regardless of where pytest is launched from.
+directory = "coverage_html"

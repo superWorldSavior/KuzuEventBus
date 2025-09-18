@@ -5,6 +5,7 @@ Validates Bearer tokens against Customer API keys in repository.
 """
 from typing import Optional
 from fastapi import HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.requests import Request
 from fastapi.responses import Response
@@ -12,11 +13,10 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.domain.tenant_management.customer_account import CustomerAccount, CustomerAccountStatus
 from src.domain.shared.ports.tenant_management import CustomerAccountRepository
-from src.infrastructure.memory.tenant_repository import InMemoryTenantRepository
 from src.infrastructure.logging.config import auth_logger
+from src.infrastructure.dependencies import customer_repository
 
-# Global repository instance for YAGNI approach
-_customer_repository: CustomerAccountRepository = InMemoryTenantRepository()
+_customer_repository: CustomerAccountRepository = customer_repository()
 
 security = HTTPBearer(auto_error=False)
 
@@ -26,6 +26,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
 
     def __init__(self, app):
         super().__init__(app)
+        self._repository: CustomerAccountRepository = _customer_repository
         self.protected_paths = ["/api/v1/databases"]  # Paths that require auth
         self.public_paths = ["/health", "/api/v1/customers/register", "/docs", "/redoc", "/openapi.json"]
 
@@ -40,19 +41,13 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         try:
             customer = await self._authenticate_request(request)
             if customer:
-                # Add customer to request state for downstream use
                 request.state.customer = customer
-                # Update API key last used
                 customer.api_key.mark_as_used()
-                await _customer_repository.save_customer(customer)
-                
+                await self._repository.save(customer)
                 auth_logger.info(f"Authenticated request for tenant: {customer.name.value}")
-                
-            response = await call_next(request)
-            return response
-            
-        except HTTPException:
-            raise
+            return await call_next(request)
+        except HTTPException as exc:  # Convert to response so tests receive status code instead of raised exception
+            return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
         except Exception as e:
             auth_logger.error(f"Authentication error: {e}")
             raise HTTPException(
@@ -120,21 +115,21 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         """Validate API key against customer repository."""
         try:
             auth_logger.debug(f"Starting API key validation for key ending in: ...{api_key[-8:]}")
-            
-            # Get all customers and check API keys
-            customers = await _customer_repository.list_all_customers()
-            auth_logger.debug(f"Found {len(customers)} customers in repository")
-            
-            for customer in customers:
-                if (customer.api_key.value == api_key and 
-                    customer.api_key.is_active and 
-                    customer.status in [CustomerAccountStatus.ACTIVE, CustomerAccountStatus.TRIAL]):
-                    auth_logger.info(f"Successfully validated API key for tenant: {customer.name.value}")
-                    return customer
-                    
-            auth_logger.warning(f"API key validation failed - no matching active customer found")
+            customer = await self._repository.find_by_api_key(api_key)
+            if (
+                customer
+                and customer.api_key.is_active
+                and customer.status in [CustomerAccountStatus.ACTIVE, CustomerAccountStatus.TRIAL]
+            ):
+                auth_logger.info(
+                    "Successfully validated API key for tenant",
+                    tenant=customer.name.value,
+                )
+                return customer
+
+            auth_logger.warning("API key validation failed - no matching active customer found")
             return None
-            
+
         except Exception as e:
             auth_logger.error(f"Error validating API key: {e}")
             return None

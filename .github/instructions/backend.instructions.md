@@ -1,283 +1,213 @@
-# Copilot Instructions - Kuzu Event Bus
+# Kuzu Event Bus - AI Coding Agent Instructions
 
-## 🎯 Projet : Service Multi-tenant Kuzu Database
+## 🎯 Project Overview
+Multi-tenant **Kuzu graph database service** with FastAPI and hexagonal architecture. Core mission: Simple, testable, evolvable service following Clean Architecture, **TDD (Test-Driven Development)**, **DDD (Domain-Driven Design)**, and YAGNI principles, failfast and logs.
 
-**Service REST** pour gérer des bases de données Kuzu avec isolation par tenant, construit avec **FastAPI** et **architecture hexagonale**.
+## 🏗️ Architecture Fundamentals
 
-## 🏗️ Architecture & Principes
-
-### Architecture Hexagonale
+### Hexagonal Architecture (STRICT)
 ```
 src/
-├── domain/              # Logique métier pure (Customer, Tenant, etc.)
-├── application/         # Services d'orchestration 
-├── infrastructure/      # Adapters techniques (memory, DB, cache)
-└── api/                # Interface REST (FastAPI)
+├── domain/              # Pure business logic (CustomerAccount, TenantName)
+├── application/         # Use case orchestration (CustomerAccountService)  
+├── infrastructure/      # Technical adapters (InMemoryTenantRepository)
+└── api/                # FastAPI controllers (customers, databases, health)
 ```
 
-### Principe YAGNI (You Ain't Gonna Need It)
-- **Implémentations simples d'abord** : Memory-based pour le MVP
-- **Migration progressive** : Vers PostgreSQL/Redis quand nécessaire
-- **Pas de sur-ingénierie** : Une feature à la fois
+**CRITICAL**: Domain never depends on infrastructure. Use Protocol-based ports for dependency inversion.
 
-## 📝 Standards de Code
+### YAGNI Strategy
+- **Start simple**: Memory-based implementations for MVP
+- **Migrate progressively**: PostgreSQL/Redis only when metrics justify
+- **No over-engineering**: One feature at a time
 
-### 1. Architecture Hexagonale STRICTE
-```python
-# ✅ BON : Domain ne dépend de rien
-class CustomerAccount:
-    def validate_storage_quota(self) -> bool:
-        return self.usage < self.quota
+### Development Methodologies
+- **TDD (Test-Driven Development)**: Red-Green-Refactor cycle mandatory
+- **DDD (Domain-Driven Design)**: Business logic drives architecture  
+- **Fail Fast**: Explicit validation, immediate error detection
 
-# ❌ MAUVAIS : Domain dépend d'infrastructure  
-class CustomerAccount:
-    def save_to_database(self):  # Infrastructure leak!
-        pass
+## 📝 Development Workflow
+
+### Test-First Development (TDD)
+```bash
+# Run tests (from backend/)
+pytest                          # All tests
+pytest tests/unit/             # Unit tests only
+pytest tests/integration/      # Integration tests
+pytest --cov=src               # With coverage
 ```
 
-### 2. Ports & Adapters Pattern
+**TDD Cycle**: Red (failing test) → Green (minimal code) → Refactor (improve)
+**Test Structure**: `tests/{unit,integration,e2e}/` mirroring `src/` structure
+
+### Development Environment
+```bash
+# Setup (from backend/)
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Services 
+docker-compose up -d           # Redis, PostgreSQL, MinIO
+
+# Run API server
+uvicorn src.api.main:app --reload
+```
+
+## 🎯 Core Patterns & Conventions
+
+### 1. Protocol-Based Ports (Not ABC)
 ```python
-# ✅ BON : Port (interface) dans domain/shared/ports/
-@runtime_checkable
+# ✅ GOOD: Port in domain/shared/ports/
+@runtime_checkable  
 class CustomerAccountRepository(Protocol):
     async def save(self, customer: CustomerAccount) -> str: ...
 
-# ✅ BON : Adapter dans infrastructure/
+# ✅ GOOD: Adapter in infrastructure/
 class InMemoryCustomerRepository:
     async def save(self, customer: CustomerAccount) -> str:
         # Implementation
 ```
 
-### 3. Type Safety OBLIGATOIRE
+### 2. Immutable Value Objects
 ```python
-# ✅ BON : Type hints partout
-def register_customer(
-    tenant_name: str, 
-    email: str
-) -> CustomerRegistrationResult:
-    pass
-
-# ❌ MAUVAIS : Pas de types
-def register_customer(tenant_name, email):
-    pass
-```
-
-### 4. Exception Handling
-```python
-# ✅ BON : Exceptions métier spécifiques
-class BusinessRuleViolation(Exception):
-    pass
-
-# ✅ BON : Validation explicite
-if not tenant_name:
-    raise ValidationError("Tenant name required")
-
-# ❌ MAUVAIS : Retourner None/False silencieusement
-if not tenant_name:
-    return None
-```
-
-### 5. Dataclasses pour Value Objects
-```python
-# ✅ BON : Immutable value objects
 @dataclass(frozen=True)
 class TenantName:
     value: str
     
     def __post_init__(self):
         if len(self.value) < 3:
-            raise ValidationError("Too short")
-
-# ❌ MAUVAIS : Classes mutables
-class TenantName:
-    def __init__(self, value):
-        self.value = value  # Mutable!
+            raise ValidationError("Must be at least 3 characters")
+        if not re.match(r'^[a-z0-9-]+$', self.value):
+            raise ValidationError("Invalid characters")
 ```
 
-## 🧪 Tests & TDD
-
-### Test-First Development
+### 3. Explicit Exception Handling
 ```python
-# 1. RED : Test qui échoue
-def test_customer_registration():
-    service = CustomerAccountService(...)
-    
-    with pytest.raises(ValidationError):
-        service.register("", "invalid@email")
+# ✅ GOOD: Specific business exceptions
+class BusinessRuleViolation(Exception): pass
+class ValidationError(Exception): pass
 
-# 2. GREEN : Code minimal pour passer
-def register(self, tenant_name: str, email: str):
-    if not tenant_name:
-        raise ValidationError("Required")
-    # ...
+# ✅ GOOD: Fail fast validation
+if not tenant_name:
+    raise ValidationError("Tenant name required")
 
-# 3. REFACTOR : Améliorer sans casser
+# ❌ BAD: Silent failures
+if not tenant_name:
+    return None
 ```
 
-### Structure des Tests
+### 4. FastAPI Dependency Injection
 ```python
-# ✅ BON : Tests unitaires par couche
-tests/
-├── domain/              # Tests des entités et value objects
-├── application/         # Tests des services d'orchestration
-├── infrastructure/      # Tests des adapters
-└── api/                # Tests d'intégration API
-```
-
-### Mocking Strategy
-```python
-# ✅ BON : Mock les ports (interfaces)
-@pytest.fixture
-def mock_customer_repo():
-    return AsyncMock(spec=CustomerAccountRepository)
-
-# ❌ MAUVAIS : Mock les implémentations concrètes
-def mock_postgres_repo():
-    pass
-```
-
-## 🚀 FastAPI Guidelines
-
-### Dependency Injection
-```python
-# ✅ BON : Factory functions pour YAGNI
+# ✅ GOOD: Factory functions for YAGNI
 def get_customer_service() -> CustomerAccountService:
     return CustomerAccountService(
         account_repository=InMemoryTenantRepository(),
         auth_service=SimpleAuthService(),
     )
 
-# Future : DI Container quand complexité augmente
+# Use in endpoints
+@router.post("/register")
+async def register(
+    request: CustomerRegistrationRequest,
+    service: CustomerAccountService = Depends(get_customer_service)
+):
 ```
 
-### Request/Response Models
+### 5. API Key Pattern
 ```python
-# ✅ BON : Pydantic models séparés
-class CustomerRegistrationRequest(BaseModel):
-    tenant_name: str = Field(min_length=3)
-    organization_name: str
-    admin_email: EmailStr
-
-class CustomerRegistrationResponse(BaseModel):
-    customer_id: UUID
-    tenant_name: str
-    api_key: str
-```
-
-### Error Handling
-```python
-# ✅ BON : Mapping exceptions -> HTTP status
-try:
-    result = await service.register_customer(...)
-except ValidationError as e:
-    raise HTTPException(status_code=400, detail=str(e))
-except BusinessRuleViolation as e:
-    raise HTTPException(status_code=409, detail=str(e))
-```
-
-## 🗂️ Naming Conventions
-
-### Files & Modules
-```
-✅ snake_case pour fichiers : customer_account.py
-✅ PascalCase pour classes : CustomerAccount
-✅ camelCase pour méthodes : registerCustomer() 
-❌ Non : kebab-case pour fichiers Python
-```
-
-### Domain Language
-```python
-# ✅ BON : Langage métier explicite
-class CustomerAccount:
-    def validate_storage_quota(self) -> bool: pass
-    def increment_database_count(self) -> None: pass
-
-# ❌ MAUVAIS : Jargon technique
-class User:  # Trop vague
-    def check_limit(self) -> bool: pass  # Quelle limite ?
-```
-
-## 📦 Dependencies & Libraries
-
-### Core Stack
-```python
-# API Layer
-fastapi>=0.104.0
-pydantic>=2.4.0
-uvicorn>=0.24.0
-
-# Testing  
-pytest>=7.4.0
-pytest-asyncio>=0.21.0
-
-# Development
-black>=23.9.0
-isort>=5.12.0
-mypy>=1.6.0
-
-#Logging
-Loguru
-```
-
-### YAGNI Approach
-```python
-# ✅ Démarrer simple
-InMemoryTenantRepository()
-
-# ✅ Migrer quand nécessaire  
-PostgreSQLTenantRepository(db_pool)
-
-# ❌ Pas de over-engineering prématuré
-ComplexCacheWithRedisAndMemcachedAndConsul()
-```
-
-## 🔐 Security Guidelines
-
-### API Keys
-```python
-# ✅ BON : Préfixe + random secure
+# ✅ GOOD: Consistent format with prefix
 def generate_api_key() -> str:
     return f"kb_{secrets.token_urlsafe(32)}"
 
-# ✅ BON : Validation format
+# ✅ GOOD: Format validation
 if not api_key.startswith("kb_"):
     raise ValidationError("Invalid API key format")
 ```
 
-### Input Validation
+## 🛠️ Key Implementation Details
+
+### Multi-Tenant Isolation
+- **Customer**: Top-level account entity
+- **Tenant**: Isolated workspace within customer
+- **Storage**: Tenant-specific folders in MinIO (`/{tenant_name}/databases/`)
+
+### Authentication Middleware
+Located in `src/api/middleware/authentication.py` - validates API keys across all endpoints except health checks.
+
+### Current MVP Scope
+**Implemented**:
+- ✅ Customer registration with API key generation
+- ✅ Health checks (`/health/`)
+- ✅ Architecture foundation
+- ✅ 84+ passing tests
+
+**Next priorities**:
+1. API key authentication on endpoints
+2. Database management endpoints  
+3. Query execution basics
+4. Migration to persistent storage (only when needed)
+
+## 🎯 Code Generation Guidelines
+
+When generating code:
+
+1. **Type hints mandatory** - MyPy must pass
+2. **Async/await** for all I/O operations
+3. **Domain language** - Use business vocabulary (CustomerAccount, not User)
+4. **Protocol over ABC** - Use `@runtime_checkable` protocols
+5. **Frozen dataclasses** - For all value objects
+6. **Test-first** - Write failing test before implementation
+7. **Repository pattern** - For all data persistence
+8. **Dependency injection** - Use FastAPI Depends()
+
+### Critical File Management Rules
+- **Explicit file names** - `customer_account_service.py`, not `service.py`
+- **Respect hexagonal layers** - Never put domain logic in infrastructure files
+- **Modify existing files** - Don't recreate files that already exist, update them
+- **Follow existing structure** - Check `src/` layout before creating new files
+
+### Example: Adding New Domain Entity
 ```python
-# ✅ BON : Validation Pydantic + Domain
-class TenantName:
-    def __post_init__(self):
-        if not re.match(r'^[a-z0-9-]+$', self.value):
-            raise ValidationError("Invalid characters")
+# 1. Value object
+@dataclass(frozen=True)
+class DatabaseName:
+    value: str
+    def __post_init__(self): # validation
+
+# 2. Port (interface)  
+class DatabaseRepository(Protocol):
+    async def save(self, db: Database) -> str: ...
+
+# 3. Entity
+@dataclass
+class Database:
+    name: DatabaseName
+    tenant_id: str
+    
+# 4. Test first
+def test_database_creation():
+    db = Database(DatabaseName("test-db"), "tenant-123")
+    assert db.name.value == "test-db"
+
+# 5. Service
+class DatabaseManagementService:
+    def __init__(self, repository: DatabaseRepository): ...
 ```
 
-## 🎯 Current MVP Scope
+## 📁 Key Files to Reference
 
-**Implémenté :**
-- ✅ Customer registration avec API key
-- ✅ Health checks
-- ✅ Architecture hexagonale complète
-- ✅ Tests unitaires (84 tests passent)
+- `src/domain/shared/ports/` - All protocol definitions
+- `src/domain/tenant_management/customer_account.py` - Core entity patterns
+- `src/infrastructure/memory/` - YAGNI implementation examples
+- `src/api/routers/customers.py` - FastAPI endpoint patterns
+- `pyproject.toml` - Test configuration and dependencies
 
-**Prochaines étapes (dans l'ordre YAGNI) :**
-1. Auth par API key sur endpoints
-2. Database management endpoints
-3. Query execution basique
-4. Migration vers PostgreSQL/Redis (seulement si nécessaire)
+Focus on following existing patterns rather than introducing new approaches. The codebase prioritizes consistency and simplicity over clever solutions.
 
-## 💡 Code Generation Guidelines
+## ⚠️ Important Constraints
 
-Quand tu génères du code :
-
-1. **Respecte l'architecture hexagonale** - Pas de dépendances inversées
-2. **Type hints obligatoires** - Mypy doit passer
-3. **Tests en premier** - TDD approach
-4. **YAGNI mindset** - Simple d'abord, complexe plus tard
-5. **Domain language** - Utilise le vocabulaire métier
-6. **Immutable value objects** - Frozen dataclasses
-7. **Exception explicit** - Pas de None/False silencieux
-8. **Async/await** - Pour tous les I/O
-
-**Mission :** Construire un service **simple**, **testable** et **évolutif** qui respecte les principes de Clean Architecture et YAGNI.
+- **NEVER recreate existing files** - Always modify/extend existing implementations
+- **Respect hexagonal boundaries** - Domain code stays in `domain/`, infrastructure in `infrastructure/`
+- **Use explicit naming** - File names must clearly indicate their purpose and layer
+- **Check existing structure first** - Use semantic search to understand current implementation before adding new code

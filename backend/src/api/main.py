@@ -6,7 +6,7 @@ YAGNI implementation - minimal endpoints to get started.
 import os
 from fastapi import FastAPI
 
-from .routers import customers, health, databases
+from .routers import customers, health, databases, queries
 from .middleware.authentication import AuthenticationMiddleware
 from src.infrastructure.logging.config import setup_logging, api_logger
 
@@ -27,6 +27,7 @@ app.add_middleware(AuthenticationMiddleware)
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(customers.router, prefix="/api/v1/customers", tags=["customers"])
 app.include_router(databases.router, prefix="/api/v1/databases", tags=["databases"])
+app.include_router(queries.router, prefix="/api/v1", tags=["queries"])
 
 
 @app.get("/")

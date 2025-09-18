@@ -54,7 +54,7 @@ class TestCustomerAccountService:
         tenant_name = "test-company"
         admin_email = "admin@test-company.com"
         organization_name = "Test Company Inc"
-        api_key = "test-api-key-123"
+        api_key = "kb_" + "a" * 40  # satisfy length requirement
 
         mock_repositories["account_repository"].find_by_tenant_name.return_value = None
         mock_repositories["auth_service"].generate_api_key.return_value = api_key

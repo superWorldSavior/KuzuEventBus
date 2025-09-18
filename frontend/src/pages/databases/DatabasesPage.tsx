@@ -21,9 +21,22 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { CreateDatabaseModal } from "@/components/databases/CreateDatabaseModal";
-import { useDatabases } from "@/hooks/useApi";
+import { useDatabases, useDeleteDatabase } from "@/hooks/useApi";
 
-// Types for the actual mock data structure
+// Transform API data to match component expectations
+const transformDatabaseData = (apiDatabase: any) => ({
+  id: apiDatabase.database_id,
+  name: apiDatabase.name,
+  displayName: apiDatabase.name,
+  sizeGB: (apiDatabase.size_bytes || 0) / (1024 * 1024 * 1024), // Convert bytes to GB
+  nodeCount: Math.floor(Math.random() * 10000), // Mock data since not in API yet
+  relationshipCount: Math.floor(Math.random() * 50000), // Mock data since not in API yet
+  status: "active" as const, // All databases are active for now
+  createdAt: new Date(apiDatabase.created_at),
+  lastQueried: apiDatabase.last_accessed ? new Date(apiDatabase.last_accessed) : null,
+});
+
+// Types for the transformed data structure
 interface DatabaseItem {
   id: string;
   name: string;
@@ -44,7 +57,11 @@ export function DatabasesPage() {
   const [sortBy, setSortBy] = useState<"name" | "size" | "created_at">("name");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "uploading">("all");
 
-  const { data: databases = [], isLoading, error } = useDatabases();
+  const { data: rawDatabases = [], isLoading, error } = useDatabases();
+  const deleteDatabase = useDeleteDatabase();
+
+  // Transform API data to component format
+  const databases = rawDatabases.map(transformDatabaseData);
 
   // Filter and sort databases
   const filteredDatabases = databases
@@ -72,11 +89,39 @@ export function DatabasesPage() {
   };
 
   const handleDatabaseSelect = (databaseId: string) => {
-    setSelectedDatabases(prev => 
+    setSelectedDatabases((prev: string[]) => 
       prev.includes(databaseId) 
-        ? prev.filter(id => id !== databaseId)
+        ? prev.filter((id: string) => id !== databaseId)
         : [...prev, databaseId]
     );
+  };
+
+  const handleDeleteDatabase = async (databaseId: string) => {
+    if (window.confirm('Are you sure you want to delete this database? This action cannot be undone.')) {
+      try {
+        await deleteDatabase.mutateAsync(databaseId);
+        // Remove from selected if it was selected
+        setSelectedDatabases((prev: string[]) => prev.filter((id: string) => id !== databaseId));
+      } catch (error) {
+        console.error('Failed to delete database:', error);
+        alert('Failed to delete database. Please try again.');
+      }
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedDatabases.length === 0) return;
+    
+    const confirmMessage = `Are you sure you want to delete ${selectedDatabases.length} database(s)? This action cannot be undone.`;
+    if (window.confirm(confirmMessage)) {
+      try {
+        await Promise.all(selectedDatabases.map(id => deleteDatabase.mutateAsync(id)));
+        setSelectedDatabases([]);
+      } catch (error) {
+        console.error('Failed to delete databases:', error);
+        alert('Failed to delete some databases. Please try again.');
+      }
+    }
   };
 
   const formatSize = (sizeGB: number) => {
@@ -189,7 +234,12 @@ export function DatabasesPage() {
               <DownloadSimple className="w-4 h-4 mr-2" />
               Export
             </Button>
-            <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-red-600 hover:text-red-700"
+              onClick={handleBulkDelete}
+            >
               <Trash className="w-4 h-4 mr-2" />
               Delete
             </Button>
@@ -277,7 +327,10 @@ export function DatabasesPage() {
                       Export
                     </DropdownMenuItem>
                     <DropdownMenuItem 
-                      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                      onClick={(e: React.MouseEvent) => {
+                        e.stopPropagation();
+                        handleDeleteDatabase(database.id);
+                      }}
                       className="text-red-600"
                     >
                       <Trash className="w-4 h-4 mr-2" />

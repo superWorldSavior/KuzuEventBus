@@ -8,8 +8,11 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { DatabasesPage } from "@/pages/databases/DatabasesPage";
 import { QueriesPage } from "@/pages/queries/QueriesPage";
+import { VisualQueryBuilderPage } from "@/pages/queries/VisualQueryBuilderPage";
 import { AnalyticsPage } from "@/pages/analytics/AnalyticsPage";
 import { SettingsPage } from "@/pages/settings/SettingsPage";
+import { SearchPage } from "@/pages/search/SearchPage";
+import { NetworkVisualizationPage } from "@/pages/visualizations/NetworkVisualizationPage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthDebug } from "@/components/debug/AuthDebug";
@@ -75,7 +78,10 @@ function App() {
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/databases/*" element={<DatabasesPage />} />
                   <Route path="/queries/*" element={<QueriesPage />} />
+                  <Route path="/query-builder" element={<VisualQueryBuilderPage />} />
                   <Route path="/analytics/*" element={<AnalyticsPage />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/visualizations" element={<NetworkVisualizationPage />} />
                   <Route path="/settings/*" element={<SettingsPage />} />
                   <Route
                     path="/*"

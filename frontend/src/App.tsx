@@ -1,4 +1,3 @@
-import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -11,6 +10,7 @@ import { AnalyticsPage } from "@/pages/analytics/AnalyticsPage";
 import { SettingsPage } from "@/pages/settings/SettingsPage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthDebug } from "@/components/debug/AuthDebug";
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -26,6 +26,18 @@ function App() {
   return (
     <>
       <Routes>
+        {/* Root redirect */}
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/dashboard" replace />
+            ) : (
+              <Navigate to="/login" replace />
+            )
+          }
+        />
+
         {/* Public routes */}
         <Route
           path="/login"
@@ -61,7 +73,7 @@ function App() {
                   <Route path="/analytics/*" element={<AnalyticsPage />} />
                   <Route path="/settings/*" element={<SettingsPage />} />
                   <Route
-                    path="/"
+                    path="/*"
                     element={<Navigate to="/dashboard" replace />}
                   />
                 </Routes>
@@ -73,6 +85,7 @@ function App() {
         />
       </Routes>
       <Toaster />
+      <AuthDebug />
     </>
   );
 }

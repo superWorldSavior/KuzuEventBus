@@ -1,32 +1,23 @@
 import { useState } from "react";
-import { useLocation } from "react-router-dom";
 import {
   List,
   MagnifyingGlass,
   Bell,
-  CaretRight,
 } from "@phosphor-icons/react";
 import { cn } from "@/utils";
-import { useNavigationStore, generateBreadcrumbs } from "@/store/navigation";
+import { useNavigationStore } from "@/store/navigation";
 import { TenantSwitcher } from "./TenantSwitcher";
 import { UserMenu } from "./UserMenu";
 import { MobileSearchModal } from "./MobileSearchModal";
+import { Breadcrumbs } from "./Breadcrumbs";
 
 interface HeaderProps {
   className?: string;
 }
 
 export function Header({ className }: HeaderProps) {
-  const location = useLocation();
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
-  const { mobileMenuOpen, setMobileMenuOpen, breadcrumbs } =
-    useNavigationStore();
-
-  // Generate breadcrumbs from current path
-  const currentBreadcrumbs =
-    breadcrumbs.length > 0
-      ? breadcrumbs
-      : generateBreadcrumbs(location.pathname);
+  const { mobileMenuOpen, setMobileMenuOpen } = useNavigationStore();
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
 
@@ -45,30 +36,7 @@ export function Header({ className }: HeaderProps) {
           </button>
 
           {/* Breadcrumbs */}
-          <nav className="flex items-center space-x-1 text-sm ml-2 md:ml-0">
-            {currentBreadcrumbs.map((crumb, index) => (
-              <div
-                key={crumb.path || crumb.label}
-                className="flex items-center"
-              >
-                {index > 0 && (
-                  <CaretRight className="w-4 h-4 text-gray-400 mx-1" />
-                )}
-                {crumb.path ? (
-                  <a
-                    href={crumb.path}
-                    className="text-gray-500 hover:text-gray-700 transition-colors"
-                  >
-                    {crumb.label}
-                  </a>
-                ) : (
-                  <span className="text-gray-900 font-medium">
-                    {crumb.label}
-                  </span>
-                )}
-              </div>
-            ))}
-          </nav>
+          <Breadcrumbs className="ml-2 md:ml-0" showHome={false} />
         </div>
 
         {/* Center section - Search */}

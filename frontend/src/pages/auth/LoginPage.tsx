@@ -20,20 +20,31 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     console.log("Form submitted with:", { email, password });
+    
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
-    const result = await login({ email, password });
-    console.log("Login result:", result);
+    try {
+      const result = await login({ email, password });
+      console.log("Login result:", result);
 
-    if (result.success) {
-      console.log("Navigating to dashboard");
-      navigate("/dashboard");
-    } else {
-      setError(result.error || "Login failed");
+      if (result.success) {
+        console.log("Navigating to dashboard");
+        navigate("/dashboard", { replace: true });
+      } else {
+        setError(result.error || "Login failed");
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const handleDemoLogin = async () => {
@@ -41,17 +52,22 @@ export function LoginPage() {
     setIsLoading(true);
     setError("");
 
-    const result = await login(defaultDemoUser);
-    console.log("Demo login result:", result);
+    try {
+      const result = await login(defaultDemoUser);
+      console.log("Demo login result:", result);
 
-    if (result.success) {
-      console.log("Demo login successful, navigating to dashboard");
-      navigate("/dashboard");
-    } else {
-      setError(result.error || "Demo login failed");
+      if (result.success) {
+        console.log("Demo login successful, navigating to dashboard");
+        navigate("/dashboard", { replace: true });
+      } else {
+        setError(result.error || "Demo login failed");
+      }
+    } catch (error) {
+      console.error("Demo login error:", error);
+      setError("Demo login failed. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   return (

@@ -8,6 +8,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from src.domain.tenant_management.customer_account import SubscriptionPlan
 
 
 class CustomerRegistrationRequest(BaseModel):
@@ -23,6 +24,9 @@ class CustomerRegistrationRequest(BaseModel):
     admin_email: EmailStr = Field(..., description="Administrator email address")
     organization_name: str = Field(
         ..., min_length=2, max_length=100, description="Organization display name"
+    )
+    subscription_plan: SubscriptionPlan = Field(
+        default=SubscriptionPlan.BASIC, description="Subscription plan type"
     )
 
     @field_validator("tenant_name")

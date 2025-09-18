@@ -120,8 +120,27 @@ class EmailAddress:
     
     def __post_init__(self) -> None:
         email = self.value.strip().lower()
-        if not email or "@" not in email or "." not in email.split("@")[1]:
+        
+        # Basic validation checks
+        if not email:
             raise ValidationError(f"Invalid email address: {self.value}")
+        
+        if "@" not in email:
+            raise ValidationError(f"Invalid email address: {self.value}")
+        
+        # Split by @ and validate structure
+        parts = email.split("@")
+        if len(parts) != 2:
+            raise ValidationError(f"Invalid email address: {self.value}")
+        
+        local_part, domain_part = parts
+        if not local_part or not domain_part:
+            raise ValidationError(f"Invalid email address: {self.value}")
+        
+        # Domain must contain at least one dot
+        if "." not in domain_part:
+            raise ValidationError(f"Invalid email address: {self.value}")
+        
         # Update the value using object.__setattr__ since dataclass is frozen
         object.__setattr__(self, 'value', email)
     

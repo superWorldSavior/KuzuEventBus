@@ -1,3 +1,4 @@
+import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { LoginPage } from "@/pages/auth/LoginPage";
@@ -6,6 +7,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { DatabasesPage } from "@/pages/databases/DatabasesPage";
 import { QueriesPage } from "@/pages/queries/QueriesPage";
+import { AnalyticsPage } from "@/pages/analytics/AnalyticsPage";
 import { SettingsPage } from "@/pages/settings/SettingsPage";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Toaster } from "@/components/ui/toaster";
@@ -56,6 +58,7 @@ function App() {
                   <Route path="/dashboard" element={<DashboardPage />} />
                   <Route path="/databases/*" element={<DatabasesPage />} />
                   <Route path="/queries/*" element={<QueriesPage />} />
+                  <Route path="/analytics/*" element={<AnalyticsPage />} />
                   <Route path="/settings/*" element={<SettingsPage />} />
                   <Route
                     path="/"

@@ -1,6 +1,64 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiService } from "@/services/api";
 
+// Types for API responses
+interface DashboardStatsResponse {
+  totalDatabases: number;
+  totalStorageGB: number;
+  queriesToday: number;
+  avgQueryTimeMs: number;
+  activeConnections: number;
+  lastUpdated: string;
+}
+
+interface RecentQueryResponse {
+  id: string;
+  database: string;
+  query: string;
+  status: string;
+  executionTime: number | null;
+  timestamp: string;
+  resultCount: number | null;
+}
+
+interface RecentActivityResponse {
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  timestamp: string;
+  user: string;
+  metadata?: Record<string, unknown>;
+}
+
+interface DatabaseResponse {
+  database_id: string;
+  name: string;
+  description?: string;
+  tenant_id?: string;
+  created_at: string;
+  size_bytes: number;
+  table_count: number;
+  last_accessed?: string;
+  schema?: Record<string, unknown>;
+}
+
+interface CreateDatabaseRequest {
+  name: string;
+  description?: string;
+}
+
+interface UpdateDatabaseRequest {
+  name?: string;
+  description?: string;
+}
+
+interface UploadFileRequest {
+  databaseId: string;
+  file: File;
+  onProgress?: (progress: number) => void;
+}
+
 // Query Keys for better cache management
 export const queryKeys = {
   dashboardStats: ['dashboard-stats'] as const,
@@ -16,7 +74,7 @@ export const queryKeys = {
 
 // Dashboard stats query hook
 export function useDashboardStats() {
-  return useQuery({
+  return useQuery<DashboardStatsResponse>({
     queryKey: queryKeys.dashboardStats,
     queryFn: apiService.getDashboardStats,
     refetchInterval: 30000, // Refetch every 30 seconds
@@ -31,16 +89,16 @@ export function useRecentQueries(limit = 10) {
     queryFn: () => apiService.getRecentQueries(limit),
     refetchInterval: 10000,
     staleTime: 5000,
-    select: (data) => {
+    select: (data: RecentQueryResponse[]) => {
       // Transform API data to match component expectations
-      return data?.map((item: any) => ({
+      return data?.map((item) => ({
         id: item.id,
         query: item.query,
-        status: item.status === "completed" ? "success" : item.status,
-        executionTime: item.executionTime,
+        status: (item.status === "completed" ? "success" : item.status) as "success" | "error" | "running",
+        executionTime: item.executionTime || undefined,
         createdAt: item.timestamp, // Transform timestamp to createdAt
         database: item.database,
-        resultCount: item.resultCount,
+        resultCount: item.resultCount || undefined,
       }));
     },
   });
@@ -53,11 +111,11 @@ export function useRecentActivity(limit = 10) {
     queryFn: () => apiService.getRecentActivity(limit),
     refetchInterval: 15000,
     staleTime: 10000,
-    select: (data) => {
+    select: (data: RecentActivityResponse[]) => {
       // Transform API data to match component expectations
-      return data?.map((item: any) => ({
+      return data?.map((item) => ({
         id: item.id,
-        type: item.type,
+        type: item.type as "database_created" | "database_deleted" | "query_executed" | "query_error" | "user_login" | "file_uploaded",
         title: item.title,
         description: item.description,
         timestamp: item.timestamp, // Keep as string, component will handle parsing
@@ -80,7 +138,7 @@ export function usePerformanceMetrics(timeRange = "7d") {
 
 // Database list hook
 export function useDatabases() {
-  return useQuery({
+  return useQuery<DatabaseResponse[]>({
     queryKey: queryKeys.databases,
     queryFn: apiService.getDatabases,
     staleTime: 60000, // Databases don't change as frequently
@@ -89,7 +147,7 @@ export function useDatabases() {
 
 // Individual database hook
 export function useDatabase(databaseId: string) {
-  return useQuery({
+  return useQuery<DatabaseResponse>({
     queryKey: queryKeys.database(databaseId),
     queryFn: () => apiService.getDatabase(databaseId),
     enabled: !!databaseId,
@@ -112,7 +170,7 @@ export function useRunQuery() {
         parameters,
       });
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (_: unknown, variables: { query: string; databaseId: string; parameters?: Record<string, unknown> }) => {
       // Invalidate and refetch queries
       queryClient.invalidateQueries({ queryKey: queryKeys.recentQueries() });
       queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
@@ -126,8 +184,8 @@ export function useRunQuery() {
 export function useCreateDatabase() {
   const queryClient = useQueryClient();
   
-  return useMutation({
-    mutationFn: (data: { name: string; description?: string }) => {
+  return useMutation<DatabaseResponse, Error, CreateDatabaseRequest>({
+    mutationFn: (data: CreateDatabaseRequest) => {
       return apiService.createDatabase(data);
     },
     onSuccess: () => {
@@ -141,13 +199,11 @@ export function useCreateDatabase() {
 export function useUpdateDatabase() {
   const queryClient = useQueryClient();
   
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => {
-      // For now, we'll use a placeholder since updateDatabase doesn't exist in API
-      console.log('Update database not implemented in API service yet');
-      return Promise.resolve({ id, ...data });
+  return useMutation<DatabaseResponse, Error, { id: string; data: UpdateDatabaseRequest }>({
+    mutationFn: ({ id, data }: { id: string; data: UpdateDatabaseRequest }) => {
+      return apiService.updateDatabase(id, data);
     },
-    onSuccess: (updatedDatabase, variables) => {
+    onSuccess: (updatedDatabase: DatabaseResponse, variables: { id: string }) => {
       // Update specific database cache
       queryClient.setQueryData(
         queryKeys.database(variables.id), 
@@ -163,18 +219,38 @@ export function useUpdateDatabase() {
 export function useDeleteDatabase() {
   const queryClient = useQueryClient();
   
-  return useMutation({
+  return useMutation<{ success: boolean; message: string }, Error, string>({
     mutationFn: (id: string) => {
-      // For now, we'll use a placeholder since deleteDatabase doesn't exist in API
-      console.log('Delete database not implemented in API service yet');
-      return Promise.resolve(id);
+      return apiService.deleteDatabase(id);
     },
-    onSuccess: (_, deletedId) => {
+    onSuccess: (_: unknown, deletedId: string) => {
       // Remove database from cache
       queryClient.removeQueries({ queryKey: queryKeys.database(deletedId) });
       queryClient.removeQueries({ queryKey: queryKeys.databaseMetrics(deletedId) });
       // Invalidate databases list
       queryClient.invalidateQueries({ queryKey: queryKeys.databases });
+    },
+  });
+}
+
+// Mutation for uploading files
+export function useUploadFile() {
+  const queryClient = useQueryClient();
+  
+  return useMutation<{ success: boolean; file_id: string; message: string }, Error, UploadFileRequest>({
+    mutationFn: ({ 
+      databaseId, 
+      file, 
+      onProgress 
+    }: UploadFileRequest) => {
+      return apiService.uploadDatabaseFile(databaseId, file, onProgress);
+    },
+    onSuccess: (_: unknown, variables: UploadFileRequest) => {
+      // Invalidate database and related queries after successful upload
+      queryClient.invalidateQueries({ queryKey: queryKeys.database(variables.databaseId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.databases });
+      queryClient.invalidateQueries({ queryKey: queryKeys.databaseMetrics(variables.databaseId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
     },
   });
 }

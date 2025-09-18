@@ -87,6 +87,12 @@ export const navigationItems = [
     description: "Build and execute queries",
   },
   {
+    path: "/query-builder",
+    label: "Query Builder",
+    icon: "Code",
+    description: "Visual query construction",
+  },
+  {
     path: "/analytics",
     label: "Analytics",
     icon: "BarChart",

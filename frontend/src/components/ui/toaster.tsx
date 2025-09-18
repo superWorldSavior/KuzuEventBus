@@ -1,5 +1,3 @@
-import * as React from "react";
-
 interface ToasterProps {}
 
 export function Toaster({}: ToasterProps) {

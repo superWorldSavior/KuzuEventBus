@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth";
 import { apiClient } from "@/services/api";
+import { getDefaultDemoUser } from "@/utils/demo-users";
 import type { LoginRequest, CustomerRegistrationRequest } from "@/types/api";
 
 export function useAuth() {
@@ -32,29 +33,64 @@ export function useAuth() {
 
   const handleLogin = async (credentials: LoginRequest) => {
     try {
+      console.log("Login attempt with:", credentials);
       setLoading(true);
 
+      // Demo user credentials for development
+      const defaultDemoUser = getDefaultDemoUser();
+      console.log("Default demo user:", defaultDemoUser);
+
       // For now, simulate login since the backend doesn't have login endpoint
-      // In the real implementation, this would call POST /api/v1/auth/login
+      // Accept any email/password combination for demo purposes
+      const isValidLogin =
+        (credentials.email === defaultDemoUser.email &&
+          credentials.password === defaultDemoUser.password) ||
+        credentials.email.includes("@"); // Accept any valid email format
+
+      console.log("Is valid login:", isValidLogin);
+
+      if (!isValidLogin) {
+        throw new Error("Invalid email or password");
+      }
+
+      // Create mock user based on login credentials
       const mockUser = {
-        id: "mock-user-id",
+        id:
+          credentials.email === defaultDemoUser.email
+            ? "demo-user-id"
+            : "user-" + Date.now(),
         email: credentials.email,
-        tenant_id: "default-tenant",
-        tenant_name: "default-tenant",
-        organization_name: "Mock Organization",
+        tenant_id:
+          credentials.email === defaultDemoUser.email
+            ? "demo-tenant"
+            : "user-tenant",
+        tenant_name:
+          credentials.email === defaultDemoUser.email
+            ? "Demo Organization"
+            : "User Organization",
+        organization_name:
+          credentials.email === defaultDemoUser.email
+            ? "Demo Organization"
+            : "User Organization",
         role: "admin",
       };
 
-      const mockToken = "mock-jwt-token";
+      const mockToken =
+        credentials.email === defaultDemoUser.email
+          ? "demo-jwt-token"
+          : "user-jwt-token";
 
       // Set up API client with token
       apiClient.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${mockToken}`;
 
+      console.log("About to call login with:", mockUser, mockToken);
       login(mockUser, mockToken);
+      console.log("Login successful");
       return { success: true };
     } catch (error) {
+      console.error("Login error:", error);
       setLoading(false);
       return {
         success: false,

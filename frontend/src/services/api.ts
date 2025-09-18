@@ -44,9 +44,9 @@ apiClient.interceptors.response.use(
       console.error("Access forbidden:", error.response.data);
     }
 
-    if (error.response?.status >= 500) {
+    if (error.response?.status && error.response.status >= 500) {
       // Server error - show generic error message
-      console.error("Server error:", error.response.data);
+      console.error("Server error:", error.response?.data);
     }
 
     return Promise.reject(error);

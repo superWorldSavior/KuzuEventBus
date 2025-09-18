@@ -28,6 +28,8 @@ interface LineChartProps {
   showLegend?: boolean;
   showDots?: boolean;
   strokeWidth?: number;
+  // Alternative interface for simple usage
+  color?: string; // alias for lineColor for backward compatibility
 }
 
 export function LineChart({
@@ -36,13 +38,16 @@ export function LineChart({
   xAxisKey = "name",
   className,
   height = 300,
-  lineColor = "#3B82F6",
+  lineColor,
+  color, // alternative prop name for simpler usage
   showGrid = true,
   showTooltip = true,
   showLegend = false,
   showDots = true,
   strokeWidth = 2,
 }: LineChartProps) {
+  // Use color prop as fallback for lineColor to support both interfaces
+  const finalLineColor = lineColor || color || "#3B82F6";
   return (
     <div className={cn("w-full", className)}>
       <ResponsiveContainer width="100%" height={height}>
@@ -79,10 +84,10 @@ export function LineChart({
           <Line
             type="monotone"
             dataKey={dataKey}
-            stroke={lineColor}
+            stroke={finalLineColor}
             strokeWidth={strokeWidth}
-            dot={showDots ? { r: 4, fill: lineColor } : false}
-            activeDot={{ r: 6, fill: lineColor }}
+            dot={showDots ? { r: 4, fill: finalLineColor } : false}
+            activeDot={{ r: 6, fill: finalLineColor }}
             className="drop-shadow-sm"
           />
         </RechartsLineChart>

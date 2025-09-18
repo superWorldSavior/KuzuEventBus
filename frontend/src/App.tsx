@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useNotificationInit } from "@/hooks/useNotifications";
+import { RealTimeProvider } from "@/contexts/RealTimeContext";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -28,7 +29,7 @@ function App() {
   }
 
   return (
-    <>
+    <RealTimeProvider>
       <Routes>
         {/* Root redirect */}
         <Route
@@ -90,7 +91,7 @@ function App() {
       </Routes>
       <Toaster />
       <AuthDebug />
-    </>
+    </RealTimeProvider>
   );
 }
 

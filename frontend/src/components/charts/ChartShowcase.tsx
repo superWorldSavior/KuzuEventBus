@@ -77,9 +77,8 @@ export function ChartShowcase({ className, isLoading = false }: ChartShowcasePro
         </div>
         <BarChart
           data={storageUsageData}
-          dataKey="value"
+          bars={[{ dataKey: "value", fill: "#3B82F6", name: "Storage (GB)" }]}
           height={200}
-          barColor="#3B82F6"
           showGrid={true}
         />
       </div>

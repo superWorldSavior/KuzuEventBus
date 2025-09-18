@@ -11,6 +11,7 @@ import { MobileSearchModal } from "./MobileSearchModal";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { NotificationCenter } from "./NotificationCenter";
 import { SearchBar } from "./SearchBar";
+import { RealTimeStatus } from "@/components/ui/RealTimeIndicator";
 
 interface HeaderProps {
   className?: string;
@@ -62,6 +63,9 @@ export function Header({ className }: HeaderProps) {
 
           {/* Notifications */}
           <NotificationCenter />
+          
+          {/* Real-time connection status */}
+          <RealTimeStatus />
 
           {/* User menu */}
           <UserMenu />

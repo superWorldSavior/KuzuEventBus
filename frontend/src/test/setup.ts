@@ -12,7 +12,7 @@ beforeAll(() => {
   // Mock window.matchMedia
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
-    value: vi.fn().mockImplementation(query => ({
+    value: vi.fn().mockImplementation((query: string) => ({
       matches: false,
       media: query,
       onchange: null,
@@ -102,7 +102,7 @@ beforeAll(() => {
 
 // Custom matchers for better testing
 expect.extend({
-  toBeInTheDocument: (received) => {
+  toBeInTheDocument: (received: any) => {
     const element = received;
     const pass = element && document.body.contains(element);
     

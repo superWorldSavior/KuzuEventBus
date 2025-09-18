@@ -10,7 +10,7 @@ const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
     defaultOptions: {
       queries: {
         retry: false,
-        cacheTime: 0,
+        gcTime: 0,
       },
     },
   });
@@ -99,10 +99,10 @@ export const createMockDashboardStats = (overrides = {}) => ({
 
 // Test helpers for common scenarios
 export const waitForLoadingToFinish = async () => {
-  const { waitForElementToBeRemoved, queryByText } = await import('@testing-library/react');
+  const { waitForElementToBeRemoved, screen } = await import('@testing-library/react');
   
   // Wait for common loading indicators to disappear
-  const loadingElement = queryByText(/loading/i) || queryByText(/fetching/i);
+  const loadingElement = screen.queryByText(/loading/i) || screen.queryByText(/fetching/i);
   if (loadingElement) {
     await waitForElementToBeRemoved(loadingElement);
   }

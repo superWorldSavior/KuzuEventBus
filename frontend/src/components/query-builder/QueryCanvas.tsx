@@ -1,193 +1,359 @@
-import { useRef, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
+import * as d3 from "d3";
 import {
-  DndContext,
-  DragEndEvent,
-  DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragOverlay,
-  closestCenter,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  useSortable,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  Circle,
-  ArrowRight,
-  X,
   Play,
   Copy,
+  MagnifyingGlassPlus,
+  MagnifyingGlassMinus,
+  Target,
+  Trash,
   Plus,
-  Database,
   Gear,
+  ArrowRight,
+  Circle,
 } from "@phosphor-icons/react";
 import { cn } from "@/utils";
 import { useQueryBuilderStore } from "@/store/queryBuilder";
 
-interface DroppableNodeProps {
-  node: any;
-  onNodeClick: (node: any) => void;
-  onDeleteNode: (nodeId: string) => void;
-  isSelected: boolean;
+// Enhanced node interface for D3 simulation
+interface D3QueryNode extends d3.SimulationNodeDatum {
+  id: string;
+  type: "entity" | "relationship" | "property" | "filter" | "return";
+  label: string;
+  variable?: string;
+  properties?: Record<string, any>;
+  constraints?: any[];
+  selected?: boolean;
+  radius: number;
+  color: string;
+  textColor: string;
 }
 
-function DroppableNode({ node, onNodeClick, onDeleteNode, isSelected }: DroppableNodeProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: node.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={{
-        ...style,
-        left: node.x || 0,
-        top: node.y || 0,
-      }}
-      {...attributes}
-      {...listeners}
-      className={cn(
-        "absolute bg-white border-2 rounded-lg p-3 cursor-pointer min-w-32 shadow-lg transition-all",
-        isSelected ? "border-blue-500 ring-2 ring-blue-200" : "border-gray-300 hover:border-gray-400",
-        isDragging && "z-50"
-      )}
-      onClick={() => onNodeClick(node)}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs bg-blue-500">
-            {node.type === "entity" && <Circle className="w-4 h-4" />}
-            {node.type === "relationship" && <ArrowRight className="w-4 h-4" />}
-          </div>
-          <div>
-            <div className="text-sm font-medium text-gray-900">
-              {node.label}
-            </div>
-            {node.variable && (
-              <div className="text-xs text-gray-500">
-                as {node.variable}
-              </div>
-            )}
-          </div>
-        </div>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDeleteNode(node.id);
-          }}
-          className="text-gray-400 hover:text-red-500 p-1"
-        >
-          <X className="w-3 h-3" />
-        </button>
-      </div>
-
-      {/* Properties */}
-      {node.properties && Object.keys(node.properties).length > 0 && (
-        <div className="mt-2 pt-2 border-t border-gray-200">
-          <div className="text-xs text-gray-500">
-            {Object.entries(node.properties).slice(0, 2).map(([key, value]) => (
-              <div key={key}>
-                {key}: {typeof value === "string" ? value : JSON.stringify(value)}
-              </div>
-            ))}
-            {Object.keys(node.properties).length > 2 && (
-              <div>... +{Object.keys(node.properties).length - 2} more</div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
+interface D3QueryConnection extends d3.SimulationLinkDatum<D3QueryNode> {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  type: "path" | "property" | "filter";
+  label?: string;
+  properties?: Record<string, any>;
 }
 
 interface QueryCanvasProps {
   className?: string;
 }
 
+// Node type configuration
+const nodeConfig = {
+  entity: {
+    color: "#3B82F6",
+    textColor: "#FFFFFF",
+    radius: 25,
+    icon: Circle,
+  },
+  relationship: {
+    color: "#EF4444", 
+    textColor: "#FFFFFF",
+    radius: 20,
+    icon: ArrowRight,
+  },
+  property: {
+    color: "#10B981",
+    textColor: "#FFFFFF", 
+    radius: 15,
+    icon: Gear,
+  },
+  filter: {
+    color: "#F59E0B",
+    textColor: "#000000",
+    radius: 18,
+    icon: Plus,
+  },
+  return: {
+    color: "#8B5CF6",
+    textColor: "#FFFFFF",
+    radius: 22,
+    icon: Target,
+  },
+};
+
 export function QueryCanvas({ className }: QueryCanvasProps) {
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [draggedNode, setDraggedNode] = useState<any>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const simulationRef = useRef<d3.Simulation<D3QueryNode, D3QueryConnection> | null>(null);
+  const transformRef = useRef<d3.ZoomTransform>(d3.zoomIdentity);
+  
+  const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
 
   const {
     currentPattern,
     selectedNodeIds,
     addNode,
     updateNode,
-    removeNode,
     selectNode,
     clearSelection,
     generatedCypher,
-    showNodePalette,
-    toggleNodePalette,
-    showPropertyPanel,
-    togglePropertyPanel,
   } = useQueryBuilderStore();
 
-  const nodes = currentPattern?.nodes || [];
-  const connections = currentPattern?.connections || [];
+  // Transform store data to D3 format
+  const transformToD3Data = useCallback((): {
+    nodes: D3QueryNode[];
+    links: D3QueryConnection[];
+  } => {
+    const nodes: D3QueryNode[] = (currentPattern?.nodes || []).map((node) => {
+      const config = nodeConfig[node.type];
+      return {
+        ...node,
+        radius: config.radius,
+        color: config.color,
+        textColor: config.textColor,
+        selected: selectedNodeIds.includes(node.id),
+      };
+    });
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
+    const links: D3QueryConnection[] = (currentPattern?.connections || []).map((conn) => ({
+      ...conn,
+      source: conn.sourceId,
+      target: conn.targetId,
+    }));
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
-    const node = nodes.find((n: any) => n.id === active.id);
-    if (node) {
-      setDraggedNode(node);
-    }
-  }, [nodes]);
+    return { nodes, links };
+  }, [currentPattern, selectedNodeIds]);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, delta } = event;
+  // Initialize D3 simulation
+  const initializeSimulation = useCallback(() => {
+    if (!svgRef.current) return;
+
+    const { nodes, links } = transformToD3Data();
     
-    setDraggedNode(null);
+    // Create simulation
+    const simulation = d3.forceSimulation<D3QueryNode>(nodes)
+      .force("link", d3.forceLink<D3QueryNode, D3QueryConnection>(links)
+        .id(d => d.id)
+        .distance(80)
+        .strength(0.3)
+      )
+      .force("charge", d3.forceManyBody().strength(-400))
+      .force("center", d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
+      .force("collision", d3.forceCollide().radius((d: any) => d.radius + 5))
+      .alphaDecay(0.02)
+      .velocityDecay(0.3);
 
-    // Handle moving existing nodes
-    if (active && delta) {
-      const activeNode = nodes.find((n: any) => n.id === active.id);
-      if (activeNode) {
-        updateNode(activeNode.id, {
-          x: (activeNode.x || 0) + delta.x,
-          y: (activeNode.y || 0) + delta.y,
-        });
-      }
+    simulationRef.current = simulation;
+    return simulation;
+  }, [dimensions, transformToD3Data]);
+
+  // Setup zoom behavior
+  const setupZoom = useCallback(() => {
+    if (!svgRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    const container = svg.select(".zoom-container");
+
+    const zoom = d3.zoom<SVGSVGElement, unknown>()
+      .scaleExtent([0.2, 4])
+      .on("zoom", (event) => {
+        transformRef.current = event.transform;
+        container.attr("transform", event.transform);
+      });
+
+    svg.call(zoom);
+    return zoom;
+  }, []);
+
+  // Setup drag behavior
+  const setupDrag = useCallback(() => {
+    if (!simulationRef.current) return;
+
+    const simulation = simulationRef.current;
+
+    function dragstarted(event: any, d: D3QueryNode) {
+      if (!event.active) simulation.alphaTarget(0.3).restart();
+      d.fx = d.x;
+      d.fy = d.y;
     }
-  }, [nodes, updateNode]);
 
-  const handleCanvasDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
+    function dragged(event: any, d: D3QueryNode) {
+      d.fx = event.x;
+      d.fy = event.y;
+    }
+
+    function dragended(event: any, d: D3QueryNode) {
+      if (!event.active) simulation.alphaTarget(0);
+      d.fx = null;
+      d.fy = null;
+      
+      // Update store with new position
+      updateNode(d.id, { x: d.x || 0, y: d.y || 0 });
+    }
+
+    return d3.drag<SVGCircleElement, D3QueryNode>()
+      .on("start", dragstarted)
+      .on("drag", dragged)
+      .on("end", dragended);
+  }, [updateNode]);
+
+  // Render the visualization
+  const renderVisualization = useCallback(() => {
+    if (!svgRef.current || !simulationRef.current) return;
+
+    const svg = d3.select(svgRef.current);
+    const simulation = simulationRef.current;
+    const { nodes, links } = transformToD3Data();
+
+    // Update simulation data
+    simulation.nodes(nodes);
+    simulation.force("link", d3.forceLink<D3QueryNode, D3QueryConnection>(links)
+      .id(d => d.id)
+      .distance(80)
+      .strength(0.3)
+    );
+
+    // Clear existing content
+    svg.select(".zoom-container").selectAll("*").remove();
+
+    const container = svg.select(".zoom-container");
+
+    // Add arrow markers
+    const defs = svg.select("defs").empty() ? svg.append("defs") : svg.select("defs");
+    defs.selectAll("marker" as any).remove();
+    
+    defs.append("marker")
+      .attr("id", "arrowhead")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 25)
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "#666");
+
+    // Add selected marker
+    defs.append("marker")
+      .attr("id", "arrowhead-selected")
+      .attr("viewBox", "0 -5 10 10")
+      .attr("refX", 25)
+      .attr("refY", 0)
+      .attr("markerWidth", 6)
+      .attr("markerHeight", 6)
+      .attr("orient", "auto")
+      .append("path")
+      .attr("d", "M0,-5L10,0L0,5")
+      .attr("fill", "#3B82F6");
+
+    // Render links
+    const linkElements = container.selectAll(".link")
+      .data(links, (d: any) => d.id)
+      .join("g")
+      .attr("class", "link");
+
+    linkElements.append("line")
+      .attr("stroke", "#666")
+      .attr("stroke-width", 2)
+      .attr("marker-end", "url(#arrowhead)")
+      .style("cursor", "pointer")
+      .on("click", function(event, _d) {
+        event.stopPropagation();
+        // Handle link selection
+      });
+
+    // Add link labels
+    linkElements.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", -5)
+      .attr("font-size", "12px")
+      .attr("fill", "#666")
+      .style("pointer-events", "none")
+      .text(d => d.label || d.type);
+
+    // Render nodes
+    const nodeElements = container.selectAll(".node")
+      .data(nodes, (d: any) => d.id)
+      .join("g")
+      .attr("class", "node")
+      .style("cursor", "grab");
+
+    // Apply drag behavior
+    const dragBehavior = setupDrag();
+    if (dragBehavior) {
+      nodeElements.call(dragBehavior as any);
+    }
+
+    nodeElements
+      .on("click", function(event, d) {
+        event.stopPropagation();
+        selectNode(d.id, event.ctrlKey || event.metaKey);
+      })
+      .on("dblclick", function(event, _d) {
+        event.stopPropagation();
+        // Open properties panel
+      });
+
+    // Node circles
+    nodeElements.append("circle")
+      .attr("r", d => d.radius)
+      .attr("fill", d => d.color)
+      .attr("stroke", d => d.selected ? "#3B82F6" : "#fff")
+      .attr("stroke-width", d => d.selected ? 3 : 2)
+      .style("filter", d => d.selected ? "drop-shadow(0 0 6px rgba(59, 130, 246, 0.5))" : "none");
+
+    // Node labels
+    nodeElements.append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", 4)
+      .attr("font-size", "12px")
+      .attr("font-weight", "bold")
+      .attr("fill", d => d.textColor)
+      .style("pointer-events", "none")
+      .text(d => d.label.length > 10 ? d.label.substring(0, 8) + "..." : d.label);
+
+    // Variable labels
+    nodeElements.filter((d: any) => d.variable && d.variable.trim() !== "")
+      .append("text")
+      .attr("text-anchor", "middle")
+      .attr("dy", d => d.radius + 15)
+      .attr("font-size", "10px")
+      .attr("fill", "#666")
+      .style("pointer-events", "none")
+      .text(d => d.variable!);
+
+    // Update positions on simulation tick
+    simulation.on("tick", () => {
+      linkElements.select("line")
+        .attr("x1", (d: any) => d.source.x)
+        .attr("y1", (d: any) => d.source.y)
+        .attr("x2", (d: any) => d.target.x)
+        .attr("y2", (d: any) => d.target.y);
+
+      linkElements.select("text")
+        .attr("x", (d: any) => (d.source.x + d.target.x) / 2)
+        .attr("y", (d: any) => (d.source.y + d.target.y) / 2);
+
+      nodeElements.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
+    });
+
+    // Restart simulation
+    simulation.alpha(0.3).restart();
+  }, [transformToD3Data, setupDrag, selectNode, updateNode]);
+
+  // Handle canvas drop for new nodes
+  const handleCanvasDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
     
     try {
-      const dropData = e.dataTransfer.getData("application/json");
+      const dropData = event.dataTransfer.getData("application/json");
       if (dropData) {
         const { nodeType } = JSON.parse(dropData);
-        const rect = canvasRef.current?.getBoundingClientRect();
+        const rect = svgRef.current?.getBoundingClientRect();
+        
         if (rect) {
-          const x = e.clientX - rect.left;
-          const y = e.clientY - rect.top;
+          // Apply current zoom transform to get actual canvas coordinates
+          const transform = transformRef.current;
+          const x = (event.clientX - rect.left - transform.x) / transform.k;
+          const y = (event.clientY - rect.top - transform.y) / transform.k;
           
           const newNode = {
-            type: nodeType.type as 'entity' | 'relationship',
+            type: nodeType.type as 'entity' | 'relationship' | 'property' | 'filter' | 'return',
             label: nodeType.label,
             x,
             y,
@@ -203,46 +369,88 @@ export function QueryCanvas({ className }: QueryCanvasProps) {
     }
   }, [addNode]);
 
-  const handleCanvasDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+  // Control functions
+  const zoomIn = useCallback(() => {
+    if (svgRef.current) {
+      const svg = d3.select(svgRef.current);
+      svg.transition().call(d3.zoom<SVGSVGElement, unknown>().scaleBy, 1.5);
+    }
   }, []);
 
-  const handleNodeClick = useCallback((node: any) => {
-    if (selectedNodeIds.includes(node.id)) {
-      clearSelection();
-    } else {
-      selectNode(node.id);
+  const zoomOut = useCallback(() => {
+    if (svgRef.current) {
+      const svg = d3.select(svgRef.current);
+      svg.transition().call(d3.zoom<SVGSVGElement, unknown>().scaleBy, 0.75);
     }
-  }, [selectedNodeIds, selectNode, clearSelection]);
+  }, []);
 
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      clearSelection();
-    }
-  }, [clearSelection]);
+  const zoomFit = useCallback(() => {
+    if (!svgRef.current || !currentPattern?.nodes.length) return;
 
-  const cypherQuery = generatedCypher;
+    const svg = d3.select(svgRef.current);
+    const nodes = currentPattern.nodes;
+    
+    // Calculate bounding box
+    const xExtent = d3.extent(nodes, d => d.x) as [number, number];
+    const yExtent = d3.extent(nodes, d => d.y) as [number, number];
+    
+    const width = xExtent[1] - xExtent[0];
+    const height = yExtent[1] - yExtent[0];
+    const centerX = (xExtent[0] + xExtent[1]) / 2;
+    const centerY = (yExtent[0] + yExtent[1]) / 2;
+    
+    // Calculate scale to fit
+    const scale = 0.8 / Math.max(width / dimensions.width, height / dimensions.height);
+    const translate = [dimensions.width / 2 - scale * centerX, dimensions.height / 2 - scale * centerY];
+    
+    const transform = d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale);
+    
+    svg.transition()
+      .duration(750)
+      .call(d3.zoom<SVGSVGElement, unknown>().transform, transform);
+  }, [currentPattern, dimensions]);
+
+  // Initialize and update visualization
+  useEffect(() => {
+    const simulation = initializeSimulation();
+    setupZoom();
+    
+    return () => {
+      if (simulation) {
+        simulation.stop();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    renderVisualization();
+  }, [renderVisualization]);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const container = svgRef.current?.parentElement;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        setDimensions({ width: rect.width, height: rect.height });
+      }
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const nodes = currentPattern?.nodes || [];
+  const connections = currentPattern?.connections || [];
 
   return (
     <div className={cn("flex-1 flex flex-col", className)}>
       {/* Toolbar */}
       <div className="bg-white border-b border-gray-200 p-3 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          {/* Panel toggles */}
-          {!showNodePalette && (
-            <button
-              onClick={toggleNodePalette}
-              className="inline-flex items-center px-2 py-1.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200"
-              title="Show Node Palette"
-            >
-              <Database className="w-4 h-4 mr-1" />
-              Nodes
-            </button>
-          )}
-          
           <button
-            disabled={!cypherQuery}
+            disabled={!generatedCypher}
             className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Play className="w-4 h-4 mr-1" />
@@ -250,8 +458,8 @@ export function QueryCanvas({ className }: QueryCanvasProps) {
           </button>
           
           <button
-            onClick={() => navigator.clipboard.writeText(cypherQuery || "")}
-            disabled={!cypherQuery}
+            onClick={() => navigator.clipboard.writeText(generatedCypher || "")}
+            disabled={!generatedCypher}
             className="inline-flex items-center px-3 py-1.5 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Copy className="w-4 h-4 mr-1" />
@@ -260,170 +468,102 @@ export function QueryCanvas({ className }: QueryCanvasProps) {
         </div>
 
         <div className="flex items-center space-x-2">
+          {/* Zoom controls */}
+          <div className="flex items-center space-x-1 border border-gray-300 rounded-lg">
+            <button
+              onClick={zoomIn}
+              className="p-1.5 hover:bg-gray-100 text-gray-600"
+              title="Zoom In"
+            >
+              <MagnifyingGlassPlus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={zoomOut}
+              className="p-1.5 hover:bg-gray-100 text-gray-600"
+              title="Zoom Out"
+            >
+              <MagnifyingGlassMinus className="w-4 h-4" />
+            </button>
+            <button
+              onClick={zoomFit}
+              className="p-1.5 hover:bg-gray-100 text-gray-600"
+              title="Fit to View"
+            >
+              <Target className="w-4 h-4" />
+            </button>
+          </div>
+
           <span className="text-sm text-gray-500">
             {nodes.length} node{nodes.length !== 1 ? 's' : ''}, {connections.length} connection{connections.length !== 1 ? 's' : ''}
           </span>
-          
-          {!showPropertyPanel && (
-            <button
-              onClick={togglePropertyPanel}
-              className="inline-flex items-center px-2 py-1.5 bg-gray-100 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-200"
-              title="Show Properties"
-            >
-              Properties
-              <Gear className="w-4 h-4 ml-1" />
-            </button>
-          )}
           
           <button
             onClick={clearSelection}
             className="p-1.5 text-gray-400 hover:text-gray-600 rounded"
             title="Clear Selection"
           >
-            <X className="w-4 h-4" />
+            <Trash className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Canvas */}
+      {/* D3 Canvas */}
       <div className="flex-1 relative overflow-hidden bg-gray-50">
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
+        <svg
+          ref={svgRef}
+          width="100%"
+          height="100%"
+          onDrop={handleCanvasDrop}
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onClick={() => clearSelection()}
         >
-          <div
-            ref={canvasRef}
-            className="w-full h-full relative"
-            onDrop={handleCanvasDrop}
-            onDragOver={handleCanvasDragOver}
-            onClick={handleCanvasClick}
-          >
-            {/* Grid pattern */}
-            <div className="absolute inset-0 opacity-30">
-              <svg width="100%" height="100%" className="pointer-events-none">
-                <defs>
-                  <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
-                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e5e7eb" strokeWidth="1"/>
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#grid)" />
-              </svg>
+          <defs>
+            {/* Gradient backgrounds */}
+            <radialGradient id="nodeGradient" cx="0.3" cy="0.3">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.3)" />
+              <stop offset="100%" stopColor="rgba(0,0,0,0.1)" />
+            </radialGradient>
+          </defs>
+          
+          {/* Grid pattern */}
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e5e7eb" strokeWidth="1" opacity="0.5"/>
+          </pattern>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+          
+          {/* Zoom container */}
+          <g className="zoom-container" />
+        </svg>
+
+        {/* Empty state */}
+        {nodes.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center text-gray-400">
+              <Plus className="w-12 h-12 mx-auto mb-2" />
+              <p className="text-lg font-medium">Drop nodes here to start building your query</p>
+              <p className="text-sm">Drag nodes from the palette to create your graph query</p>
             </div>
-
-            {/* Connections */}
-            <svg className="absolute inset-0 pointer-events-none">
-              {connections.map((connection: any) => {
-                const sourceNode = nodes.find((n: any) => n.id === connection.sourceId);
-                const targetNode = nodes.find((n: any) => n.id === connection.targetId);
-                
-                if (!sourceNode || !targetNode) return null;
-
-                const x1 = (sourceNode.x || 0) + 64; // Center of node
-                const y1 = (sourceNode.y || 0) + 24;
-                const x2 = (targetNode.x || 0) + 64;
-                const y2 = (targetNode.y || 0) + 24;
-
-                return (
-                  <g key={connection.id}>
-                    <line
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke="#6b7280"
-                      strokeWidth="2"
-                      markerEnd="url(#arrowhead)"
-                    />
-                    {connection.label && (
-                      <text
-                        x={(x1 + x2) / 2}
-                        y={(y1 + y2) / 2 - 5}
-                        textAnchor="middle"
-                        className="text-xs fill-gray-600 bg-white"
-                      >
-                        {connection.label}
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
-              
-              {/* Arrow marker */}
-              <defs>
-                <marker
-                  id="arrowhead"
-                  markerWidth="10"
-                  markerHeight="7"
-                  refX="9"
-                  refY="3.5"
-                  orient="auto"
-                >
-                  <polygon
-                    points="0 0, 10 3.5, 0 7"
-                    fill="#6b7280"
-                  />
-                </marker>
-              </defs>
-            </svg>
-
-            {/* Nodes */}
-            <SortableContext items={nodes.map((n: any) => n.id)} strategy={verticalListSortingStrategy}>
-              {nodes.map((node: any) => (
-                <DroppableNode
-                  key={node.id}
-                  node={node}
-                  onNodeClick={handleNodeClick}
-                  onDeleteNode={removeNode}
-                  isSelected={selectedNodeIds.includes(node.id)}
-                />
-              ))}
-            </SortableContext>
-
-            {/* Drop zone indicator */}
-            {nodes.length === 0 && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center text-gray-400">
-                  <Plus className="w-12 h-12 mx-auto mb-2" />
-                  <p className="text-lg font-medium">Drop nodes here to start building your query</p>
-                  <p className="text-sm">Drag nodes from the palette on the left</p>
-                </div>
-              </div>
-            )}
           </div>
-
-          <DragOverlay>
-            {draggedNode && (
-              <div className="bg-white border-2 border-blue-500 rounded-lg p-3 shadow-lg opacity-90">
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs bg-blue-500">
-                    <Circle className="w-4 h-4" />
-                  </div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {draggedNode.label}
-                  </div>
-                </div>
-              </div>
-            )}
-          </DragOverlay>
-        </DndContext>
+        )}
       </div>
 
       {/* Generated Query Preview */}
-      {cypherQuery && (
+      {generatedCypher && (
         <div className="bg-gray-900 text-gray-100 p-3 border-t border-gray-200">
           <div className="flex items-center justify-between mb-2">
             <h4 className="text-sm font-medium">Generated Cypher Query</h4>
             <button
-              onClick={() => navigator.clipboard.writeText(cypherQuery)}
+              onClick={() => navigator.clipboard.writeText(generatedCypher)}
               className="text-xs text-gray-400 hover:text-gray-200"
             >
               Copy
             </button>
           </div>
-          <pre className="text-xs font-mono overflow-x-auto">
-            {cypherQuery}
+          <pre className="text-xs font-mono overflow-x-auto whitespace-pre-wrap">
+            {generatedCypher}
           </pre>
         </div>
       )}

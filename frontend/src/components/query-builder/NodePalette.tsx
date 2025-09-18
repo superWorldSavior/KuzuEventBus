@@ -1,253 +1,252 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Circle,
   ArrowRight,
-  Funnel,
-  ArrowLeft,
+  Gear,
+  Plus,
+  Target,
   Database,
-  Buildings,
-  Package,
-  MapPin,
-  Calendar,
-  Lightbulb,
+  X,
+  MagnifyingGlass,
+  Tag,
 } from "@phosphor-icons/react";
 import { cn } from "@/utils";
-import { useQueryBuilderStore } from "@/store/queryBuilder";
 
 interface NodeType {
-  id: string;
   type: "entity" | "relationship" | "property" | "filter" | "return";
   label: string;
-  icon: React.ReactNode;
-  color: string;
   description: string;
-  category: "nodes" | "relationships" | "operations";
+  color: string;
+  icon: React.ElementType;
+  category: "basic" | "advanced" | "filter";
+}
+
+interface NodePaletteProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+  className?: string;
 }
 
 const nodeTypes: NodeType[] = [
-  // Entity nodes
+  // Basic nodes
   {
-    id: "person",
     type: "entity",
-    label: "Person",
-    icon: <Circle className="w-4 h-4" />,
+    label: "Entity",
+    description: "A node in the graph (Person, Product, etc.)",
     color: "#3B82F6",
-    description: "Represents a person or individual",
-    category: "nodes",
+    icon: Circle,
+    category: "basic",
   },
   {
-    id: "organization",
-    type: "entity",
-    label: "Organization",
-    icon: <Buildings className="w-4 h-4" />,
-    color: "#EF4444",
-    description: "Represents a company or organization",
-    category: "nodes",
-  },
-  {
-    id: "product",
-    type: "entity",
-    label: "Product",
-    icon: <Package className="w-4 h-4" />,
-    color: "#10B981",
-    description: "Represents a product or service",
-    category: "nodes",
-  },
-  {
-    id: "location",
-    type: "entity",
-    label: "Location",
-    icon: <MapPin className="w-4 h-4" />,
-    color: "#F59E0B",
-    description: "Represents a place or location",
-    category: "nodes",
-  },
-  {
-    id: "event",
-    type: "entity",
-    label: "Event",
-    icon: <Calendar className="w-4 h-4" />,
-    color: "#8B5CF6",
-    description: "Represents an event or activity",
-    category: "nodes",
-  },
-  {
-    id: "concept",
-    type: "entity",
-    label: "Concept",
-    icon: <Lightbulb className="w-4 h-4" />,
-    color: "#6B7280",
-    description: "Represents an abstract concept",
-    category: "nodes",
-  },
-  // Relationship
-  {
-    id: "relationship",
     type: "relationship",
     label: "Relationship",
-    icon: <ArrowRight className="w-4 h-4" />,
-    color: "#059669",
-    description: "Connect nodes with relationships",
-    category: "relationships",
+    description: "A connection between entities",
+    color: "#EF4444",
+    icon: ArrowRight,
+    category: "basic",
   },
-  // Operations
+  
+  // Advanced nodes
   {
-    id: "filter",
-    type: "filter",
-    label: "Filter",
-    icon: <Funnel className="w-4 h-4" />,
-    color: "#DC2626",
-    description: "Add conditions to filter results",
-    category: "operations",
+    type: "property",
+    label: "Property",
+    description: "Node or relationship property",
+    color: "#10B981",
+    icon: Gear,
+    category: "advanced",
   },
   {
-    id: "return",
     type: "return",
     label: "Return",
-    icon: <ArrowLeft className="w-4 h-4" />,
-    color: "#7C3AED",
-    description: "Specify what to return from query",
-    category: "operations",
+    description: "Values to return from query",
+    color: "#8B5CF6",
+    icon: Target,
+    category: "advanced",
+  },
+  
+  // Filter nodes
+  {
+    type: "filter",
+    label: "Filter",
+    description: "Conditions and constraints",
+    color: "#F59E0B",
+    icon: Plus,
+    category: "filter",
   },
 ];
 
-interface NodePaletteProps {
-  className?: string;
-  isCollapsed?: boolean;
-  onToggleCollapse?: () => void;
-}
+const categories = [
+  { id: "all", label: "All Nodes", icon: Database },
+  { id: "basic", label: "Basic", icon: Circle },
+  { id: "advanced", label: "Advanced", icon: Gear },
+  { id: "filter", label: "Filters", icon: Plus },
+];
 
-export function NodePalette({ className, isCollapsed = false, onToggleCollapse }: NodePaletteProps) {
-  const [activeCategory, setActiveCategory] = useState<"nodes" | "relationships" | "operations">("nodes");
-  const { showNodePalette, toggleNodePalette } = useQueryBuilderStore();
+export function NodePalette({ isOpen, onClose, className }: NodePaletteProps) {
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
-  if (!showNodePalette) {
-    return null;
-  }
+  // Default to always visible if isOpen not provided
+  const isVisible = isOpen !== undefined ? isOpen : true;
 
-  const categories = [
-    { id: "nodes" as const, label: "Nodes", count: nodeTypes.filter(n => n.category === "nodes").length },
-    { id: "relationships" as const, label: "Relations", count: nodeTypes.filter(n => n.category === "relationships").length },
-    { id: "operations" as const, label: "Operations", count: nodeTypes.filter(n => n.category === "operations").length },
-  ];
-
-  const filteredNodeTypes = nodeTypes.filter(node => node.category === activeCategory);
+  const filteredNodes = nodeTypes.filter((node) => {
+    const matchesCategory = selectedCategory === "all" || node.category === selectedCategory;
+    const matchesSearch = searchTerm === "" || 
+      node.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      node.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesCategory && matchesSearch;
+  });
 
   const handleDragStart = (e: React.DragEvent, nodeType: NodeType) => {
-    e.dataTransfer.setData("application/json", JSON.stringify({
-      type: "node-type",
-      nodeType,
-    }));
+    e.dataTransfer.setData("application/json", JSON.stringify({ nodeType }));
     e.dataTransfer.effectAllowed = "copy";
+    
+    // Add visual feedback
+    const dragImage = document.createElement("div");
+    dragImage.className = "inline-flex items-center px-3 py-2 bg-white border-2 border-blue-500 rounded-lg shadow-lg";
+    dragImage.innerHTML = `
+      <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs mr-2" style="background-color: ${nodeType.color}">
+        •
+      </div>
+      <span class="text-sm font-medium">${nodeType.label}</span>
+    `;
+    dragImage.style.position = "absolute";
+    dragImage.style.top = "-1000px";
+    document.body.appendChild(dragImage);
+    e.dataTransfer.setDragImage(dragImage, 0, 0);
+    
+    // Clean up drag image
+    setTimeout(() => {
+      document.body.removeChild(dragImage);
+    }, 0);
   };
 
+  if (!isVisible) return null;
+
   return (
-    <div className={cn(
-      "flex flex-col bg-white border-r border-gray-200 transition-all duration-300",
-      isCollapsed ? "w-16" : "w-64",
-      className
-    )}>
+    <div
+      className={cn(
+        "w-80 bg-white border-r border-gray-200 flex flex-col h-full shadow-sm",
+        className
+      )}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-3 border-b border-gray-200">
-        {!isCollapsed && (
-          <h3 className="text-sm font-medium text-gray-900">Node Palette</h3>
-        )}
-        <button
-          onClick={onToggleCollapse || toggleNodePalette}
-          className="p-1 text-gray-400 hover:text-gray-600 rounded"
-          title={isCollapsed ? "Expand" : "Collapse"}
-        >
-          {isCollapsed ? (
-            <Database className="w-4 h-4" />
-          ) : (
-            <ArrowLeft className="w-4 h-4" />
-          )}
-        </button>
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+            <Database className="w-5 h-5 mr-2 text-blue-600" />
+            Node Palette
+          </h2>
+          <button
+            onClick={onClose || (() => {})}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Search */}
+        <div className="relative">
+          <MagnifyingGlass className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search nodes..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+          />
+        </div>
       </div>
 
-      {!isCollapsed && (
-        <>
-          {/* Category Tabs */}
-          <div className="flex border-b border-gray-200">
-            {categories.map((category) => (
+      {/* Categories */}
+      <div className="p-4 border-b border-gray-200">
+        <div className="space-y-1">
+          {categories.map((category) => {
+            const Icon = category.icon;
+            return (
               <button
                 key={category.id}
-                onClick={() => setActiveCategory(category.id)}
+                onClick={() => setSelectedCategory(category.id)}
                 className={cn(
-                  "flex-1 px-2 py-2 text-xs font-medium border-b-2 transition-colors",
-                  activeCategory === category.id
-                    ? "border-blue-500 text-blue-600 bg-blue-50"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                  "w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors",
+                  selectedCategory === category.id
+                    ? "bg-blue-100 text-blue-700"
+                    : "text-gray-600 hover:bg-gray-100"
                 )}
               >
-                <div className="text-center">
-                  <div>{category.label}</div>
-                  <div className="text-xs opacity-75">({category.count})</div>
-                </div>
+                <Icon className="w-4 h-4 mr-2" />
+                {category.label}
+                <span className="ml-auto text-xs">
+                  {category.id === "all" 
+                    ? nodeTypes.length 
+                    : nodeTypes.filter(n => n.category === category.id).length
+                  }
+                </span>
               </button>
-            ))}
-          </div>
-
-          {/* Node Types */}
-          <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            {filteredNodeTypes.map((nodeType) => (
-              <div
-                key={nodeType.id}
-                draggable
-                onDragStart={(e) => handleDragStart(e, nodeType)}
-                className="group relative bg-white border border-gray-200 rounded-lg p-3 cursor-grab active:cursor-grabbing hover:border-gray-300 hover:shadow-sm transition-all"
-              >
-                <div className="flex items-start space-x-3">
-                  <div
-                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-white"
-                    style={{ backgroundColor: nodeType.color }}
-                  >
-                    {nodeType.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium text-gray-900 truncate">
-                      {nodeType.label}
-                    </h4>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                      {nodeType.description}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Drag indicator */}
-                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="w-3 h-3 border-2 border-dashed border-gray-400 rounded"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Instructions */}
-          <div className="p-3 border-t border-gray-200 bg-gray-50">
-            <p className="text-xs text-gray-500 text-center">
-              Drag nodes onto the canvas to build your query
-            </p>
-          </div>
-        </>
-      )}
-
-      {/* Collapsed view */}
-      {isCollapsed && (
-        <div className="p-2 space-y-2">
-          {nodeTypes.slice(0, 6).map((nodeType) => (
-            <div
-              key={nodeType.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, nodeType)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-white cursor-grab active:cursor-grabbing hover:scale-110 transition-transform"
-              style={{ backgroundColor: nodeType.color }}
-              title={nodeType.label}
-            >
-              {nodeType.icon}
-            </div>
-          ))}
+            );
+          })}
         </div>
-      )}
+      </div>
+
+      {/* Node List */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="space-y-3">
+          {filteredNodes.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Tag className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No nodes found</p>
+              {searchTerm && (
+                <p className="text-xs">Try a different search term</p>
+              )}
+            </div>
+          ) : (
+            filteredNodes.map((nodeType) => {
+              const Icon = nodeType.icon;
+              return (
+                <div
+                  key={nodeType.type}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, nodeType)}
+                  className="group p-3 border border-gray-200 rounded-lg cursor-grab hover:border-gray-300 hover:shadow-sm active:cursor-grabbing transition-all bg-white"
+                >
+                  <div className="flex items-start space-x-3">
+                    <div
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-sm font-medium flex-shrink-0 group-hover:scale-105 transition-transform"
+                      style={{ backgroundColor: nodeType.color }}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-medium text-gray-900 mb-1">
+                        {nodeType.label}
+                      </h3>
+                      <p className="text-xs text-gray-500 leading-relaxed">
+                        {nodeType.description}
+                      </p>
+                      <div className="mt-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                          {nodeType.category}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Instructions */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="text-xs text-gray-600 space-y-1">
+          <p className="font-medium">How to use:</p>
+          <p>• Drag nodes to the canvas to add them</p>
+          <p>• Click nodes to select and edit properties</p>
+          <p>• Connect nodes to build query patterns</p>
+        </div>
+      </div>
     </div>
   );
 }

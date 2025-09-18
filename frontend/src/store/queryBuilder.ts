@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { CypherQueryGenerator } from "@/utils/cypherGenerator";
 
 export interface QueryNode {
   id: string;
@@ -343,117 +344,15 @@ export const useQueryBuilderStore = create<QueryBuilderStore>()(
       // Query generation
       generateCypher: () => {
         const state = get();
-        const { nodes, connections } = state.currentPattern;
+        const result = CypherQueryGenerator.generateQuery(state.currentPattern);
+        
+        set({
+          generatedCypher: result.query,
+          isValidQuery: result.isValid,
+          queryErrors: result.errors,
+        });
 
-        if (nodes.length === 0) {
-          set({ generatedCypher: "", isValidQuery: false, queryErrors: [] });
-          return "";
-        }
-
-        try {
-          let cypherParts: string[] = [];
-
-          // Build MATCH clauses
-          const matchClauses: string[] = [];
-          
-          // Add standalone nodes
-          nodes.forEach(node => {
-            if (node.type === "entity") {
-              let nodePattern = `(${node.variable}`;
-              if (node.label) {
-                nodePattern += `:${node.label}`;
-              }
-              if (node.properties && Object.keys(node.properties).length > 0) {
-                const props = Object.entries(node.properties)
-                  .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-                  .join(", ");
-                nodePattern += ` {${props}}`;
-              }
-              nodePattern += ")";
-              
-              // Check if this node is part of any connection
-              const hasConnections = connections.some(conn => 
-                conn.sourceId === node.id || conn.targetId === node.id
-              );
-              
-              if (!hasConnections) {
-                matchClauses.push(nodePattern);
-              }
-            }
-          });
-
-          // Add connected patterns
-          connections.forEach(connection => {
-            const sourceNode = nodes.find(n => n.id === connection.sourceId);
-            const targetNode = nodes.find(n => n.id === connection.targetId);
-            
-            if (sourceNode && targetNode && connection.type === "path") {
-              let pattern = `(${sourceNode.variable}`;
-              if (sourceNode.label) pattern += `:${sourceNode.label}`;
-              pattern += ")";
-
-              if (connection.label) {
-                pattern += `-[:${connection.label}]->`;
-              } else {
-                pattern += "->";
-              }
-
-              pattern += `(${targetNode.variable}`;
-              if (targetNode.label) pattern += `:${targetNode.label}`;
-              pattern += ")";
-
-              matchClauses.push(pattern);
-            }
-          });
-
-          if (matchClauses.length > 0) {
-            cypherParts.push(`MATCH ${matchClauses.join(", ")}`);
-          }
-
-          // Add WHERE clauses for constraints
-          const whereConditions: string[] = [];
-          nodes.forEach(node => {
-            if (node.constraints) {
-              node.constraints.forEach(constraint => {
-                const condition = `${node.variable}.${constraint.property} ${constraint.operator} ${JSON.stringify(constraint.value)}`;
-                whereConditions.push(condition);
-              });
-            }
-          });
-
-          if (whereConditions.length > 0) {
-            cypherParts.push(`WHERE ${whereConditions.join(" AND ")}`);
-          }
-
-          // Add RETURN clause
-          const returnNodes = nodes.filter(n => n.type === "return" || n.type === "entity");
-          if (returnNodes.length > 0) {
-            const returnVars = returnNodes.map(n => n.variable).join(", ");
-            cypherParts.push(`RETURN ${returnVars}`);
-          } else if (nodes.length > 0) {
-            // Default return all nodes
-            const allVars = nodes.map(n => n.variable).join(", ");
-            cypherParts.push(`RETURN ${allVars}`);
-          }
-
-          const cypher = cypherParts.join("\n");
-          
-          set({
-            generatedCypher: cypher,
-            isValidQuery: cypher.trim().length > 0,
-            queryErrors: [],
-          });
-
-          return cypher;
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : "Unknown error";
-          set({
-            generatedCypher: "",
-            isValidQuery: false,
-            queryErrors: [errorMessage],
-          });
-          return "";
-        }
+        return result.query;
       },
 
       validateQuery: () => {

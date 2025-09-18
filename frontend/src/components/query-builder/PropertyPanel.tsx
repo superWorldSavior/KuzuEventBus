@@ -1,400 +1,440 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   X,
   Plus,
   Trash,
-  ArrowRight,
-  Circle,
-  Funnel,
+  Eye,
+  TextT,
+  Hash,
+  Calendar,
+  ToggleLeft,
+  Gear,
 } from "@phosphor-icons/react";
 import { cn } from "@/utils";
-import { useQueryBuilderStore, QueryConstraint } from "@/store/queryBuilder";
+import { useQueryBuilderStore } from "@/store/queryBuilder";
+import type { QueryConstraint } from "@/store/queryBuilder";
 
 interface PropertyPanelProps {
+  isOpen?: boolean;
+  onClose?: () => void;
   className?: string;
 }
+
+const propertyTypes = [
+  { value: "string", label: "Text", icon: TextT },
+  { value: "number", label: "Number", icon: Hash },
+  { value: "boolean", label: "Boolean", icon: ToggleLeft },
+  { value: "date", label: "Date", icon: Calendar },
+];
 
 const operators = [
   { value: "=", label: "Equals" },
   { value: "!=", label: "Not equals" },
   { value: ">", label: "Greater than" },
   { value: "<", label: "Less than" },
-  { value: ">=", label: "Greater than or equal" },
-  { value: "<=", label: "Less than or equal" },
+  { value: ">=", label: "Greater or equal" },
+  { value: "<=", label: "Less or equal" },
   { value: "CONTAINS", label: "Contains" },
   { value: "STARTS_WITH", label: "Starts with" },
   { value: "ENDS_WITH", label: "Ends with" },
 ];
 
-const commonProperties = [
-  "id",
-  "name",
-  "title", 
-  "description",
-  "email",
-  "age",
-  "created_at",
-  "updated_at",
-  "status",
-  "type",
-];
-
-export function PropertyPanel({ className }: PropertyPanelProps) {
+export function PropertyPanel({ isOpen, onClose, className }: PropertyPanelProps) {
   const {
     currentPattern,
     selectedNodeIds,
+    selectedConnectionIds,
     updateNode,
+    updateConnection,
     showPropertyPanel,
-    togglePropertyPanel,
   } = useQueryBuilderStore();
 
-  const [newPropertyKey, setNewPropertyKey] = useState("");
-  const [newPropertyValue, setNewPropertyValue] = useState("");
-  const [newConstraintProperty, setNewConstraintProperty] = useState("");
-  const [newConstraintOperator, setNewConstraintOperator] = useState("=");
-  const [newConstraintValue, setNewConstraintValue] = useState("");
+  // If isOpen is provided, use it; otherwise use the store's showPropertyPanel
+  const isVisible = isOpen !== undefined ? isOpen : showPropertyPanel;
 
-  if (!showPropertyPanel) {
-    return null;
-  }
+  const [activeTab, setActiveTab] = useState<"properties" | "constraints">("properties");
+  const [selectedElements, setSelectedElements] = useState<{
+    nodes: any[];
+    connections: any[];
+  }>({ nodes: [], connections: [] });
 
-  const selectedNode = selectedNodeIds.length === 1 
-    ? currentPattern.nodes.find((n: any) => n.id === selectedNodeIds[0]) 
-    : null;
-  const nodeConstraints = selectedNode?.constraints || [];
+  useEffect(() => {
+    const nodes = currentPattern?.nodes?.filter(node => 
+      selectedNodeIds.includes(node.id)
+    ) || [];
+    
+    const connections = currentPattern?.connections?.filter(conn => 
+      selectedConnectionIds.includes(conn.id)
+    ) || [];
 
-  const handleUpdateNodeProperty = (key: string, value: any) => {
-    if (!selectedNode) return;
+    setSelectedElements({ nodes, connections });
+  }, [currentPattern, selectedNodeIds, selectedConnectionIds]);
 
-    const updatedProperties = { ...selectedNode.properties };
-    if (value === "" || value === null || value === undefined) {
-      delete updatedProperties[key];
+  const hasSelection = selectedElements.nodes.length > 0 || selectedElements.connections.length > 0;
+
+  const handlePropertyChange = (elementId: string, elementType: 'node' | 'connection', property: string, value: any) => {
+    if (elementType === 'node') {
+      updateNode(elementId, { [property]: value });
     } else {
-      updatedProperties[key] = value;
+      updateConnection(elementId, { [property]: value });
     }
-
-    updateNode(selectedNode.id, { properties: updatedProperties });
   };
 
-  const handleAddProperty = () => {
-    if (!selectedNode || !newPropertyKey.trim()) return;
-
-    const updatedProperties = {
-      ...selectedNode.properties,
-      [newPropertyKey.trim()]: newPropertyValue || "",
-    };
-
-    updateNode(selectedNode.id, { properties: updatedProperties });
-    setNewPropertyKey("");
-    setNewPropertyValue("");
+  const addProperty = (elementId: string, elementType: 'node' | 'connection') => {
+    const newProperty = { name: "", value: "", type: "string" };
+    const element = elementType === 'node' 
+      ? selectedElements.nodes.find(n => n.id === elementId)
+      : selectedElements.connections.find(c => c.id === elementId);
+    
+    if (element) {
+      const updatedProperties = [...(element.properties || []), newProperty];
+      handlePropertyChange(elementId, elementType, 'properties', updatedProperties);
+    }
   };
 
-  const handleAddConstraint = () => {
-    if (!selectedNode || !newConstraintProperty.trim()) return;
+  const removeProperty = (elementId: string, elementType: 'node' | 'connection', propertyIndex: number) => {
+    const element = elementType === 'node' 
+      ? selectedElements.nodes.find(n => n.id === elementId)
+      : selectedElements.connections.find(c => c.id === elementId);
+    
+    if (element) {
+      const updatedProperties = element.properties?.filter((_: any, index: number) => index !== propertyIndex) || [];
+      handlePropertyChange(elementId, elementType, 'properties', updatedProperties);
+    }
+  };
 
+  const addConstraint = (elementId: string, elementType: 'node' | 'connection') => {
     const newConstraint: QueryConstraint = {
       id: `constraint_${Date.now()}`,
-      property: newConstraintProperty.trim(),
-      operator: newConstraintOperator as any,
-      value: newConstraintValue || null,
-      type: "string",
+      property: "",
+      operator: "=",
+      value: "",
+      type: "string"
     };
-
-    const updatedConstraints = [...nodeConstraints, newConstraint];
-    updateNode(selectedNode.id, { constraints: updatedConstraints });
-    setNewConstraintProperty("");
-    setNewConstraintOperator("=");
-    setNewConstraintValue("");
+    
+    const element = elementType === 'node' 
+      ? selectedElements.nodes.find(n => n.id === elementId)
+      : selectedElements.connections.find(c => c.id === elementId);
+    
+    if (element) {
+      const updatedConstraints = [...(element.constraints || []), newConstraint];
+      handlePropertyChange(elementId, elementType, 'constraints', updatedConstraints);
+    }
   };
 
-  const handleUpdateConstraint = (constraintId: string, updates: Partial<QueryConstraint>) => {
-    if (!selectedNode) return;
-
-    const updatedConstraints = nodeConstraints.map((c: any) => 
-      c.id === constraintId ? { ...c, ...updates } : c
-    );
-    updateNode(selectedNode.id, { constraints: updatedConstraints });
+  const removeConstraint = (elementId: string, elementType: 'node' | 'connection', constraintId: string) => {
+    const element = elementType === 'node' 
+      ? selectedElements.nodes.find(n => n.id === elementId)
+      : selectedElements.connections.find(c => c.id === elementId);
+    
+    if (element) {
+      const updatedConstraints = element.constraints?.filter((c: QueryConstraint) => c.id !== constraintId) || [];
+      handlePropertyChange(elementId, elementType, 'constraints', updatedConstraints);
+    }
   };
 
-  const handleRemoveConstraint = (constraintId: string) => {
-    if (!selectedNode) return;
-
-    const updatedConstraints = nodeConstraints.filter((c: any) => c.id !== constraintId);
-    updateNode(selectedNode.id, { constraints: updatedConstraints });
+  const updateConstraint = (elementId: string, elementType: 'node' | 'connection', constraintId: string, updates: Partial<QueryConstraint>) => {
+    const element = elementType === 'node' 
+      ? selectedElements.nodes.find(n => n.id === elementId)
+      : selectedElements.connections.find(c => c.id === elementId);
+    
+    if (element) {
+      const updatedConstraints = element.constraints?.map((c: QueryConstraint) => 
+        c.id === constraintId ? { ...c, ...updates } : c
+      ) || [];
+      handlePropertyChange(elementId, elementType, 'constraints', updatedConstraints);
+    }
   };
 
-  const handleUpdateNodeVariable = (variable: string) => {
-    if (!selectedNode) return;
-    updateNode(selectedNode.id, { variable: variable.trim() });
-  };
-
-  const handleUpdateNodeLabel = (label: string) => {
-    if (!selectedNode) return;
-    updateNode(selectedNode.id, { label: label.trim() });
-  };
+  if (!isVisible) return null;
 
   return (
-    <div className={cn(
-      "flex flex-col w-80 bg-white border-l border-gray-200",
-      className
-    )}>
+    <div className={cn("w-80 bg-white border-l border-gray-200 flex flex-col h-full shadow-sm", className)}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-200">
-        <h3 className="text-sm font-medium text-gray-900">Properties</h3>
-        <button
-          onClick={togglePropertyPanel}
-          className="p-1 text-gray-400 hover:text-gray-600 rounded"
-          title="Close"
-        >
-          <X className="w-4 h-4" />
-        </button>
+      <div className="p-4 border-b border-gray-200">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+            <Gear className="w-5 h-5 mr-2 text-blue-600" />
+            Properties
+          </h2>
+          <button
+            onClick={onClose || (() => {})}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab("properties")}
+            className={cn(
+              "flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "properties"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            )}
+          >
+            Properties
+          </button>
+          <button
+            onClick={() => setActiveTab("constraints")}
+            className={cn(
+              "flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+              activeTab === "constraints"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            )}
+          >
+            Constraints
+          </button>
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        {selectedNode ? (
-          <div className="p-4 space-y-6">
-            {/* Node Info */}
-            <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white bg-blue-500">
-                  {selectedNode.type === "entity" && <Circle className="w-4 h-4" />}
-                  {selectedNode.type === "relationship" && <ArrowRight className="w-4 h-4" />}
-                </div>
-                <div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {selectedNode.type === "entity" ? "Entity Node" : "Relationship Node"}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    ID: {selectedNode.id.slice(0, 8)}...
-                  </div>
-                </div>
-              </div>
-
-              {/* Label */}
-              <div className="space-y-2">
-                <label htmlFor="node-label" className="text-sm font-medium">Label</label>
-                <input
-                  id="node-label"
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedNode.label}
-                  onChange={(e) => handleUpdateNodeLabel(e.target.value)}
-                  placeholder="Node label"
-                />
-              </div>
-
-              {/* Variable */}
-              <div className="space-y-2 mt-4">
-                <label htmlFor="node-variable" className="text-sm font-medium">Variable</label>
-                <input
-                  id="node-variable"
-                  className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  value={selectedNode.variable || ""}
-                  onChange={(e) => handleUpdateNodeVariable(e.target.value)}
-                  placeholder="Variable name (optional)"
-                />
-              </div>
-            </div>
-
-            {/* Properties */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-3">Properties</h4>
-              
-              {/* Existing Properties */}
-              {selectedNode.properties && Object.entries(selectedNode.properties).length > 0 ? (
-                <div className="space-y-2 mb-4">
-                  {Object.entries(selectedNode.properties).map(([key, value]) => (
-                    <div key={key} className="flex items-center space-x-2">
-                      <input
-                        className="flex h-10 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        defaultValue={key}
-                        onChange={(e) => {
-                          const oldKey = key;
-                          const newKey = e.target.value;
-                          if (newKey !== oldKey) {
-                            const props = { ...selectedNode.properties };
-                            delete props[oldKey];
-                            props[newKey] = value;
-                            updateNode(selectedNode.id, { properties: props });
-                          }
-                        }}
-                        placeholder="Property name"
-                      />
-                      <input
-                        className="flex h-10 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        defaultValue={typeof value === "string" ? value : JSON.stringify(value)}
-                        onChange={(e) => handleUpdateNodeProperty(key, e.target.value)}
-                        placeholder="Value"
-                      />
-                      <button
-                        onClick={() => handleUpdateNodeProperty(key, null)}
-                        className="p-2 text-red-500 hover:text-red-700 border border-gray-300 rounded"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500 mb-4 text-center py-4 border border-dashed border-gray-300 rounded-lg">
-                  No properties added yet
-                </div>
-              )}
-
-              {/* Add Property */}
-              <div className="border border-gray-200 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Plus className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Add Property</span>
-                </div>
-                <div className="space-y-2">
-                  <select 
-                    value={newPropertyKey} 
-                    onChange={(e) => setNewPropertyKey(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  >
-                    <option value="">Select property...</option>
-                    {commonProperties.map((prop) => (
-                      <option key={prop} value={prop}>
-                        {prop}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={newPropertyKey}
-                    onChange={(e) => setNewPropertyKey(e.target.value)}
-                    placeholder="Or type custom property name"
-                  />
-                  <input
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={newPropertyValue}
-                    onChange={(e) => setNewPropertyValue(e.target.value)}
-                    placeholder="Property value"
-                  />
-                  <button
-                    onClick={handleAddProperty}
-                    disabled={!newPropertyKey.trim()}
-                    className="w-full inline-flex items-center justify-center rounded-lg bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Add Property
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Constraints/Filters */}
-            <div>
-              <h4 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
-                <Funnel className="w-4 h-4 mr-2" />
-                Constraints
-              </h4>
-
-              {/* Existing Constraints */}
-              {nodeConstraints.length > 0 ? (
-                <div className="space-y-2 mb-4">
-                  {nodeConstraints.map((constraint: any) => (
-                    <div key={constraint.id} className="flex items-center space-x-2 p-2 bg-gray-50 rounded">
-                      <input
-                        className="flex h-10 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        defaultValue={constraint.property}
-                        onChange={(e) => handleUpdateConstraint(constraint.id, { property: e.target.value })}
-                        placeholder="Property"
-                      />
-                      <select
-                        value={constraint.operator}
-                        onChange={(e) => handleUpdateConstraint(constraint.id, { operator: e.target.value as any })}
-                        className="w-32 p-2 border border-gray-300 rounded"
-                      >
-                        {operators.map((op) => (
-                          <option key={op.value} value={op.value}>
-                            {op.label}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        className="flex h-10 flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        defaultValue={constraint.value || ""}
-                        onChange={(e) => handleUpdateConstraint(constraint.id, { value: e.target.value || null })}
-                        placeholder="Value"
-                        disabled={constraint.operator === "IS NULL" || constraint.operator === "IS NOT NULL"}
-                      />
-                      <button
-                        onClick={() => handleRemoveConstraint(constraint.id)}
-                        className="p-2 text-red-500 hover:text-red-700 border border-gray-300 rounded"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-sm text-gray-500 mb-4 text-center py-4 border border-dashed border-gray-300 rounded-lg">
-                  No constraints added yet
-                </div>
-              )}
-
-              {/* Add Constraint */}
-              <div className="border border-gray-200 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-2">
-                  <Plus className="w-4 h-4 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Add Constraint</span>
-                </div>
-                <div className="space-y-2">
-                  <input
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={newConstraintProperty}
-                    onChange={(e) => setNewConstraintProperty(e.target.value)}
-                    placeholder="Property name"
-                  />
-                  <select 
-                    value={newConstraintOperator} 
-                    onChange={(e) => setNewConstraintOperator(e.target.value)}
-                    className="w-full p-2 border border-gray-300 rounded"
-                  >
-                    {operators.map((op) => (
-                      <option key={op.value} value={op.value}>
-                        {op.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    value={newConstraintValue}
-                    onChange={(e) => setNewConstraintValue(e.target.value)}
-                    placeholder="Value"
-                    disabled={newConstraintOperator === "IS NULL" || newConstraintOperator === "IS NOT NULL"}
-                  />
-                  <button
-                    onClick={handleAddConstraint}
-                    disabled={!newConstraintProperty.trim()}
-                    className="w-full inline-flex items-center justify-center rounded-lg bg-blue-600 text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Add Constraint
-                  </button>
-                </div>
-              </div>
-            </div>
+        {!hasSelection ? (
+          <div className="p-4 text-center text-gray-500">
+            <Eye className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Select a node or relationship</p>
+            <p className="text-xs">to edit its properties</p>
           </div>
         ) : (
-          <div className="p-4 text-center text-gray-500">
-            {selectedNodeIds.length === 0 ? (
-              <div>
-                <Circle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">Select a node to edit its properties</p>
+          <div className="p-4 space-y-4">
+            {/* Nodes */}
+            {selectedElements.nodes.map((node) => (
+              <div key={node.id} className="border border-gray-200 rounded-lg p-3">
+                <div className="flex items-center mb-3">
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs mr-2"
+                    style={{ backgroundColor: node.color || "#3B82F6" }}
+                  >
+                    •
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">{node.label || "Node"}</h3>
+                    <p className="text-xs text-gray-500">ID: {node.id}</p>
+                  </div>
+                </div>
+
+                {/* Variable Name */}
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Variable Name
+                  </label>
+                  <input
+                    type="text"
+                    value={node.variable || ""}
+                    onChange={(e) => handlePropertyChange(node.id, 'node', 'variable', e.target.value)}
+                    placeholder="e.g., person, product"
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {activeTab === "properties" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">Properties</label>
+                      <button
+                        onClick={() => addProperty(node.id, 'node')}
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {(node.properties || []).map((prop: any, index: number) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={prop.name || ""}
+                            onChange={(e) => {
+                              const updated = [...(node.properties || [])];
+                              updated[index] = { ...prop, name: e.target.value };
+                              handlePropertyChange(node.id, 'node', 'properties', updated);
+                            }}
+                            placeholder="Name"
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                          />
+                          <input
+                            type="text"
+                            value={prop.value || ""}
+                            onChange={(e) => {
+                              const updated = [...(node.properties || [])];
+                              updated[index] = { ...prop, value: e.target.value };
+                              handlePropertyChange(node.id, 'node', 'properties', updated);
+                            }}
+                            placeholder="Value"
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={() => removeProperty(node.id, 'node', index)}
+                            className="p-1 text-red-400 hover:text-red-600 rounded"
+                          >
+                            <Trash className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "constraints" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">Constraints</label>
+                      <button
+                        onClick={() => addConstraint(node.id, 'node')}
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {(node.constraints || []).map((constraint: QueryConstraint) => (
+                        <div key={constraint.id} className="space-y-2 p-2 bg-gray-50 rounded">
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={constraint.property || ""}
+                              onChange={(e) => updateConstraint(node.id, 'node', constraint.id, { property: e.target.value })}
+                              placeholder="Property"
+                              className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
+                            />
+                            <select
+                              value={constraint.operator}
+                              onChange={(e) => updateConstraint(node.id, 'node', constraint.id, { operator: e.target.value as any })}
+                              className="px-2 py-1 border border-gray-300 rounded text-xs"
+                            >
+                              {operators.map(op => (
+                                <option key={op.value} value={op.value}>{op.label}</option>
+                              ))}
+                            </select>
+                            <button
+                              onClick={() => removeConstraint(node.id, 'node', constraint.id)}
+                              className="p-1 text-red-400 hover:text-red-600 rounded"
+                            >
+                              <Trash className="w-3 h-3" />
+                            </button>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={constraint.value || ""}
+                              onChange={(e) => updateConstraint(node.id, 'node', constraint.id, { value: e.target.value })}
+                              placeholder="Value"
+                              className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
+                            />
+                            <select
+                              value={constraint.type}
+                              onChange={(e) => updateConstraint(node.id, 'node', constraint.id, { type: e.target.value as any })}
+                              className="px-2 py-1 border border-gray-300 rounded text-xs"
+                            >
+                              {propertyTypes.map(type => (
+                                <option key={type.value} value={type.value}>{type.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : (
-              <div>
-                <Circle className="w-12 h-12 mx-auto mb-2 text-gray-300" />
-                <p className="text-sm">Multiple nodes selected</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Select a single node to edit properties
-                </p>
+            ))}
+
+            {/* Connections */}
+            {selectedElements.connections.map((connection) => (
+              <div key={connection.id} className="border border-gray-200 rounded-lg p-3">
+                <div className="flex items-center mb-3">
+                  <div className="w-6 h-6 rounded flex items-center justify-center text-white text-xs mr-2 bg-red-500">
+                    →
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">{connection.label || "Relationship"}</h3>
+                    <p className="text-xs text-gray-500">ID: {connection.id}</p>
+                  </div>
+                </div>
+
+                {/* Variable Name */}
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Relationship Type
+                  </label>
+                  <input
+                    type="text"
+                    value={connection.type || ""}
+                    onChange={(e) => handlePropertyChange(connection.id, 'connection', 'type', e.target.value)}
+                    placeholder="e.g., KNOWS, WORKS_AT"
+                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Properties and constraints similar to nodes */}
+                {activeTab === "properties" && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-medium text-gray-700">Properties</label>
+                      <button
+                        onClick={() => addProperty(connection.id, 'connection')}
+                        className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
+                    </div>
+                    <div className="space-y-2">
+                      {(connection.properties || []).map((prop: any, index: number) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={prop.name || ""}
+                            onChange={(e) => {
+                              const updated = [...(connection.properties || [])];
+                              updated[index] = { ...prop, name: e.target.value };
+                              handlePropertyChange(connection.id, 'connection', 'properties', updated);
+                            }}
+                            placeholder="Name"
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                          />
+                          <input
+                            type="text"
+                            value={prop.value || ""}
+                            onChange={(e) => {
+                              const updated = [...(connection.properties || [])];
+                              updated[index] = { ...prop, value: e.target.value };
+                              handlePropertyChange(connection.id, 'connection', 'properties', updated);
+                            }}
+                            placeholder="Value"
+                            className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:ring-1 focus:ring-blue-500"
+                          />
+                          <button
+                            onClick={() => removeProperty(connection.id, 'connection', index)}
+                            className="p-1 text-red-400 hover:text-red-600 rounded"
+                          >
+                            <Trash className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      {hasSelection && (
+        <div className="p-4 border-t border-gray-200 bg-gray-50">
+          <div className="text-xs text-gray-600 space-y-1">
+            <p className="font-medium">Selected:</p>
+            <p>• {selectedElements.nodes.length} node(s)</p>
+            <p>• {selectedElements.connections.length} relationship(s)</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

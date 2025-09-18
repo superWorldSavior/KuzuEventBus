@@ -2,7 +2,6 @@ import { useState } from "react";
 import {
   List,
   MagnifyingGlass,
-  Bell,
 } from "@phosphor-icons/react";
 import { cn } from "@/utils";
 import { useNavigationStore } from "@/store/navigation";
@@ -10,6 +9,8 @@ import { TenantSwitcher } from "./TenantSwitcher";
 import { UserMenu } from "./UserMenu";
 import { MobileSearchModal } from "./MobileSearchModal";
 import { Breadcrumbs } from "./Breadcrumbs";
+import { NotificationCenter } from "./NotificationCenter";
+import { SearchBar } from "./SearchBar";
 
 interface HeaderProps {
   className?: string;
@@ -41,16 +42,7 @@ export function Header({ className }: HeaderProps) {
 
         {/* Center section - Search */}
         <div className="flex-1 max-w-lg mx-4 hidden sm:block">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlass className="w-4 h-4 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search databases, queries..."
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
+          <SearchBar />
         </div>
 
         {/* Right section - Tenant switcher + Notifications + User menu */}
@@ -69,11 +61,7 @@ export function Header({ className }: HeaderProps) {
           </button>
 
           {/* Notifications */}
-          <button className="relative p-2 rounded-md hover:bg-gray-100 transition-colors">
-            <Bell className="w-5 h-5 text-gray-500" />
-            {/* Notification badge */}
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
+          <NotificationCenter />
 
           {/* User menu */}
           <UserMenu />

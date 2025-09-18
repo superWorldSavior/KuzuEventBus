@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import {
   Plus,
   MagnifyingGlass,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { CreateDatabaseModal } from "@/components/databases/CreateDatabaseModal";
+import { DatabaseDetailsPage } from "@/pages/databases/DatabaseDetailsPage";
 import { useDatabases } from "@/hooks/useApi";
 
 // Types for the actual mock data structure

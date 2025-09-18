@@ -1,25 +1,31 @@
-import { ReactNode, useEffect } from "react";
-import { useLocation } from "react-router-dom";
+import { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
-import { useNavigationStore, generateBreadcrumbs } from "@/store/navigation";
+import { useNavigation, usePageMeta, useKeyboardNavigation } from "@/hooks/useNavigation";
+import { cn } from "@/utils";
 
 interface DashboardLayoutProps {
   children: ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
-  const location = useLocation();
-  const { setCurrentPath, setBreadcrumbs } = useNavigationStore();
-
-  // Update navigation state when route changes
-  useEffect(() => {
-    setCurrentPath(location.pathname);
-    setBreadcrumbs(generateBreadcrumbs(location.pathname));
-  }, [location.pathname, setCurrentPath, setBreadcrumbs]);
+  const { isMobileMenuOpen, closeMobileMenu } = useNavigation();
+  
+  // Initialize page meta and keyboard navigation
+  usePageMeta();
+  useKeyboardNavigation();
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Mobile overlay backdrop */}
+      {isMobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+          onClick={closeMobileMenu}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
       <Sidebar />
 
@@ -30,10 +36,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* Main content */}
         <main
-          className={`
-            flex-1 overflow-auto p-4 sm:p-6 lg:p-8 
-            transition-all duration-300
-          `}
+          className={cn(
+            "flex-1 overflow-auto transition-all duration-300",
+            "p-4 sm:p-6 lg:p-8",
+            // Add subtle animation on content load
+            "animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
+          )}
         >
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>

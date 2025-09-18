@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotificationInit } from "@/hooks/useNotifications";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -14,6 +15,9 @@ import { AuthDebug } from "@/components/debug/AuthDebug";
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Initialize mock notifications for development
+  useNotificationInit();
 
   if (isLoading) {
     return (

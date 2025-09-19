@@ -93,27 +93,6 @@ class MessageQueueService(Protocol):
         ...
 
 
-@runtime_checkable
-class CacheService(Protocol):
-    """Protocol for caching operations (Redis)."""
-
-    async def set(
-        self, key: str, value: Any, expire_seconds: Optional[int] = None
-    ) -> bool:
-        """Set cache value with optional expiration."""
-        ...
-
-    async def get(self, key: str) -> Optional[Any]:
-        """Get cached value."""
-        ...
-
-    async def delete(self, key: str) -> bool:
-        """Delete cache entry."""
-        ...
-
-    async def exists(self, key: str) -> bool:
-        """Check if cache key exists."""
-        ...
 
 
 @runtime_checkable

@@ -5,6 +5,7 @@ import asyncio
 import uuid
 
 import pytest
+import pytest_asyncio
 
 from src.infrastructure.redis import RedisMessageQueueService, redis_client
 
@@ -19,12 +20,14 @@ def redis_connection():
         pytest.skip(f"Redis unavailable: {exc}")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def queue(redis_connection):
     stream = f"test-stream:{uuid.uuid4().hex}"
     service = RedisMessageQueueService(redis_connection, stream_name=stream)
-    yield service
-    await redis_connection.delete(stream)
+    try:
+        yield service
+    finally:
+        await redis_connection.delete(stream)
 
 
 @pytest.mark.asyncio

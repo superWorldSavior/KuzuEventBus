@@ -1,26 +1,23 @@
-"""
-Cache service port definition.
-"""
-from typing import Any, Optional, Protocol
+"""Canonical cache service protocol (extracted from query_execution)."""
+from typing import Any, Optional, Protocol, runtime_checkable
 
 
-class CacheServicePort(Protocol):
-    """Port for cache operations."""
+@runtime_checkable
+class CacheService(Protocol):
+    """Protocol for caching operations (Redis or in-memory)."""
+
+    async def set(self, key: str, value: Any, expire_seconds: Optional[int] = None) -> bool | None:
+        """Set cache value with optional expiration. Return True/None for success."""
+        ...
 
     async def get(self, key: str) -> Optional[Any]:
-        """Get value from cache."""
+        """Get cached value."""
         ...
 
-    async def set(
-        self, key: str, value: Any, expire_seconds: Optional[int] = None
-    ) -> None:
-        """Set value in cache with optional expiration."""
-        ...
-
-    async def delete(self, key: str) -> None:
-        """Delete key from cache."""
+    async def delete(self, key: str) -> bool | None:
+        """Delete cache entry. Return True/None for success."""
         ...
 
     async def exists(self, key: str) -> bool:
-        """Check if key exists in cache."""
+        """Check if cache key exists."""
         ...

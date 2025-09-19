@@ -6,6 +6,7 @@ import os
 import uuid
 
 import pytest
+import pytest_asyncio
 
 from src.infrastructure.redis import RedisCacheService, redis_client
 
@@ -20,13 +21,15 @@ def redis_connection():
         pytest.skip(f"Redis unavailable: {exc}")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def cache(redis_connection):
     service = RedisCacheService(redis_connection, prefix=f"test-cache:{uuid.uuid4().hex}:")
-    yield service
-    keys = await redis_connection.keys("test-cache:*")
-    if keys:
-        await redis_connection.delete(*keys)
+    try:
+        yield service
+    finally:
+        keys = await redis_connection.keys("test-cache:*")
+        if keys:
+            await redis_connection.delete(*keys)
 
 
 @pytest.mark.asyncio

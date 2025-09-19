@@ -10,6 +10,10 @@ from src.application.dtos.query_execution import (
     DirectQueryRequest as QueryRequest,
     DirectQueryResponse as QueryResponse,
 )
+from src.presentation.api.context.request_context import (
+    RequestContext,
+    get_request_context,
+)
 from src.domain.shared.ports.query_execution import QueryExecutionService
 from src.infrastructure.kuzu.kuzu_query_execution_adapter import (
     KuzuQueryExecutionAdapter,
@@ -27,14 +31,11 @@ async def get_query_execution_service() -> QueryExecutionService:
 async def execute_query(
     database_id: UUID,
     request_model: QueryRequest,
-    request: Request,
+    ctx: RequestContext = Depends(get_request_context),
     service: QueryExecutionService = Depends(get_query_execution_service),
 ) -> QueryResponse:
     started = time.perf_counter()
-    customer = getattr(request.state, "customer", None)
-    if customer is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
-    tenant_id = str(customer.id.value)
+    tenant_id = str(ctx.tenant_id)
     query_hash = request_model.query_hash()
 
     # Strategic pre-execution log

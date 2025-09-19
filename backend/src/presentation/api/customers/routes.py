@@ -2,32 +2,30 @@
 Customer management endpoints.
 YAGNI implementation - minimal customer registration only.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Path
 
 from src.application.dtos.customer_account import (
     CustomerRegistrationRequest,
     CustomerRegistrationResponse,
 )
 from src.application.services.customer_account_service import CustomerAccountService
-from src.infrastructure.dependencies import customer_repository, cache_service
-from src.infrastructure.testing.testing_auth_service import TestingAuthService
-from src.infrastructure.testing.testing_notification_service import (
-    TestingNotificationService,
+from src.infrastructure.dependencies import (
+    customer_repository,
+    cache_service,
+    auth_service,
+    notification_service,
 )
 
 router = APIRouter()
 
 # Simple dependency injection - YAGNI approach
 def get_customer_service() -> CustomerAccountService:
-    """Get customer account service.
-
-    Uses real repository/cache via dependencies, and testing adapters for
-    auth/notifications until production versions are implemented.
-    """
     return CustomerAccountService(
         account_repository=customer_repository(),
-        auth_service=TestingAuthService(),
-        notification_service=TestingNotificationService(),
+        auth_service=auth_service(),
+        notification_service=notification_service(),
         cache_service=cache_service(),
     )
 
@@ -57,4 +55,34 @@ async def register_customer(
             created_at=result["created_at"],
         )
     except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/{customer_id}/api-keys")
+async def list_api_keys(
+    customer_id: UUID,
+    service: CustomerAccountService = Depends(get_customer_service),
+):
+    """List all API keys for a customer (MVP - no pagination)."""
+    try:
+        return await service.list_api_keys(customer_id)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{customer_id}/api-keys/{api_key}")
+async def revoke_api_key(
+    customer_id: UUID,
+    api_key: str = Path(..., description="The API key value to revoke"),
+    service: CustomerAccountService = Depends(get_customer_service),
+):
+    """Revoke a specific API key for a customer."""
+    try:
+        success = await service.revoke_api_key(customer_id, api_key)
+        if not success:
+            raise HTTPException(status_code=404, detail="API key not found or already revoked")
+        return {"revoked": True, "api_key": api_key}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))

@@ -12,6 +12,7 @@ from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.domain.tenant_management.customer_account import CustomerAccount, CustomerAccountStatus
+from src.presentation.api.context.request_context import RequestContext
 from src.domain.shared.ports.tenant_management import CustomerAccountRepository
 from src.infrastructure.logging.config import auth_logger
 from src.infrastructure.dependencies import customer_repository
@@ -41,9 +42,18 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
             customer = await self._authenticate_request(request)
             if customer:
                 request.state.customer = customer
+                # Build RequestContext (permissions placeholder)
+                request.state.tenant_context = RequestContext(
+                    tenant_id=customer.id.value,
+                    tenant_name=customer.name.value,
+                    api_key_suffix=customer.api_key.value[-6:],
+                    permissions=["database:read", "database:write", "query:execute"],
+                )
                 customer.api_key.mark_as_used()
                 await self._repository.save(customer)
-                auth_logger.info(f"Authenticated request for tenant: {customer.name.value}")
+                auth_logger.info(
+                    "Authenticated request", tenant=customer.name.value, tenant_id=str(customer.id.value)
+                )
             return await call_next(request)
         except HTTPException as exc:  # Convert to response so tests receive status code instead of raised exception
             return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})

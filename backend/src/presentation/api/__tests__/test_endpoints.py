@@ -35,10 +35,13 @@ def test_readiness_check():
     assert data["status"] == "ready"
 
 
+import uuid
+
+
 def test_customer_registration():
     """Test customer registration endpoint."""
     registration_data = {
-        "tenant_name": "test-company-inc",
+        "tenant_name": f"test-company-inc-{uuid.uuid4().hex[:6]}",
         "organization_name": "Test Company Inc",
         "admin_email": "admin@testcompany.com",
         # Remove subscription_plan for YAGNI simplicity
@@ -55,6 +58,6 @@ def test_customer_registration():
     
     data = response.json()
     assert "customer_id" in data
-    assert data["tenant_name"] == "test-company-inc"
+    assert data["tenant_name"].startswith("test-company-inc-")
     assert data["organization_name"] == "Test Company Inc"
     assert "api_key" in data

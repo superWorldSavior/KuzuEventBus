@@ -34,8 +34,9 @@ class TestAPIAuthentication:
     def test_register_endpoint_requires_no_auth(self, client):
         """Registration endpoint should work without authentication."""
         # Arrange
+        import uuid
         registration_data = {
-            "tenant_name": "new-tenant",
+            "tenant_name": f"new-tenant-{uuid.uuid4().hex[:6]}",
             "organization_name": "New Org",
             "admin_email": "admin@neworg.com",
         }

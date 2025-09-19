@@ -196,6 +196,10 @@ class CustomerAccountService:
         success = await self._auth_service.revoke_api_key(api_key)
 
         if success:
+            # If this is the account's current primary key, deactivate it in the domain aggregate
+            if account.api_key.value == api_key and account.api_key.is_active:
+                account.api_key.deactivate()
+                await self._account_repository.save(account)
             # Send notification
             await self._notification_service.send_notification(
                 tenant_id=customer_id,

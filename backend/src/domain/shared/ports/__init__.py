@@ -17,12 +17,12 @@ from .notifications import (
     ServerSentEventService,
 )
 from .query_execution import (
-    CacheService,
     DistributedLockService,
     MessageQueueService,
     TransactionRepository,
     TransactionStatus,
 )
+from .cache import CacheService
 
 # Re-export all port protocols for easy importing
 from .tenant_management import CustomerAccountRepository

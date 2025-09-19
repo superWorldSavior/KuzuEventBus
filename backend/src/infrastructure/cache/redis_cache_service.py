@@ -6,7 +6,7 @@ from typing import Any, Optional
 
 from redis.asyncio import Redis
 
-from src.domain.shared.ports.query_execution import CacheService
+from src.domain.shared.ports.cache import CacheService
 
 
 class RedisCacheService(CacheService):

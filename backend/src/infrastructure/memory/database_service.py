@@ -12,7 +12,7 @@ from src.domain.shared.ports.tenant_management import CustomerAccountRepository
 from src.domain.shared.ports.database_management import KuzuDatabaseRepository, FileStorageService, KuzuQueryService
 from src.domain.shared.ports.authentication import AuthorizationService
 from src.domain.shared.ports.notifications import NotificationService
-from src.domain.shared.ports.query_execution import CacheService
+from src.domain.shared.ports.cache import CacheService
 from src.infrastructure.logging.config import infra_logger, get_logger
 
 # Get dedicated logger for database service

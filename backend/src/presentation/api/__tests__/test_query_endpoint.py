@@ -40,17 +40,25 @@ def test_query_endpoint_success(client: TestClient):
     customer_id, api_key = _register_customer(client)
     db_id = str(uuid.uuid4())
     headers = {"Authorization": f"Bearer {api_key}"}
-    r = client.post(f"/api/v1/databases/{db_id}/query", json={"query": "RETURN 42 AS answer"}, headers=headers)
-    assert r.status_code == 200
+    r = client.post(
+        f"/api/v1/databases/{db_id}/query",
+        json={"query": "RETURN 42 AS answer"},
+        headers=headers,
+    )
+    # Queue-only behavior: Accepted with transaction_id
+    assert r.status_code == 202
     data = r.json()
-    assert data["rows_returned"] >= 1
-    assert data["results"]
+    assert "transaction_id" in data
 
 
 def test_query_endpoint_error(client: TestClient):
     customer_id, api_key = _register_customer(client)
     db_id = str(uuid.uuid4())
     headers = {"Authorization": f"Bearer {api_key}"}
-    r = client.post(f"/api/v1/databases/{db_id}/query", json={"query": "THIS_IS_NOT_VALID_CYPHER"}, headers=headers)
-    assert r.status_code == 400
-    assert "failed" in r.json()["detail"].lower()
+    r = client.post(
+        f"/api/v1/databases/{db_id}/query",
+        json={"query": "THIS_IS_NOT_VALID_CYPHER"},
+        headers=headers,
+    )
+    # Always 202 on submission; execution errors are reported asynchronously
+    assert r.status_code == 202

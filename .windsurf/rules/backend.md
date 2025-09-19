@@ -1,34 +1,43 @@
+---
+trigger: always_on
+---
+
 # Kuzu Event Bus - AI Coding Agent Instructions
 
 ## 🎯 Project Overview
+
 Multi-tenant **Kuzu graph database service** with FastAPI and hexagonal architecture. Core mission: Simple, testable, evolvable service following Clean Architecture, **TDD (Test-Driven Development)**, **DDD (Domain-Driven Design)**, and YAGNI principles, failfast and logs.
 
 ## 🏗️ Architecture Fundamentals
 
 ### Hexagonal Architecture (STRICT)
+
 ```
 src/
 ├── domain/              # Pure business logic (CustomerAccount, TenantName)
-├── application/         # Use case orchestration (CustomerAccountService)  
+├── application/         # Use case orchestration (CustomerAccountService)
 ├── infrastructure/      # Technical adapters (InMemoryTenantRepository)
-└── api/                # FastAPI controllers (customers, databases, health)
+└── presentation/                # FastAPI controllers (customers, databases, health)
 ```
 
 **CRITICAL**: Domain never depends on infrastructure. Use Protocol-based ports for dependency inversion.
 
 ### YAGNI Strategy
+
 - **Start simple**: Memory-based implementations for MVP
 - **Migrate progressively**: PostgreSQL/Redis only when metrics justify
 - **No over-engineering**: One feature at a time
 
 ### Development Methodologies
+
 - **TDD (Test-Driven Development)**: Red-Green-Refactor cycle mandatory
-- **DDD (Domain-Driven Design)**: Business logic drives architecture  
+- **DDD (Domain-Driven Design)**: Business logic drives architecture
 - **Fail Fast**: Explicit validation, immediate error detection
 
 ## 📝 Development Workflow
 
 ### Test-First Development (TDD)
+
 ```bash
 # Run tests (from backend/)
 pytest                          # All tests
@@ -41,13 +50,14 @@ pytest --cov=src               # With coverage
 **Test Structure**: `tests/{unit,integration,e2e}/` mirroring `src/` structure
 
 ### Development Environment
+
 ```bash
 # Setup (from backend/)
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
-# Services 
+# Services
 docker-compose up -d           # Redis, PostgreSQL, MinIO
 
 # Run API server
@@ -57,9 +67,10 @@ uvicorn src.presentation.api.main:app --reload
 ## 🎯 Core Patterns & Conventions
 
 ### 1. Protocol-Based Ports (Not ABC)
+
 ```python
 # ✅ GOOD: Port in domain/shared/ports/
-@runtime_checkable  
+@runtime_checkable
 class CustomerAccountRepository(Protocol):
     async def save(self, customer: CustomerAccount) -> str: ...
 
@@ -70,11 +81,12 @@ class InMemoryCustomerRepository:
 ```
 
 ### 2. Immutable Value Objects
+
 ```python
 @dataclass(frozen=True)
 class TenantName:
     value: str
-    
+
     def __post_init__(self):
         if len(self.value) < 3:
             raise ValidationError("Must be at least 3 characters")
@@ -83,6 +95,7 @@ class TenantName:
 ```
 
 ### 3. Explicit Exception Handling
+
 ```python
 # ✅ GOOD: Specific business exceptions
 class BusinessRuleViolation(Exception): pass
@@ -98,6 +111,7 @@ if not tenant_name:
 ```
 
 ### 4. FastAPI Dependency Injection
+
 ```python
 # ✅ GOOD: Factory functions for YAGNI
 def get_customer_service() -> CustomerAccountService:
@@ -115,6 +129,7 @@ async def register(
 ```
 
 ### 5. API Key Pattern
+
 ```python
 # ✅ GOOD: Consistent format with prefix
 def generate_api_key() -> str:
@@ -128,23 +143,28 @@ if not api_key.startswith("kb_"):
 ## 🛠️ Key Implementation Details
 
 ### Multi-Tenant Isolation
+
 - **Customer**: Top-level account entity
 - **Tenant**: Isolated workspace within customer
 - **Storage**: Tenant-specific folders in MinIO (`/{tenant_name}/databases/`)
 
 ### Authentication Middleware
+
 Located in `src/api/middleware/authentication.py` - validates API keys across all endpoints except health checks.
 
 ### Current MVP Scope
+
 **Implemented**:
+
 - ✅ Customer registration with API key generation
 - ✅ Health checks (`/health/`)
 - ✅ Architecture foundation
 - ✅ 84+ passing tests
 
 **Next priorities**:
+
 1. API key authentication on endpoints
-2. Database management endpoints  
+2. Database management endpoints
 3. Query execution basics
 4. Migration to persistent storage (only when needed)
 
@@ -162,12 +182,14 @@ When generating code:
 8. **Dependency injection** - Use FastAPI Depends()
 
 ### Critical File Management Rules
+
 - **Explicit file names** - `customer_account_service.py`, not `service.py`
 - **Respect hexagonal layers** - Never put domain logic in infrastructure files
 - **Modify existing files** - Don't recreate files that already exist, update them
 - **Follow existing structure** - Check `src/` layout before creating new files
 
 ### Example: Adding New Domain Entity
+
 ```python
 # 1. Value object
 @dataclass(frozen=True)
@@ -175,7 +197,7 @@ class DatabaseName:
     value: str
     def __post_init__(self): # validation
 
-# 2. Port (interface)  
+# 2. Port (interface)
 class DatabaseRepository(Protocol):
     async def save(self, db: Database) -> str: ...
 
@@ -184,7 +206,7 @@ class DatabaseRepository(Protocol):
 class Database:
     name: DatabaseName
     tenant_id: str
-    
+
 # 4. Test first
 def test_database_creation():
     db = Database(DatabaseName("test-db"), "tenant-123")
@@ -211,3 +233,5 @@ Focus on following existing patterns rather than introducing new approaches. The
 - **Respect hexagonal boundaries** - Domain code stays in `domain/`, infrastructure in `infrastructure/`
 - **Use explicit naming** - File names must clearly indicate their purpose and layer
 - **Check existing structure first** - Use semantic search to understand current implementation before adding new code
+- **NO "Enhanced" prefixes** - Never create files with "Enhanced", "Improved", "Better" or similar prefixes. Instead, merge enhanced functionality directly into existing components or create new files with descriptive names
+- **Avoid duplication** - Always merge functionality into existing components rather than creating duplicated files with prefix variations

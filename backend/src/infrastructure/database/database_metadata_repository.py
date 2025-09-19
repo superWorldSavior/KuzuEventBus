@@ -36,13 +36,13 @@ class PostgresDatabaseMetadataRepository(DatabaseMetadataRepository):
         self._ensure_schema()
 
     def _ensure_schema(self) -> None:
-        with SessionFactory.create_session() as session:
+        with SessionFactory() as session:
             session.execute(text(_DDL))
             session.commit()
         infra_logger.info("Ensured kuzu_databases table exists")
 
     async def save(self, meta: DatabaseMetadata) -> UUID:
-        with SessionFactory.create_session() as session:
+        with SessionFactory() as session:
             session.execute(
                 text(
                     """
@@ -62,7 +62,7 @@ class PostgresDatabaseMetadataRepository(DatabaseMetadataRepository):
         return meta.id
 
     async def find_by_tenant(self, tenant_id: UUID) -> List[DatabaseMetadata]:
-        with SessionFactory.create_session() as session:
+        with SessionFactory() as session:
             rows = session.execute(
                 text(
                     "SELECT id, tenant_id, name, filesystem_path, created_at FROM kuzu_databases WHERE tenant_id=:tenant_id ORDER BY created_at ASC"
@@ -81,7 +81,7 @@ class PostgresDatabaseMetadataRepository(DatabaseMetadataRepository):
         ]
 
     async def find_by_name(self, tenant_id: UUID, name: str) -> Optional[DatabaseMetadata]:
-        with SessionFactory.create_session() as session:
+        with SessionFactory() as session:
             row = session.execute(
                 text(
                     "SELECT id, tenant_id, name, filesystem_path, created_at FROM kuzu_databases WHERE tenant_id=:tenant_id AND name=:name"

@@ -164,7 +164,7 @@ pytest src/api/__tests__/test_query_endpoint.py
 ### 5. Serveur de développement
 
 ```bash
-uvicorn src.api.main:app --reload
+uvicorn src.presentation.api.main:app --reload
 ```
 
 ## 🎯 Principes Fail Fast

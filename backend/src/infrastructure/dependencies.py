@@ -67,6 +67,18 @@ def lock_service():
     return RedisDistributedLockService(redis_connection())
 
 
+def transaction_repository():
+    """Provide transaction repository (Redis-backed).
+
+    Stores job status/results for async query execution.
+    """
+    from src.infrastructure.transactions.redis_transaction_repository import (
+        RedisTransactionRepository,
+    )
+
+    return RedisTransactionRepository(redis_connection())
+
+
 @lru_cache
 def file_storage_service():
     """Provide the configured file storage service (MinIO)."""

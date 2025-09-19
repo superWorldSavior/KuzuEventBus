@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: compose-up compose-down compose-logs wait api test unit integration e2e install env
+.PHONY: compose-up compose-down compose-logs wait api test unit integration e2e install env start worker
 
 env:
 	@echo "Loading .env if present"; \
@@ -29,6 +29,14 @@ api:
 	. .venv/bin/activate; \
 	export ENVIRONMENT=development; \
 	uvicorn src.presentation.api.main:app --reload
+
+# Alias pratique: `make start` démarre l'API (équivaut à `make api`)
+start: api
+
+worker:
+	. .venv/bin/activate; \
+	export ENVIRONMENT=development; \
+	python backend/scripts/run_query_worker.py
 
 unit:
 	. .venv/bin/activate; \

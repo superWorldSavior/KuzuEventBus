@@ -1,99 +1,83 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from loguru import logger
-import time
 from typing import Any, Dict
 from uuid import UUID
 
 from src.application.dtos.query_execution import (
     DirectQueryRequest as QueryRequest,
-    DirectQueryResponse as QueryResponse,
+    QuerySubmitResponse,
+    QueryStatusResponse,
 )
 from src.presentation.api.context.request_context import (
     RequestContext,
     get_request_context,
 )
-from src.domain.shared.ports.query_execution import QueryExecutionService
-from src.infrastructure.kuzu.kuzu_query_execution_adapter import (
-    KuzuQueryExecutionAdapter,
+from src.infrastructure.dependencies import (
+    message_queue_service,
+    transaction_repository,
 )
+from src.application.usecases.submit_async_query import (
+    SubmitAsyncQueryUseCase,
+    SubmitAsyncQueryRequest,
+)
+from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/databases", tags=["queries"])
+jobs_router = APIRouter(prefix="/jobs", tags=["jobs"])  # mounted at /api/v1/jobs
 
-# Dependency factory (YAGNI - direct adapter instantiation for now)
-async def get_query_execution_service() -> QueryExecutionService:
-    # In future could select per-tenant engine instance or pool
-    return KuzuQueryExecutionAdapter()
-
-
-@router.post("/{database_id}/query", response_model=QueryResponse)
+# Route unique: on envoie dans la queue et on répond 202 avec transaction_id
+@router.post("/{database_id}/query", response_model=QuerySubmitResponse, status_code=202)
 async def execute_query(
     database_id: UUID,
     request_model: QueryRequest,
     ctx: RequestContext = Depends(get_request_context),
-    service: QueryExecutionService = Depends(get_query_execution_service),
-) -> QueryResponse:
-    started = time.perf_counter()
-    tenant_id = str(ctx.tenant_id)
-    query_hash = request_model.query_hash()
-
-    # Strategic pre-execution log
+) -> QuerySubmitResponse:
     logger.bind(
-        event="query_execute_start",
-        tenant_id=tenant_id,
+        event="query_submit",
+        tenant_id=str(ctx.tenant_id),
         database_id=str(database_id),
-        query_hash=query_hash,
         timeout_s=request_model.timeout_seconds,
-    ).info("Query execution started")
-
-    try:
-        execution = await service.execute_query(
-            tenant_id=UUID(tenant_id),
-            database_id=database_id,
-            cypher=request_model.query,
-            parameters=request_model.parameters,
-            timeout_seconds=request_model.timeout_seconds,
-        )
-        if isinstance(execution, dict) and execution.get("error"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Query execution failed: {execution['error']}",
-            )
-    except Exception as ex:  # noqa: BLE001
-        duration_ms = (time.perf_counter() - started) * 1000
-        logger.bind(
-            event="query_execute_error",
-            tenant_id=tenant_id,
-            database_id=str(database_id),
-            query_hash=query_hash,
-            duration_ms=duration_ms,
-            error=str(ex),
-        ).error("Query execution failed")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Query execution failed: {ex}",
-        ) from ex
-
-    duration_ms = (time.perf_counter() - started) * 1000
-    rows = execution.get("results", []) if isinstance(execution, dict) else []
-    meta: Dict[str, Any] = {
-        "raw_meta": execution.get("meta", {}) if isinstance(execution, dict) else {},
-    }
-    response = QueryResponse(
-        results=rows,
-        rows_returned=len(rows),
-        execution_time_ms=duration_ms,
-        meta=meta,
-        query_hash=query_hash,
+    ).info("Submitting async query")
+    usecase = SubmitAsyncQueryUseCase(
+        queue=message_queue_service(),
+        transactions=transaction_repository(),
+    )
+    req = SubmitAsyncQueryRequest(
+        tenant_id=ctx.tenant_id,
+        database_id=database_id,
+        query=request_model.query,
+        parameters=request_model.parameters,
+        timeout_seconds=request_model.timeout_seconds,
+        priority=0,
+    )
+    res = await usecase.execute(req)
+    now = datetime.now(tz=timezone.utc)
+    return QuerySubmitResponse(
+        transaction_id=res.transaction_id,
+        status="pending",
+        submitted_at=now,
+        estimated_completion=now + timedelta(seconds=request_model.timeout_seconds),
     )
 
-    logger.bind(
-        event="query_execute_success",
-        tenant_id=tenant_id,
-        database_id=str(database_id),
-        query_hash=query_hash,
-        duration_ms=duration_ms,
-        rows=len(rows),
-    ).info("Query execution succeeded")
-    return response
+
+@jobs_router.get("/{transaction_id}", response_model=QueryStatusResponse)
+async def get_job_status(transaction_id: UUID):
+    repo = transaction_repository()
+    data = await repo.find_by_id(transaction_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    # Build response – pydantic can parse ISO strings into datetime fields
+    return QueryStatusResponse(
+        transaction_id=UUID(data["transaction_id"]),
+        database_id=UUID(data["database_id"]),
+        status=data.get("status", "unknown"),
+        query=data.get("query", ""),
+        submitted_at=data.get("created_at"),
+        started_at=data.get("started_at"),
+        completed_at=data.get("completed_at"),
+        execution_time_ms=None,
+        result_count=int(data.get("result_count", "0")),
+        error_message=data.get("error_message") or None,
+    )

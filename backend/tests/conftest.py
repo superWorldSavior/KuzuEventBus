@@ -14,3 +14,9 @@ def client(tmp_path, monkeypatch):
     # but here we just give each test a fresh client context
     with TestClient(app) as c:
         yield c
+
+
+@pytest.fixture
+def anyio_backend():
+    """Pin pytest-anyio backend to asyncio to avoid trio dependency."""
+    return "asyncio"

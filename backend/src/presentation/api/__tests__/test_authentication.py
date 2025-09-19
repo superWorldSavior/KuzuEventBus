@@ -11,6 +11,8 @@ from src.domain.tenant_management.customer_account import CustomerAccount, Custo
 from src.domain.shared.value_objects import TenantName, EmailAddress
 from src.infrastructure.dependencies import customer_repository
 
+pytestmark = pytest.mark.integration
+
 
 @pytest.fixture
 def test_customer():

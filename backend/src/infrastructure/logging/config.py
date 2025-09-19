@@ -3,6 +3,7 @@ Centralized logging configuration using Loguru.
 
 Simple, elegant logging setup for Kuzu Event Bus.
 """
+import os
 import sys
 from pathlib import Path
 from loguru import logger
@@ -14,11 +15,17 @@ def setup_logging(environment: str = "development") -> None:
     # Remove default handler
     logger.remove()
     
-    # Ensure logs directory exists
-    logs_dir = Path("logs")
-    logs_dir.mkdir(exist_ok=True)
+    # If running under pytest (collection or execution), force testing mode
+    # to avoid creating file-based sinks or directories.
+    if "pytest" in sys.modules or os.getenv("PYTEST_CURRENT_TEST") is not None:  # type: ignore[name-defined]
+        environment = "testing"
+
+    # Resolve backend/ path for file sinks (only dev/prod)
+    backend_dir = Path(__file__).resolve().parents[4]
+    logs_dir = backend_dir / "logs"
     
     if environment == "development":
+        logs_dir.mkdir(exist_ok=True)
         # Development: Colorful console + detailed file logging
         logger.add(
             sys.stdout,
@@ -27,7 +34,7 @@ def setup_logging(environment: str = "development") -> None:
             colorize=True
         )
         logger.add(
-            "logs/kuzu_dev.log",
+            str(logs_dir / "kuzu_dev.log"),
             level="DEBUG", 
             rotation="10 MB",
             retention="7 days",
@@ -37,6 +44,7 @@ def setup_logging(environment: str = "development") -> None:
         )
         
     elif environment == "production":
+        logs_dir.mkdir(exist_ok=True)
         # Production: JSON format for log aggregation
         logger.add(
             sys.stdout,
@@ -45,7 +53,7 @@ def setup_logging(environment: str = "development") -> None:
             serialize=False  # Could be True for JSON output
         )
         logger.add(
-            "logs/kuzu_prod.log",
+            str(logs_dir / "kuzu_prod.log"),
             level="INFO",
             rotation="50 MB", 
             retention="30 days",

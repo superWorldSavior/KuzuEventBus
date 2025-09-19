@@ -14,7 +14,10 @@ from uuid import UUID
 
 import kuzu  # type: ignore
 
-from src.domain.tenant_management.provisioning import (
+from datetime import datetime
+from uuid import uuid4
+
+from src.domain.database_management.provisioning import (
     DatabaseProvisioningService,
     DatabaseName,
     DatabaseMetadata,
@@ -32,15 +35,16 @@ class KuzuDatabaseProvisioningAdapter(DatabaseProvisioningService):
         self._base_dir.mkdir(parents=True, exist_ok=True)
         self._db_cache: Dict[str, kuzu.Database] = {}
 
-    def _db_dir(self, tenant_id: UUID, name: DatabaseName) -> Path:
-        # deterministic path (no db id yet; id is metadata entity id)
-        return self._base_dir / str(tenant_id) / name.value
+    def _db_path(self, tenant_id: UUID, database_id: UUID) -> Path:
+        # Align with query adapter layout: <base>/<tenant>/<database_id>/data.kuzu
+        return self._base_dir / str(tenant_id) / str(database_id) / "data.kuzu"
 
     async def create_database(self, tenant_id: UUID, name: DatabaseName) -> DatabaseMetadata:
-        db_dir = self._db_dir(tenant_id, name)
-        db_dir.mkdir(parents=True, exist_ok=True)
-        db_path = db_dir / "data.kuzu"
-        key = f"{tenant_id}_{name.value}"
+        # Generate ID upfront to build path consistent with query adapter
+        metadata_id = uuid4()
+        db_path = self._db_path(tenant_id, metadata_id)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+        key = f"{tenant_id}_{metadata_id}"
         if key in self._db_cache:
             raise RuntimeError("Database already exists (cached)")
         if db_path.exists():
@@ -49,10 +53,12 @@ class KuzuDatabaseProvisioningAdapter(DatabaseProvisioningService):
         # Create empty database file by instantiating Kuzu Database once
         _db = kuzu.Database(str(db_path))
         self._db_cache[key] = _db
-        meta = DatabaseMetadata.create(
+        meta = DatabaseMetadata(
+            id=metadata_id,
             tenant_id=tenant_id,
             name=name,
             filesystem_path=str(db_path),
+            created_at=datetime.utcnow(),
         )
         infra_logger.info(
             "Kuzu database provisioned", tenant=str(tenant_id), name=name.value, path=str(db_path)

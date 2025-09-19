@@ -30,6 +30,8 @@ dependencies = [
     "python-dotenv==1.0.0",
     "structlog==23.2.0",
     "prometheus-client==0.19.0",
+    "loguru==0.7.2",
+    "email-validator==2.1.0.post1",
 ]
 
 [project.optional-dependencies]
@@ -102,6 +104,7 @@ markers = [
     "e2e: End-to-end tests",
     "slow: Slow running tests"
 ]
+anyio_backend = "asyncio"
 
 [tool.coverage.run]
 source = ["src"]

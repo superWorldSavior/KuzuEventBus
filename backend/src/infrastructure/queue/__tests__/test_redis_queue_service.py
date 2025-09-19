@@ -10,12 +10,13 @@ import pytest_asyncio
 from src.infrastructure.redis import RedisMessageQueueService, redis_client
 
 
-@pytest.fixture(scope="module")
-def redis_connection():
+@pytest_asyncio.fixture(scope="function")
+async def redis_connection():
     try:
         client = redis_client()
-        asyncio.run(client.ping())
-        return client
+        await client.ping()
+        yield client
+        await client.close()
     except Exception as exc:  # pragma: no cover - skip when Redis absent
         pytest.skip(f"Redis unavailable: {exc}")
 

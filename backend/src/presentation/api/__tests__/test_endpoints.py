@@ -9,6 +9,8 @@ from src.presentation.api.main import app
 
 client = TestClient(app)
 
+pytestmark = pytest.mark.integration
+
 
 def test_root_endpoint():
     """Test root endpoint."""

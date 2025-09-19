@@ -41,7 +41,7 @@ services:
       - "9001:9001"  # Console
     environment:
       MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin123
+      MINIO_ROOT_PASSWORD: minioadmin
     volumes:
       - minio_data:/data
     healthcheck:
@@ -68,11 +68,60 @@ services:
     depends_on:
       - redis
 
+  # API - FastAPI server
+  api:
+    build: .
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    environment:
+      ENVIRONMENT: development
+      KUZU_DATA_DIR: /data/kuzu
+      # Postgres DSN for SQLAlchemy
+      DATABASE_URL: postgresql+psycopg2://kuzu_user:kuzu_password@postgres:5432/kuzu_eventbus
+      # Redis URL for async clients
+      REDIS_URL: redis://redis:6379/0
+      # MinIO configuration
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: kuzu-databases
+      MINIO_SECURE: "false"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app/backend
+      - kuzu_data:/data/kuzu
+
+  # Worker - Async query processor (Redis Streams)
+  worker:
+    build: .
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    environment:
+      ENVIRONMENT: development
+      KUZU_DATA_DIR: /data/kuzu
+      DATABASE_URL: postgresql+psycopg2://kuzu_user:kuzu_password@postgres:5432/kuzu_eventbus
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: kuzu-databases
+      MINIO_SECURE: "false"
+    command: ["python", "backend/scripts/run_query_worker.py"]
+    volumes:
+      - ./backend:/app/backend
+      - kuzu_data:/data/kuzu
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
   redis_insight_data:
+  kuzu_data:
 
 networks:
   default:

@@ -36,11 +36,13 @@ class RedisDistributedLockService(DistributedLockService):
         return token if acquired else None
 
     async def release_lock(self, resource: str, token: str) -> bool:
+        # redis-py v5 eval signature expects positional numkeys and subsequent
+        # keys/args, not keyword keys/args.
         result = await self._redis.eval(
             self._RELEASE_SCRIPT,
-            numkeys=1,
-            keys=[self._key(resource)],
-            args=[token],
+            1,
+            self._key(resource),
+            token,
         )
         return result == 1
 

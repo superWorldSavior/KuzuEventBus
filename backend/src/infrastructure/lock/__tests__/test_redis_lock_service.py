@@ -4,21 +4,23 @@ from __future__ import annotations
 import asyncio
 
 import pytest
+import pytest_asyncio
 
 from src.infrastructure.redis import RedisDistributedLockService, redis_client
 
 
-@pytest.fixture(scope="module")
-def redis_connection():
+@pytest_asyncio.fixture(scope="function")
+async def redis_connection():
     try:
         client = redis_client()
-        asyncio.run(client.ping())
-        return client
+        await client.ping()
+        yield client
+        await client.aclose()
     except Exception as exc:  # pragma: no cover - skip when Redis absent
         pytest.skip(f"Redis unavailable: {exc}")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def lock_service(redis_connection):
     return RedisDistributedLockService(redis_connection, prefix="test-lock:")
 

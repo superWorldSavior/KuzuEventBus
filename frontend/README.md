@@ -2,6 +2,25 @@
 
 Modern React TypeScript frontend for the Kuzu EventBus SaaS platform - a comprehensive graph database management solution.
 
+## 🎯 Overview
+
+**Status:** Development Phase - UI Complete, Backend Integration In Progress  
+**Backend Integration:** 30% Complete (6/20 endpoints working)  
+**Mock Data Strategy:** Enabled for seamless UI development  
+
+### 🎨 UI Completeness
+- ✅ **Full UI Implementation:** All components and pages complete
+- ✅ **Real-time Integration:** Server-Sent Events working
+- ✅ **Authentication Flow:** API key management implemented
+- ✅ **Error Handling:** Graceful fallbacks and user feedback
+
+### 🔗 Backend Integration Status
+- ✅ **Working:** Health checks, customer registration, query submission
+- 🚧 **In Progress:** Database management, query results, analytics  
+- ❌ **Planned:** File uploads, advanced analytics, admin features
+
+> **For Developers:** See `/docs/backend-integration-status.md` for detailed endpoint status and `/docs/integration-guide.md` for usage patterns.
+
 ## 🎯 Features
 
 ### 🔐 Authentication & Multi-tenancy
@@ -91,7 +110,51 @@ src/
 └── utils/               # Utility functions
 ```
 
-## 🚀 Getting Started
+## � Backend Integration
+
+### Current Status
+The frontend is designed to work with the Kuzu Event Bus backend API. Integration is in progress:
+
+| Feature | Status | Description |
+|---------|--------|-------------|
+| Health Checks | ✅ Working | API health monitoring |
+| Customer Registration | ✅ Working | Account creation with API keys |
+| Query Execution | ⚠️ Partial | Submit queries, check status |
+| Database Management | 🚧 Mock Data | CRUD operations simulated |
+| Analytics Dashboard | ❌ Mock Data | Performance metrics simulated |
+| File Upload | ❌ Mock Data | Data import simulated |
+
+### Development Mode
+The frontend automatically falls back to mock data when backend endpoints are not available:
+
+```typescript
+// Automatic fallback strategy
+try {
+  const data = await apiService.getDatabases();
+  return data; // Real data from backend
+} catch (error) {
+  if (error.status === 501) {
+    console.info('Using mock data - endpoint not yet implemented');
+    return mockData; // Realistic mock data
+  }
+  throw error; // Real error
+}
+```
+
+### API Key Authentication
+- ✅ **Automatic Storage:** API keys stored securely after registration  
+- ✅ **Auto-Inclusion:** All requests automatically include API key
+- ✅ **Header Format:** Uses `X-API-Key` header as expected by backend
+- ✅ **Validation:** Checks for correct `kb_` prefix format
+
+### Real-time Features
+- ✅ **Server-Sent Events:** Live updates from `/api/v1/events/stream`
+- ✅ **WebSocket Support:** Ready for real-time query results
+- ✅ **Connection Management:** Automatic reconnection and error handling
+
+> **Documentation:** See `/docs/backend-integration-status.md` for detailed endpoint status and `/docs/integration-guide.md` for API usage patterns.
+
+## �🚀 Getting Started
 
 ### Prerequisites
 

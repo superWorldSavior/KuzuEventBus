@@ -15,53 +15,38 @@ La plupart des projets commencent par :
 
 ### Notre Approche YAGNI
 ```
-✅ Démarrer avec des implémentations memory
-✅ Première feature déployée en 1 semaine
-✅ Validation business AVANT investissement tech
-✅ Migration progressive basée sur des métriques réelles
+✅ Prototyper rapidement avec des implémentations mémoire
+✅ Migrer vers des services persistants dès que la valeur est prouvée
+✅ Conserver les adapters mémoire uniquement pour les tests/documentation
+✅ Activer Redis/MinIO quand les métriques le justifieront
 ```
 
 ## 📊 Décisions d'Architecture Actuelles
 
-### Decision 1: Memory Storage au lieu de PostgreSQL
+### Decision 1: Repository PostgreSQL (EN PRODUCTION)
 
-**Choix :** `InMemoryTenantRepository` avec dictionnaires Python
-
-**Rationnel :**
-- **Time to Market** : Déploiement immédiat sans setup DB
-- **Simplicité** : Pas de migrations, pas de connection pooling
-- **Debugging** : État visible directement en mémoire
-- **Coût** : Zero infrastructure cost pour MVP
-
-**Triggers de Migration :**
-```
-PostgreSQL becomes necessary when:
-- > 100 tenants registered (data volume)
-- > 24h uptime required (persistence)
-- Multiple app instances (shared state)
-- Backup/restore needed (compliance)
-```
-
-### Decision 2: In-Memory Database Metadata Service (pas le moteur Kuzu)
-
-**Choix :** `SimpleInMemoryDatabaseService` pour les métadonnées des bases de données
+**Choix :** `PostgresCustomerAccountRepository` (SQLAlchemy + PostgreSQL)
 
 **Rationnel :**
-- **Séparation claire** : Métadonnées (CRUD) vs Execution de requêtes (Kuzu)
-- **MVP Focus** : Valider les endpoints de gestion avant la complexité des requêtes
-- **API Design** : Se concentrer sur l'interface REST de management
-- **Strategic Logging** : Implémenter le monitoring complet des opérations
+- **Persistance garantie** : les tenants, API keys et métadonnées survivent aux redémarrages
+- **Interop** : partage d’état entre instances et instrumentation centralisée
+- **Préparation quotas** : statistiques et suivi directement en base
 
-**Note importante :** Le moteur Kuzu (`/infrastructure/kuzu/`) reste actif pour l'exécution des requêtes !
+**État actuel :**
+- Implémentation active (`backend/src/infrastructure/database/tenant_repository.py`)
+- Tests d’intégration dédiés (`backend/src/infrastructure/database/__tests__`)
+- `InMemoryTenantRepository` ne subsiste que pour les tests de démonstration
 
-**Triggers de Migration :**
-```
-Real Database Persistence becomes necessary when:
-- > 100 databases created (metadata volume)
-- Database persistence required across restarts
-- Multi-instance deployment (shared metadata)
-- Backup/restore of database configurations needed
-```
+### Decision 2: Services en mémoire (usage limité)
+
+**Choix :** conserver les notes sur les anciens adapters mémoire (plus présents dans le runtime) pour documentation/tests ponctuels.
+
+**Rationnel :**
+- Faciliter l’apprentissage des ports sans dépendances externes
+- Fournir un bac à sable pour des tests unitaires ultra-rapides
+- Illustrer le passage YAGNI → production dans la documentation
+
+**Prochaine étape :** remplacer ces implémentations par Redis/MinIO réels et supprimer leur usage en production.
 
 
 ### Decision 3: Console Notifications au lieu d'Email Service
@@ -83,45 +68,35 @@ Real Email becomes necessary when:
 - Legal/compliance requires email audit trail
 ```
 
-### Decision 4: In-Memory Cache au lieu de Redis
+### Decision 4: Redis pour cache/queue/locks (EN PRODUCTION)
 
-**Choix :** `InMemoryCacheService` avec TTL en Python
+**Choix :** services Redis dédiés (`RedisCacheService`, `RedisMessageQueueService`, `RedisDistributedLockService`).
 
 **Rationnel :**
-- **Single Instance** : Pas besoin de cache distribué encore
-- **Latency** : RAM locale = ultra-rapide
-- **Complexity** : Pas de réseau, pas de sérialisation
-- **Development** : Pas de Redis à installer/maintenir
+- **Partage d'état** multi-process/instances
+- **Streams & locks** prêts à l'emploi (queue + SET NX/PX)
+- **Instrumentation** facilitée (RedisInsight, métriques)
 
-**Triggers de Migration :**
-```
-Redis becomes necessary when:
-- > 2 app instances (distributed cache)
-- > 100MB cache size (memory pressure)
-- Cache hit ratio < 70% (efficiency)
-- Network latency matters (edge deployment)
-```
+**État actuel :**
+- Implémentations dans `backend/src/infrastructure/redis/`
+- Tests d'intégration (`redis/__tests__`) qui skip si Redis absent
+- Adapters mémoire supprimés du runtime (doc/tests uniquement)
 
 ## 🔄 Migration Strategy
 
 ### Progressive Migration Model
 
-**Level 1: Memory Everything (Current)**
+**Level 1: Memory Everything (historique)**
 ```
-Adaptateurs: InMemory* + SimpleInMemoryDatabaseService (metadata only)
-Kuzu Engine: Active for query execution
-Deployment: Single instance
-Data: Lost on restart (metadata), Kuzu data persisted
-Scale: 1-100 users
+Adaptateurs: InMemory*
+Statut: uniquement pour les tests/examples
 ```
 
-**Level 2: Persistent Metadata + Kuzu Engine**
+**Level 2: Persistent Metadata + Kuzu Engine (ACTUEL)**
 ```
-Adaptateurs: PostgreSQL + InMemory cache + Console notifications + PostgreSQL Database Metadata
-Kuzu Engine: Active for query execution
-Deployment: Single instance with DB
-Data: Persisted (metadata), Kuzu data persisted
-Scale: 100-1K users
+Adaptateurs: PostgreSQL (tenants), moteur Kuzu réel
+Déploiement: instance unique avec Postgres obligatoire
+Data: persistée en base et sur disque Kuzu
 ```
 
 **Level 3: Distributed Infrastructure + Kuzu**
@@ -179,42 +154,22 @@ class MigrationDecisionEngine:
 
 ### Contract Testing
 ```python
-def test_all_repository_implementations():
-    """Tous les repos doivent avoir le même comportement."""
-    
-    repositories = [
-        InMemoryTenantRepository(),
-        # PostgreSQLTenantRepository(),  # When available
-    ]
-    
-    for repo in repositories:
-        # Test same business behavior
-        assert_repository_contract(repo)
+def test_postgres_repository_contract():
+    repo = PostgresCustomerAccountRepository()
+    # Assertions d'intégration : voir backend/src/infrastructure/database/__tests__
 
-def test_all_database_service_implementations():
-    """Tous les services DB doivent avoir le même comportement."""
-    
-    services = [
-        SimpleInMemoryDatabaseService(),
-        # KuzuDatabaseService(),  # When Phase 3 implemented
-    ]
-    
-    for service in services:
-        # Test same database management behavior
-        assert_database_service_contract(service)
+def test_redis_cache_contract():
+    cache = RedisCacheService(redis_client())
+    # Voir backend/src/infrastructure/redis/__tests__
 ```
 
 ### Performance Benchmarking
 ```python
 def benchmark_migration_candidates():
-    """Mesurer quand une migration devient nécessaire."""
+    """Mesurer quand activer Redis/MinIO."""
     
-    # Memory usage
-    memory_repo = InMemoryTenantRepository()
-    for i in range(1000):
-        memory_repo.save(create_test_customer())
-    
-    assert memory_repo.memory_usage_mb < 50  # Threshold
+    metrics = collect_postgres_metrics()
+    assert metrics.connection_latency_ms < 20
 ```
 
 ## 💡 Architecture Insights

@@ -75,26 +75,6 @@ Tenant C → API Keys → Databases [graph-social]
 - **Query Execution** : Comment accéder aux données ?
 - **Monitoring** : Que se passe-t-il ?
 
-## 🎲 Stratégie YAGNI
-
-### Ce qu'on a construit
-- ✅ **Customer registration** → Self-service onboarding
-- ✅ **API key generation** → Authentification basique
-- ✅ **Multi-tenant foundation** → Architecture prête pour la scale
-
-### Ce qu'on n'a PAS construit (volontairement)
-- ❌ **Base de données complexe** → Dict Python suffit pour valider
-- ❌ **Cache distribué** → RAM locale ok pour démarrer
-- ❌ **Email templates** → Console logs pour les notifications
-- ❌ **Monitoring dashboard** → Logs suffisent pour le MVP
-
-### Triggers de Migration
-| Feature | Threshold | Action |
-|---------|-----------|--------|
-| PostgreSQL | > 100 tenants OU > 24h uptime requis | Migrate to persistent storage |
-| Redis Cache | > 2 instances OU > 100MB cache | Migrate to distributed cache |
-| Email Service | > 10 emails/jour | Migrate to SMTP/SendGrid |
-| Monitoring | > 5 tenants actifs | Add metrics dashboard |
 
 ## 🚀 Getting Started (Business)
 
@@ -124,27 +104,36 @@ make test
 make coverage
 ```
 
+### Quickstart (avec Make)
+```bash
+# 1) Démarrer l'infra requise (Postgres, Redis)
+make compose-up
+
+# 2) Attendre que les services soient prêts (optionnel si déjà prêts)
+make wait
+
+# 3) Installer les dépendances dans .venv à la racine
+make install
+
+# 4) Lancer l'API en mode dev
+make api
+
+# 5) Tests
+make unit                  # tous les tests unitaires
+make integration           # tests d'intégration (nécessitent Postgres/Redis)
+
+# 6) Logs et arrêt des services
+make compose-logs          # suivre les logs docker
+make compose-down          # arrêter/supprimer les conteneurs
+```
+
+### Lancer l'API (résumé)
+- Avec Make: `make api`
+
 ### Persistence (nouvelle implémentation)
 - Le service utilise désormais PostgreSQL **obligatoirement** (`DATABASE_URL` ou `postgres://kuzu_user:...`).
 - Démarrez les conteneurs `postgres`/`redis` via `docker-compose up -d` avant `uvicorn` ou les tests API pour conserver tenants et clés API.
 
-## 📊 Current Status
-
-### ✅ Production Ready
-- Health checks pour load balancers
-- API documentation auto-générée
-- Tests d'intégration passants
-- Error handling centralisé
-
-### � In Development
-- Gestion des bases de données Kuzu
-- Interface d'administration
-- Métriques business
-
-### 📋 Backlog
-- Dashboard tenant self-service
-- Billing et usage tracking
-- Multi-region support
 
 ## 🤝 Pour Contribuer
 

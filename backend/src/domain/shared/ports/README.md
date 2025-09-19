@@ -233,9 +233,8 @@ class CacheService(Protocol):
 ```
 
 **Implémentations :**
-- `InMemoryCacheService` (YAGNI) : Cache en mémoire avec TTL
-- `RedisCacheService` (future) : Cache Redis distribué
-- `MemcachedCacheService` (future) : Cache Memcached
+- `RedisCacheService` : Cache Redis distribué (production)
+- `InMemoryCacheService` (doc/tests) : Exemple en mémoire
 
 ### `TenantRepository`
 
@@ -324,9 +323,9 @@ class TenantRepository(Protocol):
 ```
 
 **Implémentations :**
-- `InMemoryTenantRepository` (YAGNI) : Stockage en dictionnaire
-- `PostgreSQLTenantRepository` (future) : Base PostgreSQL
-- `MongoTenantRepository` (future) : Base MongoDB
+- `PostgresCustomerAccountRepository` : implémentation production (obligatoire)
+- `InMemoryTenantRepository` : conservé pour tests/examples seulement
+- `MongoTenantRepository` : (future) Base MongoDB
 
 ## 🔮 Ports Futurs
 

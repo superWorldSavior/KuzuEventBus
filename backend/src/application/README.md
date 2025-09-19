@@ -158,6 +158,63 @@ BusinessRuleViolation (Domain) → 409 Conflict (HTTP)
 InfrastructureException (Services) → 500 Internal Error (HTTP)
 ```
 
+## 🗂️ Inventaire des Use Cases (MVP actuel)
+
+- **RegisterCustomerUseCase** (`register_customer.py`)
+  - Entrée: `{ tenant_name, organization_name, admin_email }`
+  - Sortie: `{ customer_id, tenant_name, api_key, subscription_status, created_at }`
+  - Ports: `CustomerAccountRepository`, `AuthenticationService`, `NotificationService`, `CacheService`
+
+- **ListCustomerApiKeysUseCase** (`list_customer_api_keys.py`)
+  - Entrée: `{ customer_id }`
+  - Sortie: `[{ api_key, created_at, status }]`
+  - Ports: `CustomerAccountRepository`, `AuthenticationService`
+
+- **RevokeCustomerApiKeyUseCase** (`revoke_customer_api_key.py`)
+  - Entrée: `{ customer_id, api_key }`
+  - Sortie: `{ revoked: bool }`
+  - Ports: `CustomerAccountRepository`, `AuthenticationService`
+
+- **ProvisionTenantResourcesUseCase** (`provision_tenant_resources.py`)
+  - Entrée: `{ tenant_id, database_name }`
+  - Sortie: `{ tenant_id, bucket, database_name, database_id, filesystem_path, created_at }`
+  - Ports: `BucketProvisioningService`, `DatabaseProvisioningService`, `DatabaseMetadataRepository`
+
+- **GetKuzuDatabaseInfoUseCase** (`get_kuzu_database_info.py`)
+  - Entrée: `{ tenant_id, database_id }`
+  - Sortie: `dict` (métadonnées + infos runtime selon adapter)
+  - Ports: `AuthorizationService`, `KuzuDatabaseRepository`, `KuzuQueryService`, `CacheService`
+
+- **DeleteKuzuDatabaseUseCase** (`delete_kuzu_database.py`)
+  - Entrée: `{ tenant_id, database_id }`
+  - Sortie: `{ deleted: bool }`
+  - Ports: `AuthorizationService`, `KuzuDatabaseRepository`, `FileStorageService`, `CacheService`, `NotificationService`
+
+- **UploadKuzuDatabaseFileUseCase** (`upload_kuzu_database_file.py`)
+  - Entrée: `{ tenant_id, database_id, file_name, file_content }`
+  - Sortie: `{ file_path, file_size, uploaded_at, upload_url? }`
+  - Ports: `AuthorizationService`, `KuzuDatabaseRepository`, `FileStorageService`, `CacheService`, `NotificationService`
+
+- **CreateDatabaseSnapshotUseCase** (`create_database_snapshot.py`)
+  - Entrée: `{ tenant_id, database_id }`
+  - Sortie: `{ snapshot_id, object_key, checksum, size_bytes, created_at }`
+  - Ports: `AuthorizationService`, `KuzuDatabaseRepository`, `FileStorageService`, `SnapshotRepository`, `DistributedLockService`, `CacheService`
+
+- **ListDatabaseSnapshotsUseCase** (`list_database_snapshots.py`)
+  - Entrée: `{ tenant_id, database_id }`
+  - Sortie: `[{ id, object_key, checksum, size_bytes, created_at }]`
+  - Ports: `AuthorizationService`, `SnapshotRepository`
+
+- **RestoreDatabaseFromSnapshotUseCase** (`restore_database_from_snapshot.py`)
+  - Entrée: `{ tenant_id, database_id, snapshot_id }`
+  - Sortie: `{ restored, database_id, mode, restored_at }`
+  - Ports: `AuthorizationService`, `KuzuDatabaseRepository`, `SnapshotRepository`, `FileStorageService`, `DistributedLockService`, `CacheService`
+
+- **SubmitAsyncQueryUseCase** (`submit_async_query.py`)
+  - Entrée: `{ tenant_id, database_id, query, parameters, timeout_seconds, priority }`
+  - Sortie: `{ transaction_id }`
+  - Ports: `MessageQueueService`, `TransactionRepository`
+
 ## 🚀 Evolution Strategy
 
 ### Current (YAGNI): Simple Orchestration

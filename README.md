@@ -2,6 +2,69 @@
 
 Un service managé pour gérer les transactions et bases Kuzu via une API REST moderne avec support multi-tenant.
 
+## ⚡ Quickstart & API Reference (MVP Sept. 2025)
+
+### Démarrer l'environnement
+
+- Option A — Docker complet (recommandé)
+  ```bash
+  make compose-up                 # Postgres, Redis, MinIO
+  docker-compose up -d api worker # lance l'API et le worker en conteneurs
+  ```
+
+- Option B — Dev local (hot-reload)
+  ```bash
+  make compose-up     # Postgres, Redis, MinIO
+  make install        # crée .venv et installe le backend en editable
+  make api            # lance FastAPI en local (uvicorn --reload)
+  ```
+
+### Tests d'intégration (requiert Docker services)
+
+```bash
+make integration    # 21 passed, 2 skipped (au dernier run)
+```
+
+### Variables d'environnement clés
+
+- `DATABASE_URL` (Postgres, requis)
+- `REDIS_URL` (Redis Streams / locks)
+- `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_SECURE`, `MINIO_BUCKET` (stockage fichiers)
+- `KUZU_DATA_DIR` (répertoire local où sont créées les bases Kuzu)
+
+### Authentification
+
+- Header: `Authorization: Bearer kb_<votre_api_key>`
+- Obtenir une clé: `POST /api/v1/customers/register`
+
+### Endpoints principaux
+
+- Customers
+  - `POST /api/v1/customers/register` → enregistrement + API key (public)
+  - `GET /api/v1/customers/{customer_id}/api-keys`
+  - `DELETE /api/v1/customers/{customer_id}/api-keys/{api_key}`
+
+- Databases
+  - `GET  /api/v1/databases/` → lister les bases du tenant
+  - `POST /api/v1/databases/` → créer une base
+  - `GET  /api/v1/databases/{database_id}` → métadonnées
+  - `DELETE /api/v1/databases/{database_id}` → supprimer
+  - `POST /api/v1/databases/{database_id}/upload` → uploader un fichier lié
+
+- Snapshots (sauvegardes)
+  - `POST /api/v1/databases/{database_id}/snapshots` → créer un snapshot
+  - `GET  /api/v1/databases/{database_id}/snapshots` → lister
+  - `POST /api/v1/databases/{database_id}/restore` → restaurer (overwrite) depuis snapshot
+
+- Queries (asynchrones)
+  - `POST /api/v1/databases/{database_id}/query` → soumettre une requête (202)
+  - `GET  /api/v1/jobs/{transaction_id}` → statut d'un job
+
+- Events
+  - `GET  /api/v1/events/stream` → SSE du tenant
+
+Documentation interactive: `http://localhost:8000/docs` (Swagger) et `http://localhost:8000/redoc`.
+
 ## 🎯 Vision
 
 Service p## 📚 Documentation

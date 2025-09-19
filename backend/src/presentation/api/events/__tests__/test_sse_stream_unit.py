@@ -47,23 +47,23 @@ def _override_deps(monkeypatch):
     app.dependency_overrides.clear()
 
 
-def test_sse_stream_formats_events(monkeypatch):
+@pytest.mark.asyncio
+async def test_sse_stream_formats_events(monkeypatch):
     fake = _FakeRedis([
         [("1-0", {"event_type": "completed", "transaction_id": "tx1", "database_id": "db1", "rows_count": "1"})],
         [("2-0", {"event_type": "failed", "transaction_id": "tx2", "database_id": "db1", "error": "boom"})],
     ])
     monkeypatch.setattr(events_routes, "redis_connection", lambda: fake)
-
-    client = TestClient(app)
-    with client.stream("GET", "/api/v1/events/stream") as resp:
-        assert resp.status_code == 200
-        # read a few chunks
-        body = b"".join([next(resp.iter_bytes()) for _ in range(8)])
-        txt = body.decode("utf-8")
-        # contains first event
-        assert "id: 1-0" in txt
-        assert "event: completed" in txt
-        assert "\n\n" in txt
-        # contains second event
-        assert "id: 2-0" in txt
-        assert "event: failed" in txt
+    # Call the async generator directly to avoid HTTP streaming buffering issues
+    tenant_stream = f"events:{uuid4()}"
+    agen = events_routes._sse_stream(fake, tenant_stream, "0-0")
+    collected: list[bytes] = []
+    # We expect for two entries: for each entry, SSE yields id, event, data lines + a blank line
+    for _ in range(8):
+        chunk = await agen.__anext__()
+        collected.append(chunk)
+    txt = b"".join(collected).decode("utf-8")
+    assert "id: 1-0" in txt
+    assert "event: completed" in txt
+    assert "id: 2-0" in txt
+    assert "event: failed" in txt

@@ -9,12 +9,12 @@ from dataclasses import dataclass
 from typing import Optional
 from uuid import UUID
 
-from src.domain.database_management.provisioning import (
+from src.domain.shared.ports.database_management import (
     BucketProvisioningService,
     DatabaseProvisioningService,
     DatabaseMetadataRepository,
-    DatabaseName,
 )
+from src.domain.database_management.value_objects import DatabaseName
 
 
 @dataclass

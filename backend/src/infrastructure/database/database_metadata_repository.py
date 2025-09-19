@@ -10,11 +10,8 @@ from uuid import UUID
 
 from sqlalchemy import text
 
-from src.domain.database_management.provisioning import (
-    DatabaseMetadataRepository,
-    DatabaseMetadata,
-    DatabaseName,
-)
+from src.domain.shared.ports.database_management import DatabaseMetadataRepository
+from src.domain.database_management.value_objects import DatabaseMetadata, DatabaseName
 from src.infrastructure.database.session import SessionFactory
 from src.infrastructure.logging.config import infra_logger
 

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: compose-up compose-down compose-logs wait api test unit integration e2e install env start worker
+.PHONY: compose-up compose-down compose-logs wait api test unit integration e2e install env start worker compose-api compose-all
 
 env:
 	@echo "Loading .env if present"; \
@@ -9,6 +9,12 @@ env:
 
 compose-up:
 	docker-compose up -d postgres redis minio
+
+compose-api:
+	docker-compose up -d api worker
+
+compose-all:
+	docker-compose up -d postgres redis minio api worker
 
 compose-down:
 	docker-compose down

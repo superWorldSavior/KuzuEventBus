@@ -60,3 +60,32 @@ CREATE TABLE customers (
 
 ---
 **Rôle** : fournir une persistance fiable pour les tenants, base de toute authentification et gouvernance multi-tenant.
+
+---
+
+## 🗂️ Cheatsheet (état actuel)
+
+- **Adapters actifs**
+  - `PostgresCustomerAccountRepository` — comptes/tenants/API keys (fichier `tenant_repository.py`)
+  - `PostgresKuzuDatabaseRepository` — catalogue des bases (fichier `kuzu_database_repository.py`)
+  - `PostgresDatabaseMetadataRepository` — provisioning/metadata (fichier `database_metadata_repository.py`)
+  - `PostgresSnapshotRepository` — snapshots (fichier `snapshot_repository.py`)
+
+- **Dependency Injection**
+  - `customer_repository()`
+  - `kuzu_database_repository()`
+  - `snapshot_repository()`
+
+- **Environnement**
+  - `DATABASE_URL` (SQLAlchemy DSN)
+
+- **Tables clés (DDL synthétique)**
+  - `customers` — tenants & API keys
+  - `kuzu_databases` — id, tenant_id, name, filesystem_path, created_at
+  - `kuzu_db_snapshots` — id, tenant_id, database_id, object_key, checksum, size_bytes, created_at
+
+## 🔎 Contexte fonctionnel
+
+- Les tenants et leurs clés API sont la source de vérité pour l’authentification multi-tenant.
+- Le catalogue des bases (`kuzu_databases`) permet de lister, retrouver et supprimer les bases d’un tenant.
+- Les snapshots sont historisés pour restaurations ultérieures; la donnée binaire est stockée sur MinIO, la ligne Postgres pointe vers l’objet (chemin S3-like) et porte les métadonnées (checksum, taille).

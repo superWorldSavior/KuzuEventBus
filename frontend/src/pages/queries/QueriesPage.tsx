@@ -9,7 +9,7 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useRecentQueries, useDatabases } from "@/shared/hooks/useApi";
 import { QueryExecutor } from "@/features/query-execution/components/QueryExecutor";
 import { QueryResultsViewer } from "@/features/query-execution/components/QueryResultsViewer";

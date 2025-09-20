@@ -12,7 +12,7 @@ import {
   ArrowRight,
   Circle,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useQueryBuilderStore } from "@/features/query-execution/stores/queryBuilder";
 
 // Enhanced node interface for D3 simulation

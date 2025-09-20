@@ -3,7 +3,7 @@ import {
   List,
   MagnifyingGlass,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useNavigationStore } from "@/app/stores/navigation";
 import { TenantSwitcher } from "./TenantSwitcher";
 import { UserMenu } from "./UserMenu";

@@ -1,0 +1,46 @@
+# Development Dockerfile for KuzuEventBus Frontend with Hot Reload (Vite HMR)
+FROM node:22.13-alpine3.20
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init curl
+
+# Set working directory
+WORKDIR /app
+
+# Set development environment
+ENV NODE_ENV=development
+
+# Copy package files for dependency installation
+COPY package.json package-lock.json* ./
+
+# Install all dependencies (including devDependencies for development)
+RUN npm ci --prefer-offline --no-audit --no-fund
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001 -G nodejs
+
+# Change ownership of the app directory to the non-root user
+RUN chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
+
+# Copy the rest of the application code
+# This is done after dependency installation for better Docker layer caching
+COPY --chown=nextjs:nodejs . .
+
+# Expose ports for development server and HMR
+EXPOSE 3000 3001
+
+# Add labels for better container management
+LABEL maintainer="KuzuEventBus Team" \
+      version="1.0-dev" \
+      description="KuzuEventBus Frontend Development - React/TypeScript with Vite HMR"
+
+# Health check for development
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:3000 || exit 1
+
+# Default command: Start Vite development server with HMR
+CMD ["dumb-init", "npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]

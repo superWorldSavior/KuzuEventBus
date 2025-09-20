@@ -6,7 +6,7 @@ import {
   CloudArrowUp,
   WarningCircle,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import { useUploadFile } from "@/shared/hooks/useApi";
 

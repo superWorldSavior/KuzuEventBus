@@ -24,10 +24,35 @@ export default defineConfig(({ mode }) => {
     
     server: {
       port: 3000,
+      host: true, // Enable access from Docker containers
+      // Hot Module Replacement (HMR) configuration for Docker
+      hmr: {
+        port: 3001,
+        host: '0.0.0.0'
+      },
+      // Watch for changes with polling (important for Docker)
+      watch: {
+        usePolling: true,
+        interval: 1000,
+        // Ignore node_modules to improve performance
+        ignored: ['**/node_modules/**', '**/dist/**']
+      },
       proxy: {
         "/api": {
-          target: "http://localhost:8000",
+          target: "http://api:8000", // Use Docker service name in development
           changeOrigin: true,
+          secure: false,
+          configure: (proxy, _options) => {
+            proxy.on('error', (err, _req, _res) => {
+              console.log('proxy error', err);
+            });
+            proxy.on('proxyReq', (proxyReq, req, _res) => {
+              console.log('Sending Request to the Target:', req.method, req.url);
+            });
+            proxy.on('proxyRes', (proxyRes, req, _res) => {
+              console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+            });
+          },
         },
       },
     },

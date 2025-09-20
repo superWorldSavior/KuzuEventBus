@@ -1,6 +1,6 @@
 import { Pulse, User, Database, FileText, Clock } from "@phosphor-icons/react";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface ActivityItem {
   id: string;

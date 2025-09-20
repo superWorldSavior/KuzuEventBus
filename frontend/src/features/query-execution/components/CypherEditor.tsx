@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import { Editor } from "@monaco-editor/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface CypherEditorProps {
   value: string;

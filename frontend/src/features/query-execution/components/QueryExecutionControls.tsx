@@ -11,7 +11,7 @@ import {
   Copy
 } from "@phosphor-icons/react";
 import { Button } from "@/shared/ui/button";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface QueryExecutionControlsProps {
   onExecute: () => void;

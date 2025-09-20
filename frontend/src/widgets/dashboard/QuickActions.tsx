@@ -8,7 +8,7 @@ import {
   Sparkle,
   ArrowRight 
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useRunQuery } from "@/shared/hooks/useApi";
 
 interface QuickAction {

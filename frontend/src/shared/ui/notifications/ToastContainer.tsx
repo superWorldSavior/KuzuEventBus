@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, CheckCircle, Warning, Info, XCircle } from '@phosphor-icons/react';
-import { cn } from '@/utils';
+import { cn } from '@/shared/lib';
 import { useToastStore, type Toast } from '@/app/stores/toasts';
 
 interface ToastItemProps {

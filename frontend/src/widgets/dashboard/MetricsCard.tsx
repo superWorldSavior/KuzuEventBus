@@ -1,5 +1,5 @@
 import { TrendUp, TrendDown, Minus } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { LoadingSkeleton } from "@/shared/ui/LoadingSkeleton";
 
 interface MetricsCardProps {

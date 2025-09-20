@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { Warning, ArrowClockwise } from '@phosphor-icons/react';
 import { Button } from '@/shared/ui/button';
-import { cn } from '@/utils';
+import { cn } from '@/shared/lib';
 
 interface Props {
   children: ReactNode;

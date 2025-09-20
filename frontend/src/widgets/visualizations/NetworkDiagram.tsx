@@ -9,7 +9,7 @@ import {
   Play,
   Pause,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import {
   GraphData,
   GraphNode,

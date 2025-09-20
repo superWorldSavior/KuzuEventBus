@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   children: React.ReactNode;

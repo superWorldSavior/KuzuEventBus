@@ -19,7 +19,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface VirtualizedQueryResultsProps {
   results?: any[];

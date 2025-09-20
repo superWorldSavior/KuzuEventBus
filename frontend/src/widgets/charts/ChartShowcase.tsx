@@ -1,6 +1,6 @@
 import { BarChart } from "./BarChart";
 import { LineChart } from "./LineChart";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface ChartShowcaseProps {
   className?: string;

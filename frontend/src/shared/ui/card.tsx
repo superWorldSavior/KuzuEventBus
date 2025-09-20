@@ -1,5 +1,5 @@
 import { forwardRef, ReactNode } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { MicroInteraction } from "./animations";
 import { LoadingSpinner } from "./loading-spinner";
 

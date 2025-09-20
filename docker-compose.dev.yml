@@ -1,0 +1,222 @@
+version: "3.8"
+
+services:
+  # PostgreSQL - Application metadata
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: kuzu_eventbus
+      POSTGRES_USER: kuzu_user
+      POSTGRES_PASSWORD: kuzu_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kuzu_user -d kuzu_eventbus"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis - Cache, Sessions, Queues
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # MinIO - S3-compatible storage for Kuzu DBs
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API
+      - "9001:9001" # Console
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Adminer - PostgreSQL interface (dev only)
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
+  # Redis Insight - Redis interface (dev only)
+  redis-insight:
+    image: redislabs/redisinsight:latest
+    ports:
+      - "8001:5540"
+    volumes:
+      - redis_insight_data:/db
+    depends_on:
+      - redis
+
+  # API - FastAPI server with HOT RELOAD
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: development
+      KUZU_DATA_DIR: /data/kuzu
+      # Postgres DSN for SQLAlchemy
+      DATABASE_URL: postgresql+psycopg2://kuzu_user:kuzu_password@postgres:5432/kuzu_eventbus
+      # Redis URL for async clients
+      REDIS_URL: redis://redis:6379/0
+      # MinIO configuration
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: kuzu-databases
+      MINIO_SECURE: "false"
+      # Hot reload configuration
+      PYTHONPATH: /app
+      WATCHFILES_FORCE_POLLING: "true"
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount source code for hot reload
+      - ./backend:/app:cached
+      - kuzu_data:/data/kuzu
+      # Exclude these directories from mounting to avoid conflicts
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/src/__pycache__
+    # Enable hot reload with uvicorn
+    command:
+      [
+        "uvicorn",
+        "src.presentation.api.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--reload",
+        "--reload-dir",
+        "/app/src",
+        "--reload-delay",
+        "0.25",
+      ]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Worker - Async query processor with HOT RELOAD
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      ENVIRONMENT: development
+      KUZU_DATA_DIR: /data/kuzu
+      DATABASE_URL: postgresql+psycopg2://kuzu_user:kuzu_password@postgres:5432/kuzu_eventbus
+      REDIS_URL: redis://redis:6379/0
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin123
+      MINIO_BUCKET: kuzu-databases
+      MINIO_SECURE: "false"
+      PYTHONPATH: /app
+      WATCHFILES_FORCE_POLLING: "true"
+    volumes:
+      # Mount source code for hot reload
+      - ./backend:/app:cached
+      - kuzu_data:/data/kuzu
+      # Exclude cache directories
+      - /app/__pycache__
+      - /app/.pytest_cache
+      - /app/src/__pycache__
+    # Use watchfiles to monitor and restart worker on changes
+    command:
+      [
+        "python",
+        "-m",
+        "watchfiles",
+        "python scripts/run_query_worker.py",
+        "/app/src",
+        "--ignore-paths",
+        "__pycache__",
+        "--ignore-paths",
+        "*.pyc",
+      ]
+
+  # Frontend - React with Vite HOT RELOAD
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"
+      - "3001:3001" # Vite HMR port
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://localhost:8000
+      # Vite HMR configuration for Docker
+      VITE_HMR_HOST: localhost
+      VITE_HMR_PORT: 3001
+      VITE_HOST: 0.0.0.0
+      VITE_PORT: 3000
+      # Enable polling for file changes in Docker
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: 1000
+    volumes:
+      # Mount source code for hot reload
+      - ./frontend:/app:cached
+      - /app/node_modules # Avoid mounting node_modules
+      - /app/dist # Avoid mounting dist directory
+    command: ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3000"]
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  redis_insight_data:
+  kuzu_data:
+
+networks:
+  default:
+    name: kuzu_eventbus_dev_network

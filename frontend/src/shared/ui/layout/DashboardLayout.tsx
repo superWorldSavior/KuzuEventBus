@@ -2,7 +2,7 @@ import { ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { useNavigation, usePageMeta, useKeyboardNavigation } from "@/shared/hooks/useNavigation";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface DashboardLayoutProps {
   children: ReactNode;

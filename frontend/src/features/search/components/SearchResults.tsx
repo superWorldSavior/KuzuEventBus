@@ -11,7 +11,7 @@ import {
   MagnifyingGlass,
   Funnel,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useSearch } from "../hooks/useSearch";
 import { SearchResult } from "../stores/search";
 

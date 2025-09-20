@@ -1,5 +1,5 @@
 import { LoadingSkeleton, SkeletonCard, SkeletonChart } from "@/shared/ui/LoadingSkeleton";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface DashboardLoadingProps {
   className?: string;

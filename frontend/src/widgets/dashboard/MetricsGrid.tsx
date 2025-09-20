@@ -1,6 +1,6 @@
 import React from "react";
 import { MetricsCard } from "./MetricsCard";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface MetricsGridProps {
   metrics: Array<{

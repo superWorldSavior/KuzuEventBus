@@ -10,7 +10,7 @@ import {
   XCircle,
   ArrowUpRight,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useNotificationStore, type Notification } from "@/app/stores/notifications";
 import { formatDistanceToNow } from "date-fns";
 

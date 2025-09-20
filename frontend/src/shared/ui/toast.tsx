@@ -1,6 +1,6 @@
 import { forwardRef, ReactNode, useEffect, useState } from "react";
 import { X, Check, Warning, Info } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { SlideIn } from "./animations";
 
 interface ToastProps {

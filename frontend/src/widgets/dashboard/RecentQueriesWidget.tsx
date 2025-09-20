@@ -7,7 +7,7 @@ import {
   Database,
 } from "@phosphor-icons/react";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface QueryResult {
   id: string;

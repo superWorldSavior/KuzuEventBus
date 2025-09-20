@@ -3,7 +3,7 @@ import LazyCypherEditor from "@/shared/ui/lazy/LazyCypherEditor";
 import { QueryExecutionControls } from "./QueryExecutionControls";
 import { QueryProgress } from "./QueryProgress";
 import { useDatabases, useRunQuery } from "@/shared/hooks/useApi";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface QueryExecutorProps {
   initialQuery?: string;

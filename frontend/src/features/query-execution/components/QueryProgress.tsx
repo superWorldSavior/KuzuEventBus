@@ -8,7 +8,7 @@ import {
   ListBullets,
   Database,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface QueryProgressProps {
   queryId?: string;

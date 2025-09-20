@@ -1,5 +1,5 @@
 import { forwardRef, ReactNode } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { LoadingSpinner } from "./loading-spinner";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {

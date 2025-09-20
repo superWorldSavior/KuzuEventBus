@@ -44,7 +44,7 @@
       "@/shared/dev/*": ["./src/shared/dev/*"],
       
       // Utils shortcut
-      "@/utils": ["./src/shared/lib/utils"]
+      "@/utils": ["./src/shared/lib"]
     },
 
     /* Additional type checking */

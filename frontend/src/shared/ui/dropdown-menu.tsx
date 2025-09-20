@@ -1,5 +1,5 @@
 import React from "react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface DropdownMenuProps {
   children: React.ReactNode;

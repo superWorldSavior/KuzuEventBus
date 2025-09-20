@@ -8,7 +8,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface LineChartData {
   name: string;

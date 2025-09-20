@@ -11,7 +11,7 @@ import {
   Eye,
   EyeSlash,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface GraphControlsProps {
   className?: string;

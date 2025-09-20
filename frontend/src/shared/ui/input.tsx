@@ -1,5 +1,5 @@
 import { forwardRef, ReactNode, useState, useId } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { Eye, EyeSlash, Warning, Check } from "@phosphor-icons/react";
 
 interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {

@@ -11,7 +11,7 @@ import {
   Trash,
   Database as DatabaseIcon,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import {

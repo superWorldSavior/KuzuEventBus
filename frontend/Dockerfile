@@ -1,5 +1,5 @@
 # Multi-stage build for Vite React TypeScript app
-FROM node:20.18-alpine3.20 AS base
+FROM node:22.13-alpine3.20 AS base
 
 # Install dumb-init for proper signal handling
 RUN apk add --no-cache dumb-init
@@ -29,7 +29,6 @@ FROM dev-deps AS builder
 COPY tsconfig.json tsconfig.node.json vite.config.ts ./
 COPY tailwind.config.js postcss.config.js ./
 COPY index.html ./
-COPY public/ ./public/
 COPY src/ ./src/
 
 # Build the application with type checking

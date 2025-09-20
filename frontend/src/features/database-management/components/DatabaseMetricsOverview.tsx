@@ -9,7 +9,7 @@ import {
   Pulse,
   Warning,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { Badge } from "@/shared/ui/badge";
 import { formatDistanceToNow } from "date-fns";
 

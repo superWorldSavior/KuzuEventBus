@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface LoadingSpinnerProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";

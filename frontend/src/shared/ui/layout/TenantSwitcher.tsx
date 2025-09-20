@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Check, Buildings, Plus, CaretDown } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface Tenant {
   id: string;

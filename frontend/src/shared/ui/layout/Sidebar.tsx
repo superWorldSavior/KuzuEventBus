@@ -8,7 +8,7 @@ import {
   CaretLeft,
   X,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useNavigationStore, navigationItems } from "@/app/stores/navigation";
 
 const iconMap = {

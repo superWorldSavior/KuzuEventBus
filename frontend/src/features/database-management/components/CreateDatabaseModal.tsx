@@ -3,7 +3,7 @@ import { X, Database, Upload } from "@phosphor-icons/react";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { FileUploader } from "./FileUploader";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface CreateDatabaseModalProps {
   isOpen: boolean;

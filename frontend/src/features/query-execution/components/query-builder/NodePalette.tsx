@@ -10,7 +10,7 @@ import {
   MagnifyingGlass,
   Tag,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface NodeType {
   type: "entity" | "relationship" | "property" | "filter" | "return";

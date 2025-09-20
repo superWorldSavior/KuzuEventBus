@@ -9,7 +9,7 @@ import {
   Sun,
   SignOut,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 
 interface UserMenuProps {

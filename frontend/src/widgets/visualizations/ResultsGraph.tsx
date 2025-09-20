@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { NetworkDiagram } from "./NetworkDiagram";
 import { GraphControls } from "./GraphControls";
 import { transformQueryResultToGraph, generateMockGraphData } from "@/shared/lib/d3-helpers";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface ResultsGraphProps {
   queryResults?: any[];

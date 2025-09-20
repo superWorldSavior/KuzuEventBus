@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useQueryBuilderStore } from "@/features/query-execution/stores/queryBuilder";
 import { QueryCanvas } from "./QueryCanvas";
 import { NodePalette } from "./NodePalette";

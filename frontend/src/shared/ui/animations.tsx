@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useState } from "react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 
 interface FadeInProps {
   children: ReactNode;

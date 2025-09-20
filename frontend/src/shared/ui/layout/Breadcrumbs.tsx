@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { CaretRight, House } from "@phosphor-icons/react";
-import { cn } from "@/utils";
+import { cn } from "@/shared/lib";
 import { useNavigationStore, generateBreadcrumbs } from "@/app/stores/navigation";
 
 interface BreadcrumbsProps {

@@ -30,17 +30,36 @@ apiClient.interceptors.request.use(
       _t: Date.now(),
     };
 
-    // Add API key authentication if available
-    // API keys are stored in localStorage with customer registration
+    // Primary authentication: API key (KB_ prefix)
     const apiKey = localStorage.getItem('kuzu_api_key');
-    if (apiKey && apiKey.startsWith('kb_')) {
-      config.headers['X-API-Key'] = apiKey;
+    if (apiKey) {
+      // Validate API key format
+      if (apiKey.startsWith('kb_') && apiKey.length > 10) {
+        config.headers['X-API-Key'] = apiKey;
+      } else {
+        // Invalid API key format - clear it
+        console.warn("Invalid API key format detected, clearing stored credentials");
+        localStorage.removeItem('kuzu_api_key');
+        localStorage.removeItem('kuzu_customer_id');
+        localStorage.removeItem('kuzu_tenant_name');
+        
+        // For protected routes, this will trigger 401 and redirect to login
+        if (!config.url?.includes('/register') && !config.url?.includes('/health')) {
+          console.warn("API request without valid authentication");
+        }
+      }
     }
 
-    // Also support Bearer token authentication for backwards compatibility
+    // Legacy Bearer token support (for backward compatibility only)
     const token = localStorage.getItem('auth_token');
-    if (token && !config.headers.Authorization) {
+    if (token && !config.headers.Authorization && !apiKey) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Add tenant context if available (helpful for multi-tenant debugging)
+    const tenantName = localStorage.getItem('kuzu_tenant_name');
+    if (tenantName) {
+      config.headers['X-Tenant-Context'] = tenantName;
     }
 
     return config;
@@ -53,19 +72,32 @@ apiClient.interceptors.request.use(
 // Response interceptor
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => {
+    // Mark endpoint as working on successful response
+    markEndpointWorking(response.config.method?.toUpperCase() + " " + response.config.url);
     return response;
   },
   (error: AxiosError<ErrorResponse>) => {
-    // Handle different error scenarios
+    // Handle authentication errors properly
     if (error.response?.status === 401) {
-      // Unauthorized - redirect to login
-      window.location.href = "/login";
+      // Clear any stored authentication data
+      localStorage.removeItem('kuzu_api_key');
+      localStorage.removeItem('kuzu_customer_id');
+      localStorage.removeItem('kuzu_tenant_name');
+      localStorage.removeItem('auth_token');
+      
+      // Only redirect if not already on auth pages to prevent loops
+      const currentPath = window.location.pathname;
+      if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+        console.warn("Authentication failed - redirecting to login");
+        window.location.href = "/login";
+      }
       return Promise.reject(error);
     }
 
     if (error.response?.status === 403) {
-      // Forbidden - show error message
+      // Forbidden - show error message but don't redirect
       console.error("Access forbidden:", error.response.data);
+      // Let the UI handle the 403 error appropriately
     }
 
     if (error.response?.status && error.response.status >= 500) {

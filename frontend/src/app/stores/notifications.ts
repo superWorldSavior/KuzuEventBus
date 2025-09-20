@@ -115,34 +115,30 @@ export const useNotificationStore = create<NotificationStore>()(
   )
 );
 
-// Mock notifications for development
-export const mockNotifications: Omit<Notification, "id" | "timestamp" | "read">[] = [
+// Mock notifications for development/demo purposes
+export const mockNotifications: Array<Omit<Notification, "id" | "timestamp" | "read">> = [
   {
     title: "Database Created",
-    message: "New database 'user-analytics' has been successfully created.",
+    message: "New database 'customer-analytics' has been successfully created",
     type: "success",
-    actionUrl: "/databases/user-analytics",
-    actionLabel: "View Database",
+    actionUrl: "/databases",
+    actionLabel: "View Database"
   },
   {
     title: "Query Completed",
-    message: "Your query 'Customer Analysis' finished executing in 2.4s.",
+    message: "Customer segmentation query finished in 2.3s",
     type: "info",
-    actionUrl: "/queries/customer-analysis",
-    actionLabel: "View Results",
+    actionUrl: "/queries",
+    actionLabel: "View Results"
   },
   {
-    title: "Storage Warning",
-    message: "Database storage is at 85% capacity. Consider archiving old data.",
+    title: "High Memory Usage",
+    message: "Database 'logistics-db' is using 85% of allocated memory",
     type: "warning",
-    actionUrl: "/analytics?tab=storage",
-    actionLabel: "View Analytics",
-  },
-  {
-    title: "Connection Error",
-    message: "Failed to connect to database cluster. Please check your network.",
-    type: "error",
-    actionUrl: "/settings?tab=database",
-    actionLabel: "Check Settings",
-  },
+    actionUrl: "/analytics",
+    actionLabel: "View Metrics"
+  }
 ];
+
+// Real notifications now come from real-time SSE events
+// See useSSENotifications hook for real implementation

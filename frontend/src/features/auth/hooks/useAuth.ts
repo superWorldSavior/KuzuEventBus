@@ -25,18 +25,37 @@ export function useAuth() {
       setLoading(true);
       clearError();
 
-      if (authApi.isAuthenticated()) {
+      // Check if user has stored credentials
+      const storedApiKey = authApi.getApiKey();
+      const storedCustomerId = authApi.getCustomerId();
+
+      if (storedApiKey && storedCustomerId) {
         try {
-          // Validate current session
+          // Validate API key format first
+          if (!storedApiKey.startsWith('kb_') || storedApiKey.length < 10) {
+            log.warn("Invalid stored API key format, clearing credentials");
+            await authApi.logout();
+            storeLogout();
+            setLoading(false);
+            return;
+          }
+
+          // Validate current session with backend
           const isValid = await authApi.validateSession();
           if (isValid) {
             const customer = await authApi.getCurrentCustomer();
-            if (customer) {
-              login(customer, authApi.getApiKey() || '');
+            if (customer && customer.id === storedCustomerId) {
+              login(customer, storedApiKey);
               log.info("User session restored", { customerId: customer.id });
+            } else {
+              // Customer data doesn't match stored ID - security issue
+              log.warn("Customer ID mismatch, clearing session");
+              await authApi.logout();
+              storeLogout();
             }
           } else {
             // Invalid session, logout
+            log.info("Invalid session detected, logging out");
             await authApi.logout();
             storeLogout();
           }
@@ -59,15 +78,48 @@ export function useAuth() {
       setLoading(true);
       clearError();
 
+      // Validate API key format before attempting login
+      if (!credentials.apiKey || !credentials.apiKey.startsWith('kb_') || credentials.apiKey.length < 10) {
+        throw new Error('Invalid API key format. API keys must start with "kb_" and be at least 10 characters long.');
+      }
+
       const customer = await authApi.loginWithApiKey(credentials.apiKey);
+      
+      // Additional validation - ensure customer data is complete
+      if (!customer.id || !customer.tenantName) {
+        throw new Error('Invalid customer data received from server');
+      }
+
       login(customer, credentials.apiKey);
       
       log.info("User logged in successfully", { customerId: customer.id });
       return { success: true, data: customer };
     } catch (error) {
+      // Enhanced error handling for authentication failures
+      let errorMessage = 'Login failed';
+      let errorCode = 'LOGIN_FAILED';
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Categorize different types of auth errors
+        if (error.message.includes('Invalid API key format')) {
+          errorCode = 'INVALID_API_KEY_FORMAT';
+        } else if (error.message.includes('Invalid API key') || error.message.includes('401')) {
+          errorCode = 'INVALID_CREDENTIALS';
+          errorMessage = 'Invalid API key. Please check your credentials and try again.';
+        } else if (error.message.includes('403')) {
+          errorCode = 'ACCESS_FORBIDDEN';
+          errorMessage = 'Access forbidden. Your account may be suspended.';
+        } else if (error.message.includes('Network Error') || error.message.includes('timeout')) {
+          errorCode = 'NETWORK_ERROR';
+          errorMessage = 'Network error. Please check your connection and try again.';
+        }
+      }
+
       const authError: AuthError = {
-        code: 'LOGIN_FAILED',
-        message: error instanceof Error ? error.message : 'Login failed',
+        code: errorCode as any,
+        message: errorMessage,
         details: error
       };
       
@@ -78,6 +130,8 @@ export function useAuth() {
         success: false,
         error: authError
       };
+    } finally {
+      setLoading(false);
     }
   }, [setLoading, clearError, setError, login]);
 
@@ -124,18 +178,37 @@ export function useAuth() {
     }
   }, [setLoading, clearError, setError, login]);
 
-  // Logout
+  // Enhanced logout with complete cleanup
   const handleLogout = useCallback(async () => {
     try {
+      setLoading(true);
+      
+      // Clear API credentials first
       await authApi.logout();
+      
+      // Clear Zustand store
       storeLogout();
+      
+      // Clear any additional auth-related localStorage items
+      localStorage.removeItem('auth_token'); // Legacy token
+      
+      // Clear any session storage items
+      sessionStorage.clear();
+      
       log.info("User logged out successfully");
     } catch (error) {
       log.error("Logout failed", { error });
-      // Still clear the store even if API call fails
+      // Still clear the store and storage even if API call fails
       storeLogout();
+      localStorage.removeItem('kuzu_api_key');
+      localStorage.removeItem('kuzu_customer_id');
+      localStorage.removeItem('kuzu_tenant_name');
+      localStorage.removeItem('auth_token');
+      sessionStorage.clear();
+    } finally {
+      setLoading(false);
     }
-  }, [storeLogout]);
+  }, [storeLogout, setLoading]);
 
   // Update user profile
   const updateProfile = useCallback(async (updates: { organizationName?: string; adminEmail?: string }) => {

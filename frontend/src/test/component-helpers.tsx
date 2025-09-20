@@ -139,8 +139,8 @@ export const queryTestHelpers = {
     }
   },
   
-  // Check query execution status
-  expectQueryStatus: (status: 'running' | 'success' | 'error') => {
+  // Check query execution status (aligned with backend statuses)
+  expectQueryStatus: (status: 'pending' | 'running' | 'completed' | 'failed') => {
     const statusIndicator = screen.getByTestId(`query-status-${status}`) ||
                            screen.getByText(new RegExp(status, 'i'));
     expect(statusIndicator).toBeInTheDocument();

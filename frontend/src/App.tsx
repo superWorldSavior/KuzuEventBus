@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { useNotificationInit } from "@/shared/hooks/useNotifications";
 import { RealTimeProvider } from "@/app/providers/RealTimeProvider";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
@@ -20,8 +19,8 @@ import { AuthDebug } from "@/shared/dev/AuthDebug";
 function App() {
   const { isAuthenticated, isLoading } = useAuth();
   
-  // Initialize mock notifications for development
-  useNotificationInit();
+  // Mock notifications disabled - will be replaced with real notification system
+  // useNotificationInit(false); // Set to true only for demo purposes
 
   if (isLoading) {
     return (

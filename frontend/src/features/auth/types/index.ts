@@ -53,18 +53,11 @@ export interface RegistrationFormData {
   agreeToTerms: boolean;
 }
 
-// Auth error types
+// Auth error types with enhanced categorization
 export interface AuthError {
-  code: string;
+  code: 'INVALID_API_KEY_FORMAT' | 'INVALID_CREDENTIALS' | 'ACCESS_FORBIDDEN' | 'NETWORK_ERROR' | 'LOGIN_FAILED' | 'REGISTRATION_FAILED' | 'SESSION_EXPIRED' | 'UPDATE_FAILED';
   message: string;
   details?: unknown;
 }
 
-// Demo user type (for development)
-export interface DemoUser {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  tenantName: string;
-}
+// Removed DemoUser type - demo authentication has been disabled for security

@@ -42,37 +42,62 @@ export const mockApiResponse = <T,>(data: T, delay = 0): Promise<T> => {
   });
 };
 
-export const mockApiError = (message: string, status = 500) => {
+export const mockApiError = (message: string, status = 500, code = 'INTERNAL_ERROR') => {
   const error = new Error(message) as any;
   error.response = {
     status,
-    data: { message },
+    data: {
+      error: {
+        code,
+        message,
+        details: message,
+        timestamp: new Date().toISOString(),
+      },
+    },
   };
   return Promise.reject(error);
 };
 
-// Mock data generators
+// Mock data generators (aligned with backend API contracts)
 export const createMockDatabase = (overrides = {}) => ({
-  database_id: 'test-db-1',
+  id: 'test-db-1',  // Backend uses 'id', not 'database_id'
   name: 'Test Database',
   description: 'A test database',
-  tenant_id: 'test-tenant',
-  created_at: '2024-01-01T00:00:00Z',
-  size_bytes: 1024 * 1024,
-  table_count: 5,
-  last_accessed: '2024-01-02T00:00:00Z',
-  schema: {},
+  tenantId: 'test-tenant',  // camelCase in frontend
+  createdAt: '2024-01-01T00:00:00Z',
+  sizeBytes: 1024 * 1024,  // Backend returns bytes, not separate size_bytes field
+  tableCount: 5,
+  lastAccessed: '2024-01-02T00:00:00Z',
+  status: 'active' as const,  // Backend includes status field
   ...overrides,
 });
 
 export const createMockQuery = (overrides = {}) => ({
   id: 'query-1',
   query: 'MATCH (n) RETURN n LIMIT 10',
-  status: 'success' as const,
-  executionTime: 150,
+  status: 'completed' as const,  // Backend uses 'completed' not 'success'
+  executionTimeMs: 150,  // Backend format with Ms suffix
   createdAt: '2024-01-01T00:00:00Z',
-  database: 'test-db-1',
-  resultCount: 10,
+  databaseId: 'test-db-1',  // Backend uses database_id, frontend camelCase
+  rowCount: 10,  // Backend uses row count not resultCount
+  ...overrides,
+});
+
+export const createMockQueryResult = (overrides = {}) => ({
+  transactionId: 'txn-123',
+  query: 'MATCH (n) RETURN n LIMIT 10',
+  status: 'completed' as const,
+  results: {
+    rows: [
+      ['John', 30],
+      ['Jane', 25],
+    ],
+    columns: ['name', 'age'],
+  },
+  metadata: {
+    executionTimeMs: 150,
+    rowCount: 2,
+  },
   ...overrides,
 });
 
@@ -82,14 +107,14 @@ export const createMockActivity = (overrides = {}) => ({
   title: 'Query Executed',
   description: 'A test query was executed successfully',
   timestamp: '2024-01-01T00:00:00Z',
-  user: 'test-user',
+  userId: 'test-user',  // Backend format
   metadata: {},
   ...overrides,
 });
 
 export const createMockDashboardStats = (overrides = {}) => ({
   totalDatabases: 3,
-  totalStorageGB: 10.5,
+  totalStorageBytes: 11010048,  // Backend returns bytes, not GB
   queriesToday: 42,
   avgQueryTimeMs: 250,
   activeConnections: 2,

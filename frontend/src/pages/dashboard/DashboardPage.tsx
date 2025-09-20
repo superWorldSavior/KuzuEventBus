@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useEffect, useCallback } from "react";
 import { Database, Code, HardDrive, Pulse } from "@phosphor-icons/react";
 import { RecentQueriesWidget } from "@/widgets/dashboard/RecentQueriesWidget";
 import { ActivityTimeline } from "@/widgets/dashboard/ActivityTimeline";
@@ -6,14 +7,47 @@ import { QuickActions } from "@/widgets/dashboard/QuickActions";
 import { MetricsGrid } from "@/widgets/dashboard/MetricsGrid";
 import { ChartShowcase } from "@/widgets/charts/ChartShowcase";
 import { useDashboardStats, useRecentQueries, useRecentActivity } from "@/shared/hooks/useApi";
+import { useSSE } from "@/shared/hooks/useSSE";
 
 export function DashboardPage() {
   const navigate = useNavigate();
   
   // API hooks
-  const { data: dashboardStats, isLoading: statsLoading, error: statsError } = useDashboardStats();
-  const { data: recentQueries, isLoading: queriesLoading } = useRecentQueries();
-  const { data: recentActivity, isLoading: activityLoading } = useRecentActivity();
+  const { data: dashboardStats, isLoading: statsLoading, error: statsError, refetch: refetchStats } = useDashboardStats();
+  const { data: recentQueries, isLoading: queriesLoading, refetch: refetchQueries } = useRecentQueries();
+  const { data: recentActivity, isLoading: activityLoading, refetch: refetchActivity } = useRecentActivity();
+
+  // SSE connection for real-time dashboard updates
+  const { connect, disconnect } = useSSE<{
+    event_type: 'completed' | 'timeout' | 'failed' | 'database_created' | 'database_deleted';
+    transaction_id?: string;
+    database_id?: string;
+    [key: string]: any;
+  }>({
+    url: '/api/v1/events/stream',
+    onMessage: useCallback((event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        
+        // Refresh dashboard data when significant events occur
+        if (data.event_type === 'completed' || data.event_type === 'database_created' || data.event_type === 'database_deleted') {
+          refetchStats();
+          refetchQueries();
+          refetchActivity();
+        }
+      } catch (error) {
+        console.warn('Failed to parse dashboard SSE message:', error);
+      }
+    }, [refetchStats, refetchQueries, refetchActivity]),
+    reconnectInterval: 5000,
+    maxReconnectAttempts: 10,
+  });
+
+  // Connect to SSE when component mounts
+  useEffect(() => {
+    connect();
+    return () => disconnect();
+  }, [connect, disconnect]);
 
   const handleMetricClick = (metric: string) => {
     switch (metric) {
@@ -40,30 +74,30 @@ export function DashboardPage() {
     navigate("/queries", { state: { initialQuery: query } });
   };
 
-  // Mock metrics data with proper structure
+  // Dashboard metrics data with real backend integration
   const metricsData = [
     {
       id: "databases",
       title: "Total Databases",
-      value: dashboardStats?.totalDatabases ?? 8,
+      value: dashboardStats?.totalDatabases ?? 0,
       icon: <Database className="w-5 h-5" />,
-      trend: { direction: "up" as const, percentage: 12 },
+      trend: dashboardStats?.databasesTrend ? { direction: "up" as const, percentage: dashboardStats.databasesTrend } : undefined,
       onClick: () => handleMetricClick("databases"),
     },
     {
       id: "queries",
       title: "Queries Today",
-      value: dashboardStats?.queriesToday ?? 143,
+      value: dashboardStats?.queriesToday ?? 0,
       icon: <Code className="w-5 h-5" />,
-      trend: { direction: "up" as const, percentage: 8 },
+      trend: dashboardStats?.queriesTodayTrend ? { direction: "up" as const, percentage: dashboardStats.queriesTodayTrend } : undefined,
       onClick: () => handleMetricClick("queries"),
     },
     {
       id: "storage",
       title: "Storage Used",
-      value: `${dashboardStats?.totalStorageGB ?? 4.2}GB`,
+      value: dashboardStats?.totalStorageGB ? `${dashboardStats.totalStorageGB}GB` : "0GB",
       icon: <HardDrive className="w-5 h-5" />,
-      trend: { direction: "up" as const, percentage: 5 },
+      trend: dashboardStats?.storageTrend ? { direction: "up" as const, percentage: dashboardStats.storageTrend } : undefined,
       onClick: () => handleMetricClick("storage"),
     },
     {

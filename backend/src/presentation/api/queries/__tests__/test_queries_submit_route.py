@@ -1,6 +1,4 @@
 from __future__ import annotations
-
-import json
 from uuid import UUID, uuid4
 
 import pytest
@@ -16,6 +14,14 @@ from src.presentation.api.middleware.authentication import AuthenticationMiddlew
 class _FakeQueue:
     async def enqueue_transaction(self, transaction_id: UUID, tenant_id: UUID, priority: int = 0) -> bool:
         return True
+
+
+class _FakeCustomerRepo:
+    async def save(self, customer):  # type: ignore[no-untyped-def]
+        return customer
+
+    async def find_by_api_key(self, api_key: str):  # type: ignore[no-untyped-def]
+        return None
 
     async def dequeue_transaction(self, consumer_group: str, consumer_name: str):
         return None
@@ -56,6 +62,8 @@ def _override_deps(monkeypatch):
     # override infra deps
     monkeypatch.setattr(deps, "message_queue_service", lambda: _FakeQueue())
     monkeypatch.setattr(deps, "transaction_repository", lambda: _FakeRepo())
+    # ensure auth middleware doesn't try to init real DB repo on startup
+    monkeypatch.setattr(deps, "customer_repository", lambda: _FakeCustomerRepo())
     # bypass auth middleware for unit scope
     monkeypatch.setattr(AuthenticationMiddleware, "_requires_auth", lambda self, path: False, raising=False)
     yield

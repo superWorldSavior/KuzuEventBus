@@ -99,3 +99,66 @@ class KuzuQueryService(Protocol):
     async def create_empty_database(self, database_path: str) -> bool:
         """Create new empty Kuzu database."""
         ...
+
+
+# Provisioning ports (migrated from domain/database_management/provisioning.py)
+
+@runtime_checkable
+class BucketProvisioningService(Protocol):
+    """Port for ensuring a tenant-specific bucket exists."""
+
+    async def ensure_bucket(self, tenant_id: UUID) -> str:
+        """Ensure bucket for tenant exists, returning bucket name.
+
+        Should be idempotent but fail fast on irrecoverable errors.
+        """
+        ...
+
+
+@runtime_checkable
+class DatabaseProvisioningService(Protocol):
+    """Port for creating a concrete Kuzu database directory for a tenant."""
+
+    async def create_database(self, tenant_id: UUID, name: Any) -> Any:
+        """Create a new database (fails if already exists for that name)."""
+        ...
+
+
+@runtime_checkable
+class DatabaseMetadataRepository(Protocol):
+    """Port for persisting and querying database metadata records."""
+
+    async def save(self, meta: Any) -> UUID:  # returns meta.id
+        ...
+
+    async def find_by_tenant(self, tenant_id: UUID) -> List[Any]:
+        ...
+
+    async def find_by_name(self, tenant_id: UUID, name: str) -> Optional[Any]:
+        ...
+
+
+@runtime_checkable
+class SnapshotRepository(Protocol):
+    """Port for persisting and querying database snapshot metadata records."""
+
+    async def save(
+        self,
+        *,
+        tenant_id: UUID,
+        database_id: UUID,
+        object_key: str,
+        checksum: str,
+        size_bytes: int,
+        created_at: str,
+    ) -> UUID:
+        ...
+
+    async def list_by_database(self, tenant_id: UUID, database_id: UUID) -> List[Dict[str, Any]]:
+        ...
+
+    async def find_by_id(self, snapshot_id: UUID) -> Optional[Dict[str, Any]]:
+        ...
+
+    async def delete(self, snapshot_id: UUID) -> bool:
+        ...

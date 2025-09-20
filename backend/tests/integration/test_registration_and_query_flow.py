@@ -32,7 +32,7 @@ async def test_registration_then_authenticated_query_flow():
             headers={"Authorization": f"Bearer {api_key}"},
             json={"query": "MATCH (n) RETURN n", "parameters": {}, "timeout_seconds": 1},
         )
-        assert query_response.status_code in (200, 400), query_response.text
+        assert query_response.status_code in (200, 202, 400), query_response.text
         if query_response.status_code == 200:
             body = query_response.json()
             assert "results" in body

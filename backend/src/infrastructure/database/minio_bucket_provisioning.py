@@ -17,7 +17,7 @@ from uuid import UUID
 from minio import Minio
 from minio.error import S3Error
 
-from src.domain.database_management.provisioning import BucketProvisioningService
+from src.domain.shared.ports.database_management import BucketProvisioningService
 from src.infrastructure.logging.config import infra_logger
 
 

@@ -1,78 +1,32 @@
 # Auth Infrastructure
 
-Implémentations des services d'**authentification et autorisation**.
+Services d'authentification et d'autorisation pour sécuriser les endpoints et contextualiser les requêtes (tenant, permissions).
 
-## 📂 Structure Actuelle
+## 🗂️ Cheatsheet (état actuel)
 
-```
-auth/
-└── __init__.py                 # Module vide - préparé pour l'évolution
-```
+- **Adapters actifs**
+  - `AllowAllAuthorizationService` (MVP) — autorise toutes les actions; sert de garde-fou minimal pour avancer vite.
+  - `ApiKeyAuthenticationService` (in-memory) — émet et valide des clés API lors de l'enregistrement client.
 
-## 🎯 Responsabilité
+- **Ports implémentés**
+  - `AuthenticationService` — émission/validation/révocation de clés API.
+  - `AuthorizationService` — vérification d'un droit donné (ex: `database:backup`).
 
-**Fournira les implémentations** des ports d'authentification :
-- Génération et validation de tokens
-- Gestion des permissions par tenant
-- Intégration avec systèmes d'auth externes
+- **Dependency Injection** (voir `src/infrastructure/dependencies.py`)
+  - `auth_service()` → `ApiKeyAuthenticationService`
+  - `authorization_service()` → `AllowAllAuthorizationService`
 
-## 📋 État Actuel
+- **Variables d'environnement**
+  - Aucune requise au MVP (clé API en mémoire). La persistance Postgres des API keys viendra ensuite.
 
-**Status :** Module préparé mais pas encore implémenté
+## 🔎 Contexte fonctionnel
 
-**Contenu actuel :**
-- Fichier `__init__.py` vide
-- En attente des besoins d'authentification production
+- À l'inscription (`POST /api/v1/customers/register`), une clé API est générée par `AuthenticationService` et retournée au client.
+- Les appels protégés portent le header `Authorization: Bearer kb_<api_key>`; le middleware valide et construit un `RequestContext` (incluant `tenant_id`).
+- `AuthorizationService` est aujourd'hui permissif (MVP). Il sera substitué par des politiques (RBAC/quotas) sans impacter le domaine.
 
-**Implémentation temporaire :** Actuellement utilisée dans `memory/auth_service.py`
+## 🔭 Prochaines étapes
 
-## 🔄 Implémentations Futures
-
-Quand ce module sera développé, il contiendra :
-
-### JWT Auth Service
-```python
-# Authentification basée sur JWT
-class JWTAuthService:
-    def generate_access_token(customer_id: str) -> str
-    def validate_token(token: str) -> TokenClaims
-    def refresh_token(refresh_token: str) -> str
-```
-
-### OAuth Integration
-```python
-# Intégration avec providers OAuth
-class OAuthService:
-    def authenticate_google(oauth_token: str) -> Customer
-    def authenticate_github(oauth_token: str) -> Customer
-```
-
-### API Key Management
-```python
-# Gestion avancée des clés API
-class APIKeyService:
-    def generate_api_key(customer_id: str, permissions: List[str]) -> str
-    def validate_api_key(api_key: str) -> APIKeyInfo
-    def revoke_api_key(api_key: str) -> bool
-```
-
-## 🔒 Sécurité
-
-**Standards attendus :**
-- JWT avec rotation des clés
-- Rate limiting par API key
-- Audit des accès
-- Chiffrement des tokens
-
-## 📦 Dépendances Futures
-
-```python
-# requirements.txt (quand implémenté)
-PyJWT>=2.8.0
-cryptography>=41.0.0
-python-jose>=3.3.0
-```
-
----
-
-**Rôle :** Module préparé pour les implémentations d'authentification production quand les besoins se préciseront.
+- Persister les API keys (Postgres) et offrir la rotation/révocation multi-clés par tenant.
+- Politique d'autorisations basée sur le `RequestContext.permissions` (ex: `database:create`, `database:backup`).
+- Rate limiting par clé et audit des accès (observabilité). 

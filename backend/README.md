@@ -95,10 +95,11 @@ open http://localhost:8000/docs
 ### For Developers
 ```bash
 # Setup environnement
-make setup
+make install
 
 # Tests complets
-make test
+make unit
+make integration
 
 # Couverture
 make coverage
@@ -119,8 +120,8 @@ make install
 make api
 
 # 5) Tests
-make unit                  # tous les tests unitaires
-make integration           # tests d'intégration (nécessitent Postgres/Redis)
+make unit                  # tests unitaires
+make integration           # tests d'intégration (Postgres/Redis/MinIO)
 
 # 6) Logs et arrêt des services
 make compose-logs          # suivre les logs docker
@@ -130,9 +131,52 @@ make compose-down          # arrêter/supprimer les conteneurs
 ### Lancer l'API (résumé)
 - Avec Make: `make api`
 
+## 🗂️ Cheatsheets Infra
+
+- [Infrastructure (vue d’ensemble)](src/infrastructure/README.md)
+- [Auth](src/infrastructure/auth/README.md)
+- [Cache (Redis)](src/infrastructure/cache/README.md)
+- [Database (Postgres)](src/infrastructure/database/README.md)
+- [File Storage (MinIO)](src/infrastructure/file_storage/README.md)
+- [Kuzu](src/infrastructure/kuzu/README.md)
+- [Redis (cache/queue/locks)](src/infrastructure/redis/README.md)
+- [Notifications](src/infrastructure/notifications/README.md)
+
 ### Persistence (nouvelle implémentation)
 - Le service utilise désormais PostgreSQL **obligatoirement** (`DATABASE_URL` ou `postgres://kuzu_user:...`).
 - Démarrez les conteneurs `postgres`/`redis` via `docker-compose up -d` avant `uvicorn` ou les tests API pour conserver tenants et clés API.
+
+## 📘 API actuelle (MVP)
+
+### Auth
+- Header: `Authorization: Bearer kb_<api_key>`
+- Obtenir une clé: `POST /api/v1/customers/register`
+
+### Customers
+- `POST /api/v1/customers/register` (public)
+- `GET  /api/v1/customers/{customer_id}/api-keys`
+- `DELETE /api/v1/customers/{customer_id}/api-keys/{api_key}`
+
+### Databases
+- `GET  /api/v1/databases/` – liste des bases du tenant
+- `POST /api/v1/databases/` – créer une base
+- `GET  /api/v1/databases/{database_id}` – métadonnées d’une base
+- `DELETE /api/v1/databases/{database_id}` – suppression
+- `POST /api/v1/databases/{database_id}/upload` – upload de fichier (base64)
+
+### Snapshots
+- `POST /api/v1/databases/{database_id}/snapshots` – créer un snapshot (répertoire → tar.gz, fichier `.kuzu` → direct)
+- `GET  /api/v1/databases/{database_id}/snapshots` – lister les snapshots
+- `POST /api/v1/databases/{database_id}/restore` – restaurer (overwrite) un snapshot
+
+### Queries (asynchrones)
+- `POST /api/v1/databases/{database_id}/query` – soumettre une requête (202)
+- `GET  /api/v1/jobs/{transaction_id}` – statut du job
+
+### Events
+- `GET  /api/v1/events/stream` – SSE scoping tenant
+
+Docs interactives: http://localhost:8000/docs et http://localhost:8000/redoc
 
 
 ## 🤝 Pour Contribuer

@@ -1,89 +1,26 @@
 # Kuzu Infrastructure
 
-Adaptateurs pour l'intégration avec la **base de données Kuzu**.
+Pont technique entre l’application et la base de données Kuzu (création et exécution).
 
-## 📂 Structure Actuelle
+## 🗂️ Cheatsheet (état actuel)
 
-```
-kuzu/
-├── __init__.py
-└── simple_adapter.py          # Adaptateur basique Kuzu
-```
+- **Adapters actifs**
+  - `KuzuQueryServiceAdapter` — exécution (port `KuzuQueryService`) — fichier `kuzu_query_service.py`
+  - `KuzuDatabaseProvisioningAdapter` — provisioning (port `DatabaseProvisioningService`) — fichier `../database/kuzu_database_provisioning.py`
 
-## 🎯 Responsabilité
+- **Dependency Injection**
+  - `kuzu_query_service()` (dans `src/infrastructure/dependencies.py`)
 
-**Implémente les interfaces** pour interagir avec Kuzu Database :
-- Connexion à Kuzu
-- Exécution de requêtes Cypher
-- Gestion des bases de données par tenant
+- **Environnement**
+  - `KUZU_DATA_DIR` — racine des bases Kuzu (répertoires/fichiers créés par provisioning)
 
-## 📋 Implémentation Actuelle
+## 🔎 Contexte fonctionnel
 
-### `simple_adapter.py` - SimpleKuzuAdapter
+- **Provisioning**: à la création d’une base, on prépare un chemin déterministe `KUZU_DATA_DIR/{tenant_id}/{db_name}/data.kuzu` (ou dossier). Cela permet l’isolation physique par tenant.
+- **Exécution**: les requêtes ciblent le `filesystem_path` associé à un `database_id`, résolu via Postgres; l’adapter Kuzu ouvre la base à la demande.
+- **Sûreté OP**: la restauration (overwrite) n’implique pas Kuzu directement; on opère un swap atomique au niveau du FS, et les ouvertures suivantes voient l’état restauré.
 
-**État actuel :** Adaptateur minimal préparé pour l'intégration Kuzu
+## 🔭 Prochaines étapes
 
-```python
-# Structure basique attendue :
-class SimpleKuzuAdapter:
-    def __init__(self, database_path: str):
-        # Initialisation connexion Kuzu
-        
-    def execute_query(self, cypher_query: str, parameters: dict):
-        # Exécution requête Cypher
-        
-    def create_database(self, tenant_name: str):
-        # Création base tenant-specific
-```
-
-**Intégration avec :**
-- Port `IDatabaseEngine` du domain
-- Port `IQueryExecutor` pour les requêtes
-- Configuration des chemins de base par tenant
-
-## 🔧 Configuration
-
-**Gestion des bases par tenant :**
-```
-databases/
-├── tenant-a/           # Base isolée pour tenant A
-├── tenant-b/           # Base isolée pour tenant B
-└── shared/             # Données partagées (si nécessaire)
-```
-
-**Isolation :** Chaque tenant a sa propre base Kuzu physiquement séparée.
-
-## 📦 Dépendances
-
-**Kuzu Python SDK :**
-```python
-# requirements.txt
-kuzu>=0.1.0  # Version SDK Python officielle
-```
-
-**Installation :**
-```bash
-pip install kuzu
-```
-
-## 🧪 Tests
-
-**Tests d'intégration attendus :**
-- Connexion à Kuzu
-- Création/suppression de bases
-- Exécution de requêtes simples
-- Isolation entre tenants
-
-## 🔄 Évolution
-
-**Phase actuelle :** Adaptateur simple pour POC
-
-**Évolutions futures :**
-- Pool de connexions
-- Optimisation des requêtes
-- Monitoring des performances
-- Backup/restore par tenant
-
----
-
-**Rôle :** Pont technique entre l'application et la base de données Kuzu, avec isolation par tenant.
+- Exposition de `get_database_schema()` et `get_database_stats()` réels (aujourd’hui placeholders) pour enrichir `GET /databases/{id}`.
+- Pool de connexions/optimisations si l’usage s’intensifie.

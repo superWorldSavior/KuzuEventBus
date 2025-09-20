@@ -7,12 +7,12 @@ import {
   Clock,
   Plus,
 } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/utils";
-import { useRecentQueries, useDatabases } from "@/hooks/useApi";
-import { QueryExecutor } from "@/components/queries/QueryExecutor";
-import { QueryResultsViewer } from "@/components/queries/QueryResultsViewer";
+import { useRecentQueries, useDatabases } from "@/shared/hooks/useApi";
+import { QueryExecutor } from "@/features/query-execution/components/QueryExecutor";
+import { QueryResultsViewer } from "@/features/query-execution/components/QueryResultsViewer";
 
 interface QueryResult {
   id: string;

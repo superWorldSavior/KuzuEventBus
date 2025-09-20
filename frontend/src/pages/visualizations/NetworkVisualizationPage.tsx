@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
-import { NetworkDiagram } from "@/components/visualizations/NetworkDiagram";
-import { GraphNode, GraphLink, generateMockGraphData } from "@/utils/d3-helpers";
-import { Button } from "@/components/ui/button";
+import { NetworkDiagram } from "@/widgets/visualizations/NetworkDiagram";
+import { GraphNode, GraphLink, generateMockGraphData } from "@/shared/lib/d3-helpers";
+import { Button } from "@/shared/ui/button";
 import { Shuffle, Database, Code, ChartBar } from "@phosphor-icons/react";
 
 export function NetworkVisualizationPage() {
@@ -26,7 +26,7 @@ export function NetworkVisualizationPage() {
     if (node) {
       // Find connected nodes
       const connectedNodeIds: string[] = [];
-      graphData.links.forEach(link => {
+      graphData.links.forEach((link: GraphLink) => {
         if (link.source === node.id || (link.source as GraphNode).id === node.id) {
           connectedNodeIds.push(typeof link.target === "string" ? link.target : link.target.id);
         }
@@ -199,7 +199,7 @@ export function NetworkVisualizationPage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {selectedNodes.map(nodeId => {
-                const node = graphData.nodes.find(n => n.id === nodeId);
+                const node = graphData.nodes.find((n: GraphNode) => n.id === nodeId);
                 if (!node) return null;
                 
                 return (

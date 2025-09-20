@@ -21,17 +21,30 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path mapping */
+    /* Path mapping - FSD Compliant */
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@/components/*": ["./src/components/*"],
+      
+      // FSD Layer aliases
+      "@/app/*": ["./src/app/*"],
       "@/pages/*": ["./src/pages/*"],
-      "@/hooks/*": ["./src/hooks/*"],
-      "@/store/*": ["./src/store/*"],
-      "@/services/*": ["./src/services/*"],
-      "@/types/*": ["./src/types/*"],
-      "@/utils/*": ["./src/utils/*"]
+      "@/widgets/*": ["./src/widgets/*"],
+      "@/features/*": ["./src/features/*"],
+      "@/entities/*": ["./src/entities/*"],
+      "@/shared/*": ["./src/shared/*"],
+      
+      // Convenient shortcuts for commonly used shared resources
+      "@/shared/ui/*": ["./src/shared/ui/*"],
+      "@/shared/api/*": ["./src/shared/api/*"],
+      "@/shared/lib/*": ["./src/shared/lib/*"],
+      "@/shared/types/*": ["./src/shared/types/*"],
+      "@/shared/config/*": ["./src/shared/config/*"],
+      "@/shared/hooks/*": ["./src/shared/hooks/*"],
+      "@/shared/dev/*": ["./src/shared/dev/*"],
+      
+      // Utils shortcut
+      "@/utils": ["./src/shared/lib/utils"]
     },
 
     /* Additional type checking */

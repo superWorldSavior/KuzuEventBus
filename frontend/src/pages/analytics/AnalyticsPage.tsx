@@ -8,8 +8,8 @@ import {
   Calendar,
   Funnel
 } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
 
 export function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState("7d");

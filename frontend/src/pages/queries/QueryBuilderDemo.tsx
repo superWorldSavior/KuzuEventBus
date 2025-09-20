@@ -1,5 +1,5 @@
-import { VisualQueryBuilder } from "@/components/query-builder";
-import { useQueryBuilderStore } from "@/store/queryBuilder";
+import { VisualQueryBuilder } from "@/features/query-execution/components/query-builder";
+import { useQueryBuilderStore } from "@/features/query-execution/stores/queryBuilder";
 import { useEffect } from "react";
 
 export function QueryBuilderDemo() {

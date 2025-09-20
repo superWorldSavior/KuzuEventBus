@@ -2,7 +2,7 @@ import React from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ToastProvider } from '@/components/notifications/ToastContainer';
+import { ToastProvider } from '@/shared/ui/notifications/ToastContainer';
 
 // Create a custom render function that includes all providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {

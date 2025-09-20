@@ -1,10 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { useNotificationInit } from "@/hooks/useNotifications";
-import { RealTimeProvider } from "@/contexts/RealTimeContext";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useNotificationInit } from "@/shared/hooks/useNotifications";
+import { RealTimeProvider } from "@/app/providers/RealTimeProvider";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { RegisterPage } from "@/pages/auth/RegisterPage";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { DashboardLayout } from "@/shared/ui/layout/DashboardLayout";
 import { DashboardPage } from "@/pages/dashboard/DashboardPage";
 import { DatabasesPage } from "@/pages/databases/DatabasesPage";
 import { QueriesPage } from "@/pages/queries/QueriesPage";
@@ -13,9 +13,9 @@ import { AnalyticsPage } from "@/pages/analytics/AnalyticsPage";
 import { SettingsPage } from "@/pages/settings/SettingsPage";
 import { SearchPage } from "@/pages/search/SearchPage";
 import { NetworkVisualizationPage } from "@/pages/visualizations/NetworkVisualizationPage";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { Toaster } from "@/components/ui/toaster";
-import { AuthDebug } from "@/components/debug/AuthDebug";
+import { LoadingSpinner } from "@/shared/ui/loading-spinner";
+import { Toaster } from "@/shared/ui/toaster";
+import { AuthDebug } from "@/shared/dev/AuthDebug";
 
 function App() {
   const { isAuthenticated, isLoading } = useAuth();

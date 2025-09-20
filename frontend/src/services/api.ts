@@ -1,6 +1,59 @@
 import axios, { AxiosInstance, AxiosError, AxiosResponse } from "axios";
 import type { ErrorResponse } from "@/types/api";
 
+// Backend integration status tracking
+interface BackendEndpointStatus {
+  endpoint: string;
+  status: 'implemented' | 'not_implemented' | 'missing' | 'unknown';
+  lastChecked?: string;
+}
+
+const endpointStatus = new Map<string, BackendEndpointStatus>();
+
+// Utility to handle backend integration errors
+function handleBackendError(endpoint: string, error: any, mockData?: any) {
+  const isAxiosError = error.response;
+  
+  if (isAxiosError) {
+    const status = error.response.status;
+    const statusInfo: BackendEndpointStatus = {
+      endpoint,
+      lastChecked: new Date().toISOString(),
+      status: status === 501 ? 'not_implemented' : 'implemented'
+    };
+    
+    if (status === 501) {
+      console.warn(`🚧 Backend endpoint ${endpoint} is not yet implemented (501 status)`);
+      endpointStatus.set(endpoint, statusInfo);
+      
+      if (mockData) {
+        console.info(`📝 Using mock data for ${endpoint} - this endpoint is planned but not yet implemented`);
+        return mockData;
+      }
+      
+      throw new Error(`Backend endpoint ${endpoint} is not yet implemented. Check the integration documentation.`);
+    }
+    
+    endpointStatus.set(endpoint, statusInfo);
+    throw error;
+  }
+  
+  // Network error or other issues
+  console.warn(`🔌 Cannot connect to backend for ${endpoint} - using mock data for development`);
+  endpointStatus.set(endpoint, { endpoint, status: 'unknown', lastChecked: new Date().toISOString() });
+  
+  if (mockData) {
+    return mockData;
+  }
+  
+  throw new Error(`Backend unavailable for ${endpoint}. Check if the backend server is running.`);
+}
+
+// Export function to get current backend status
+export function getBackendIntegrationStatus(): BackendEndpointStatus[] {
+  return Array.from(endpointStatus.values());
+}
+
 // Create axios instance with base configuration
 export const apiClient: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
@@ -18,6 +71,19 @@ apiClient.interceptors.request.use(
       ...config.params,
       _t: Date.now(),
     };
+
+    // Add API key authentication if available
+    // API keys are stored in localStorage with customer registration
+    const apiKey = localStorage.getItem('kuzu_api_key');
+    if (apiKey && apiKey.startsWith('kb_')) {
+      config.headers['X-API-Key'] = apiKey;
+    }
+
+    // Also support Bearer token authentication for backwards compatibility
+    const token = localStorage.getItem('auth_token');
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
 
     return config;
   },
@@ -55,6 +121,21 @@ apiClient.interceptors.response.use(
 
 // API service methods
 export const apiService = {
+  // Authentication utilities
+  setApiKey(apiKey: string) {
+    localStorage.setItem('kuzu_api_key', apiKey);
+  },
+
+  getApiKey(): string | null {
+    return localStorage.getItem('kuzu_api_key');
+  },
+
+  clearApiKey() {
+    localStorage.removeItem('kuzu_api_key');
+    localStorage.removeItem('kuzu_customer_id');
+    localStorage.removeItem('kuzu_tenant_name');
+  },
+
   // Health checks
   async checkHealth() {
     const response = await apiClient.get("/health/");
@@ -73,73 +154,83 @@ export const apiService = {
     admin_email: string;
   }) {
     const response = await apiClient.post("/api/v1/customers/register", data);
+    
+    // Store API key for future requests
+    if (response.data?.api_key) {
+      localStorage.setItem('kuzu_api_key', response.data.api_key);
+      localStorage.setItem('kuzu_customer_id', response.data.customer_id);
+      localStorage.setItem('kuzu_tenant_name', response.data.tenant_name);
+    }
+    
     return response.data;
   },
 
   // Database management methods
   async getDatabases() {
+    const endpoint = "GET /api/v1/databases";
+    const mockData = [
+      {
+        database_id: "db-1",
+        name: "social-network",
+        description: "Social media relationship data",
+        created_at: "2024-01-15T10:30:00Z",
+        size_bytes: 1073741824, // 1GB
+        table_count: 5,
+        last_accessed: "2024-01-20T14:22:00Z",
+      },
+      {
+        database_id: "db-2", 
+        name: "ecommerce-db",
+        description: "E-commerce product and order data",
+        created_at: "2024-01-10T09:15:00Z",
+        size_bytes: 2147483648, // 2GB
+        table_count: 8,
+        last_accessed: "2024-01-19T16:45:00Z",
+      },
+      {
+        database_id: "db-3",
+        name: "inventory-system",
+        description: "Warehouse inventory management",
+        created_at: "2024-01-18T13:20:00Z",
+        size_bytes: 536870912, // 512MB
+        table_count: 3,
+        last_accessed: "2024-01-20T11:30:00Z",
+      },
+      {
+        database_id: "db-4",
+        name: "financial-network",
+        description: "Financial transaction network analysis",
+        created_at: "2024-01-12T11:45:00Z",
+        size_bytes: 3221225472, // 3GB
+        table_count: 12,
+        last_accessed: "2024-01-18T09:22:00Z",
+      },
+    ];
+    
     try {
       const response = await apiClient.get("/api/v1/databases");
       return response.data;
     } catch (error) {
-      // Return mock data if backend is not available
-      console.warn("Using mock databases data");
-      return [
-        {
-          database_id: "db-1",
-          name: "social-network",
-          description: "Social media relationship data",
-          created_at: "2024-01-15T10:30:00Z",
-          size_bytes: 1073741824, // 1GB
-          table_count: 5,
-          last_accessed: "2024-01-20T14:22:00Z",
-        },
-        {
-          database_id: "db-2", 
-          name: "ecommerce-db",
-          description: "E-commerce product and order data",
-          created_at: "2024-01-10T09:15:00Z",
-          size_bytes: 2147483648, // 2GB
-          table_count: 8,
-          last_accessed: "2024-01-19T16:45:00Z",
-        },
-        {
-          database_id: "db-3",
-          name: "inventory-system",
-          description: "Warehouse inventory management",
-          created_at: "2024-01-18T13:20:00Z",
-          size_bytes: 536870912, // 512MB
-          table_count: 3,
-          last_accessed: "2024-01-20T11:30:00Z",
-        },
-        {
-          database_id: "db-4",
-          name: "financial-network",
-          description: "Financial transaction network analysis",
-          created_at: "2024-01-12T11:45:00Z",
-          size_bytes: 3221225472, // 3GB
-          table_count: 12,
-          last_accessed: "2024-01-18T09:22:00Z",
-        },
-      ];
+      return handleBackendError(endpoint, error, mockData);
     }
   },
 
   async createDatabase(data: { name: string; description?: string }) {
+    const endpoint = "POST /api/v1/databases";
+    const mockResponse = {
+      database_id: `db-${Date.now()}`,
+      name: data.name,
+      description: data.description,
+      created_at: new Date().toISOString(),
+      size_bytes: 0,
+      table_count: 0,
+    };
+    
     try {
       const response = await apiClient.post("/api/v1/databases", data);
       return response.data;
     } catch (error) {
-      // Simulate successful creation for demo purposes
-      console.warn("Using mock database creation");
-      return {
-        database_id: `db-${Date.now()}`,
-        name: data.name,
-        description: data.description,
-        created_at: new Date().toISOString(),
-        size_bytes: 0,
-        table_count: 0,
-      };
+      return handleBackendError(endpoint, error, mockResponse);
     }
   },
 
@@ -292,7 +383,7 @@ export const apiService = {
 
   async getQueryStatus(transactionId: string) {
     const response = await apiClient.get(
-      `/api/v1/queries/${transactionId}/status`
+      `/api/v1/jobs/${transactionId}`
     );
     return response.data;
   },

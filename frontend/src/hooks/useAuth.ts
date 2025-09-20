@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/store/auth";
 import { apiClient } from "@/services/api";
 import { getDefaultDemoUser } from "@/utils/demo-users";
+import { log } from "@/utils/logger";
 import type { LoginRequest, CustomerRegistrationRequest } from "@/types/api";
 
 export function useAuth() {
@@ -18,10 +19,10 @@ export function useAuth() {
         try {
           // For development, skip backend validation since backend might not be running
           // In production, you'd want to validate the token against the backend
-          console.log("User already authenticated from storage:", user.email);
+          log.info("User already authenticated from storage", { email: user.email });
           setLoading(false);
         } catch (error) {
-          console.warn("Token validation failed, but continuing for development:", error);
+          log.warn("Token validation failed, but continuing for development", { error });
           // In development, don't log out on API errors - backend might not be running
           setLoading(false);
         }
@@ -35,12 +36,12 @@ export function useAuth() {
 
   const handleLogin = async (credentials: LoginRequest) => {
     try {
-      console.log("Login attempt with:", credentials);
+      log.debug("Login attempt", { email: credentials.email });
       setLoading(true);
 
       // Demo user credentials for development
       const defaultDemoUser = getDefaultDemoUser();
-      console.log("Default demo user:", defaultDemoUser);
+      log.debug("Using default demo user for validation");
 
       // For now, simulate login since the backend doesn't have login endpoint
       // Accept any email/password combination for demo purposes
@@ -49,7 +50,7 @@ export function useAuth() {
           credentials.password === defaultDemoUser.password) ||
         credentials.email.includes("@"); // Accept any valid email format
 
-      console.log("Is valid login:", isValidLogin);
+      log.debug("Login validation result", { isValid: isValidLogin });
 
       if (!isValidLogin) {
         throw new Error("Invalid email or password");

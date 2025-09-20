@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { CypherEditor } from "./CypherEditor";
+import LazyCypherEditor from "@/components/lazy/LazyCypherEditor";
 import { QueryExecutionControls } from "./QueryExecutionControls";
 import { QueryProgress } from "./QueryProgress";
 import { useDatabases, useRunQuery } from "@/hooks/useApi";
@@ -209,7 +209,7 @@ export function QueryExecutor({
           </div>
         </div>
         
-        <CypherEditor
+        <LazyCypherEditor
           value={query}
           onChange={handleQueryChange}
           onExecute={handleExecute}

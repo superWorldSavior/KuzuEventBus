@@ -19,7 +19,7 @@ COPY . /app
 
 # Install backend package (editable dev extras for now)
 RUN python -m pip install -U pip && \
-    pip install -e backend/.[dev]
+    pip install -e ./.[dev]
 
 # Ensure Python can import src/* without install side effects
 ENV PYTHONPATH=/app/backend

@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Eye, EyeSlash, User, Lock } from "@phosphor-icons/react";
 import { useAuth } from "@/hooks/useAuth";
 import { getDefaultDemoUser } from "@/utils/demo-users";
+import SEO from "@/components/seo/SEO";
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -71,7 +72,13 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+    <>
+      <SEO 
+        title="Sign In"
+        description="Sign in to your Kuzu EventBus account to access your graph databases and analytics dashboard."
+        keywords="kuzu eventbus, login, sign in, graph database, authentication"
+      />
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -239,6 +246,7 @@ export function LoginPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

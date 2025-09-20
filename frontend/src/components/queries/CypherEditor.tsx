@@ -278,3 +278,5 @@ export function CypherEditor({
     </div>
   );
 }
+
+export default CypherEditor;

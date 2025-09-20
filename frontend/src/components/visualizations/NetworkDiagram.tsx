@@ -360,3 +360,5 @@ export function NetworkDiagram({
 }
 
 NetworkDiagram.displayName = "NetworkDiagram";
+
+export default NetworkDiagram;

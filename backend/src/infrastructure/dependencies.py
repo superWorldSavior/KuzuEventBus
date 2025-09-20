@@ -111,3 +111,45 @@ def notification_service() -> NotificationService:
 
     infra_logger.info("Using LoggingNotificationService (in-memory MVP)")
     return LoggingNotificationService()
+
+
+@lru_cache
+def authorization_service():
+    """Provide authorization service (MVP allow-all)."""
+    from src.infrastructure.auth.authorization_service import (
+        AllowAllAuthorizationService,
+    )
+
+    infra_logger.info("Using AllowAllAuthorizationService (MVP)")
+    return AllowAllAuthorizationService()
+
+
+@lru_cache
+def kuzu_database_repository():
+    """Provide repository for Kuzu databases metadata (Postgres-backed)."""
+    from src.infrastructure.database.kuzu_database_repository import (
+        PostgresKuzuDatabaseRepository,
+    )
+
+    infra_logger.info("Using PostgresKuzuDatabaseRepository for DB catalog")
+    return PostgresKuzuDatabaseRepository()
+
+
+@lru_cache
+def kuzu_query_service():
+    """Provide KuzuQueryService adapter (MVP)."""
+    from src.infrastructure.kuzu.kuzu_query_service import KuzuQueryServiceAdapter
+
+    infra_logger.info("Using KuzuQueryServiceAdapter (MVP)")
+    return KuzuQueryServiceAdapter()
+
+
+@lru_cache
+def snapshot_repository():
+    """Provide snapshot repository (Postgres-backed)."""
+    from src.infrastructure.database.snapshot_repository import (
+        PostgresSnapshotRepository,
+    )
+
+    infra_logger.info("Using PostgresSnapshotRepository for DB snapshots")
+    return PostgresSnapshotRepository()

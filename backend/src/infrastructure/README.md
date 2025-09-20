@@ -21,279 +21,63 @@ La plupart des projets commencent par :
 ✅ Activer Redis/MinIO quand les métriques le justifieront
 ```
 
-## 📊 Décisions d'Architecture Actuelles
+## 🧭 Contexte métier global
 
-### Decision 1: Repository PostgreSQL (EN PRODUCTION)
+- **Pour qui**: équipes produit et développeurs qui veulent exploiter Kuzu (graph DB) sans se battre avec l’infra.
+- **Problèmes clés**:
+  - Isolation multi-tenant fiable et traçable.
+  - Mise en route en < 5 minutes (enregistrement → API key → première base).
+  - Sauvegarde/restauration simple et sûre (snapshots versionnés).
+  - Requêtes potentiellement longues mais robustes (asynchrones, retriables).
+  - Observabilité claire (logs/événements) et coût maîtrisé (YAGNI).
+- **Réponse de l’infrastructure**:
+  - Postgres = source de vérité (tenants, catalogue bases, snapshots) pour la gouvernance.
+  - Redis = performance & robustesse (cache, queue jobs, verrous distribués) pour lisser la charge et garantir l’exclusivité.
+  - MinIO = durabilité des artefacts (uploads, snapshots) avec chemins déterministes par tenant/base.
+  - Kuzu Engine = exécution/stockage graphe, isolé par tenant via `KUZU_DATA_DIR`.
+  - DI (FastAPI Depends) = remplacement d’adapters sans toucher au domaine (évolutivité sans réécrire le métier).
+- **Principes d’engagement**:
+  - Fail fast (validations explicites, verrous, swap atomique).
+  - Asynchrone par défaut pour le long (jobs)
+  - Documentation contractuelle via OpenAPI + READMEs infra orientés métier.
 
-**Choix :** `PostgresCustomerAccountRepository` (SQLAlchemy + PostgreSQL)
+## 🗂️ Cheatsheet – Atlas des adapters actifs (MVP)
 
-**Rationnel :**
-- **Persistance garantie** : les tenants, API keys et métadonnées survivent aux redémarrages
-- **Interop** : partage d’état entre instances et instrumentation centralisée
-- **Préparation quotas** : statistiques et suivi directement en base
+- **Auth** (`src/infrastructure/auth/`)
+  - Adapters: `AllowAllAuthorizationService` (MVP), `ApiKeyAuthenticationService` (in-memory)
+  - DI: `authorization_service()`, `auth_service()`
+  - Env: N/A (MVP)
 
-**État actuel :**
-- Implémentation active (`backend/src/infrastructure/database/tenant_repository.py`)
-- Tests d’intégration dédiés (`backend/src/infrastructure/database/__tests__`)
-- `InMemoryTenantRepository` ne subsiste que pour les tests de démonstration
+- **Cache / Queue / Locks** (`src/infrastructure/redis/`)
+  - Adapters: `RedisCacheService`, `RedisMessageQueueService`, `RedisDistributedLockService`
+  - DI: `cache_service()`, `message_queue_service()`, `lock_service()`
+  - Env: `REDIS_URL`
 
-### Decision 2: Services en mémoire (usage limité)
+- **Database (Postgres)** (`src/infrastructure/database/`)
+  - Adapters: `PostgresCustomerAccountRepository`, `PostgresKuzuDatabaseRepository`, `PostgresDatabaseMetadataRepository`, `PostgresSnapshotRepository`
+  - DI: `customer_repository()`, `kuzu_database_repository()`, `snapshot_repository()`
+  - Env: `DATABASE_URL`
 
-**Choix :** conserver les notes sur les anciens adapters mémoire (plus présents dans le runtime) pour documentation/tests ponctuels.
+- **Kuzu** (`src/infrastructure/kuzu/`)
+  - Adapters: `KuzuQueryServiceAdapter`, `KuzuDatabaseProvisioningAdapter`
+  - Env: `KUZU_DATA_DIR`
 
-**Rationnel :**
-- Faciliter l’apprentissage des ports sans dépendances externes
-- Fournir un bac à sable pour des tests unitaires ultra-rapides
-- Illustrer le passage YAGNI → production dans la documentation
+- **File Storage (MinIO)** (`src/infrastructure/file_storage/`)
+  - Adapter: `MinioFileStorageService`
+  - DI: `file_storage_service()`
+  - Env: `MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_SECURE`
 
-**Prochaine étape :** remplacer ces implémentations par Redis/MinIO réels et supprimer leur usage en production.
+- **Notifications** (`src/infrastructure/notifications/`)
+  - Adapter: `LoggingNotificationService`
+  - DI: `notification_service()`
 
+## 🧩 Contexte fonctionnel – flux couverts par l’infra
 
-### Decision 3: Console Notifications au lieu d'Email Service
-
-**Choix :** `InMemoryNotificationService` avec print statements
-
-**Rationnel :**
-- **MVP Focus** : Valider le flow business d'abord
-- **No Dependencies** : Pas de SMTP, SendGrid, templates
-- **Debug Friendly** : Messages visibles dans les logs
-- **Reliability** : Impossible d'avoir des email bounces
-
-**Triggers de Migration :**
-```
-Real Email becomes necessary when:
-- > 10 notifications/day (volume)
-- Customer complaints about missing emails
-- Business requires email confirmation workflow
-- Legal/compliance requires email audit trail
-```
-
-### Decision 4: Redis pour cache/queue/locks (EN PRODUCTION)
-
-**Choix :** services Redis dédiés (`RedisCacheService`, `RedisMessageQueueService`, `RedisDistributedLockService`).
-
-**Rationnel :**
-- **Partage d'état** multi-process/instances
-- **Streams & locks** prêts à l'emploi (queue + SET NX/PX)
-- **Instrumentation** facilitée (RedisInsight, métriques)
-
-**État actuel :**
-- Implémentations dans `backend/src/infrastructure/redis/`
-- Tests d'intégration (`redis/__tests__`) qui skip si Redis absent
-- Adapters mémoire supprimés du runtime (doc/tests uniquement)
-
-## 🔄 Migration Strategy
-
-### Progressive Migration Model
-
-**Level 1: Memory Everything (historique)**
-```
-Adaptateurs: InMemory*
-Statut: uniquement pour les tests/examples
-```
-
-**Level 2: Persistent Metadata + Kuzu Engine (ACTUEL)**
-```
-Adaptateurs: PostgreSQL (tenants), moteur Kuzu réel
-Déploiement: instance unique avec Postgres obligatoire
-Data: persistée en base et sur disque Kuzu
-```
-
-**Level 3: Distributed Infrastructure + Kuzu**
-```
-Adaptateurs: PostgreSQL + Redis + Email service + Distributed Database Metadata
-Kuzu Engine: Optimized/clustered Kuzu
-Deployment: Multiple instances
-Data: Distributed + cached + optimized graph
-Scale: 1K-10K users
-```
-
-**Level 4: Enterprise Grade**
-```
-Adaptateurs: Multi-region PostgreSQL + Redis Cluster + Enterprise email
-Deployment: Auto-scaling + multi-region
-Data: Replicated + partitioned
-Scale: 10K+ users
-```
-
-### Migration Decision Framework
-
-```python
-class MigrationDecisionEngine:
-    """Framework pour décider quand migrer."""
-    
-    def should_migrate_to_postgres(self) -> bool:
-        metrics = self.get_current_metrics()
-        return (
-            metrics.tenant_count > 100 or
-            metrics.uptime_requirement_hours > 24 or
-            metrics.instance_count > 1 or
-            metrics.data_loss_incidents > 0
-        )
-    
-    def should_migrate_to_postgres_metadata(self) -> bool:
-        """Décider quand persister les métadonnées de databases."""
-        metrics = self.get_current_metrics()
-        return (
-            metrics.databases_created > 100 or
-            metrics.uptime_requirement_hours > 24 or
-            metrics.instance_count > 1 or
-            metrics.database_metadata_loss_incidents > 0
-        )
-    
-    def should_migrate_to_redis(self) -> bool:
-        metrics = self.get_current_metrics()
-        return (
-            metrics.instance_count > 1 or
-            metrics.cache_memory_mb > 100 or
-            metrics.cache_hit_ratio < 0.7
-        )
-```
-
-## 🧪 Testing Strategy for Infrastructure
-
-### Contract Testing
-```python
-def test_postgres_repository_contract():
-    repo = PostgresCustomerAccountRepository()
-    # Assertions d'intégration : voir backend/src/infrastructure/database/__tests__
-
-def test_redis_cache_contract():
-    cache = RedisCacheService(redis_client())
-    # Voir backend/src/infrastructure/redis/__tests__
-```
-
-### Performance Benchmarking
-```python
-def benchmark_migration_candidates():
-    """Mesurer quand activer Redis/MinIO."""
-    
-    metrics = collect_postgres_metrics()
-    assert metrics.connection_latency_ms < 20
-```
-
-## 💡 Architecture Insights
-
-### Why Ports & Adapters is PERFECT for YAGNI
-
-**The Pattern :**
-```
-Domain ← Port (interface) ← Adapter (implementation)
-```
-
-**YAGNI Benefits :**
-- **Start Simple** : Memory adapters for MVP
-- **Evolve Gradually** : Swap adapters without domain changes
-- **Test Easily** : Mock any adapter independently
-- **Scale Confidence** : Proven business logic + new infrastructure
-
-### Cost/Benefit Analysis
-
-**Memory Adapters (Current)**
-```
-Development Cost: 1 day
-Operational Cost: $0/month
-Maintenance Cost: Almost zero
-Performance: Excellent (local RAM)
-Scalability: Limited (single instance)
-```
-
-**PostgreSQL Migration (Future)**
-```
-Development Cost: 1-2 weeks
-Operational Cost: $20-100/month
-Maintenance Cost: Moderate (migrations, backups)
-Performance: Good (network latency)
-Scalability: Excellent (distributed)
-```
-
-**Business ROI Calculation :**
-```
-ROI = (Business Value - Total Cost) / Total Cost
-
-Memory Approach: High ROI early (low cost, fast validation)
-PostgreSQL Approach: High ROI later (higher cost, better scale)
-
-Switch Point: When memory limitations block business growth
-```
-
-## 🚀 Future Evolution Paths
-
-### Path 1: Startup Success (High Growth)
-```
-Memory → PostgreSQL → Multi-region PostgreSQL
-SimpleInMemoryDatabaseService → PostgreSQL Database Metadata → Distributed Metadata
-Kuzu Engine → Optimized Kuzu → Clustered Kuzu
-InMemory Cache → Redis → Redis Cluster
-Console Logs → SendGrid → Enterprise Email Platform
-```
-
-### Path 2: Enterprise Customer (Compliance First)
-```
-Memory → PostgreSQL (encrypted)
-SimpleInMemoryDatabaseService → PostgreSQL Database Metadata (audit-compliant)
-Kuzu Engine → Kuzu Engine (audit-compliant)
-Console → Audit-compliant Email Service
-Simple Auth → SSO/SAML Integration
-```
-
-### Path 3: Performance Critical (Latency Sensitive)
-```
-Memory → Time-series DB (InfluxDB)
-SimpleInMemoryDatabaseService → High-performance Database Metadata Store
-Kuzu Engine → Ultra-optimized Kuzu Engine
-InMemory Cache → Multi-tier Caching
-Console → Real-time notifications
-```
-
-## 📈 Monitoring Migration Triggers
-
-### Key Metrics Dashboard
-```
-Infrastructure Health:
-- Memory usage per adapter
-- Request latency percentiles
-- Error rates by component
-- Instance count and load
-
-Business Metrics:
-- Tenant count growth rate
-- API usage patterns
-- Customer complaints by category
-- Revenue impact of downtime
-```
-
-### Automated Alerts
-```
-Alert: "Memory Repository > 80% capacity"
-→ Action: Plan PostgreSQL migration
-
-Alert: "Cache miss ratio > 30%"
-→ Action: Evaluate Redis migration
-
-Alert: "Email notification failures > 5%"
-→ Action: Consider SMTP service
-```
-
-## 💡 Lessons Learned
-
-### What YAGNI Got Right
-- **Fast validation** of business concept
-- **Zero operational overhead** in early stages  
-- **Easy debugging** with simple implementations
-- **Low barrier** to contribution (no complex setup)
-
-### What We'd Do Differently
-- **Better metrics** from day 1 for migration decisions
-- **Load testing** of memory adapters earlier
-- **Documentation** of exact migration triggers
-- **Cost modeling** for infrastructure evolution
-
-### Key Success Factors
-1. **Clear interfaces** make swapping implementations trivial
-2. **Contract testing** ensures behavioral consistency  
-3. **Metrics-driven decisions** remove guesswork from migrations
-4. **Business-first thinking** prevents premature optimization
+- **Enregistrement client**: persistance tenant (Postgres), génération API key (in-memory MVP), notification logging, cache éventuel.
+- **Gestion des bases**: provisioning Kuzu (création dir/fichier), métadonnées Postgres, listing par tenant.
+- **Upload fichiers**: dépôt sur MinIO avec clé logique `tenants/{tenant_id}/{database_id}/{filename}`.
+- **Snapshots/Restore**: verrou Redis (exclusivité), snapshot (répertoire → tar.gz / fichier `.kuzu`), stockage MinIO, métadonnées Postgres, swap atomique pour restore, invalidation cache.
+- **Requêtes asynchrones**: job soumis dans Redis Streams, suivi via `TransactionRepository`, consultation via `/api/v1/jobs/{id}`.
 
 ---
 

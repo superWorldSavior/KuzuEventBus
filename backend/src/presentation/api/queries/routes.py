@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
-from typing import Any, Dict
 from uuid import UUID
 
 from src.application.dtos.query_execution import (
@@ -28,7 +27,21 @@ router = APIRouter(prefix="/databases", tags=["queries"])
 jobs_router = APIRouter(prefix="/jobs", tags=["jobs"])  # mounted at /api/v1/jobs
 
 # Route unique: on envoie dans la queue et on répond 202 avec transaction_id
-@router.post("/{database_id}/query", response_model=QuerySubmitResponse, status_code=202)
+@router.post(
+    "/{database_id}/query",
+    response_model=QuerySubmitResponse,
+    status_code=202,
+    summary="Soumettre une requête asynchrone (job)",
+    description=(
+        "Soumet une requête Cypher pour exécution asynchrone. La requête est mise en file (Redis Streams)\n"
+        "et un identifiant de transaction est retourné immédiatement (HTTP 202)."
+    ),
+    responses={
+        202: {"description": "Requête acceptée, job créé"},
+        400: {"description": "Requête invalide"},
+        401: {"description": "Non autorisé"},
+    },
+)
 async def execute_query(
     database_id: UUID,
     request_model: QueryRequest,
@@ -62,7 +75,16 @@ async def execute_query(
     )
 
 
-@jobs_router.get("/{transaction_id}", response_model=QueryStatusResponse)
+@jobs_router.get(
+    "/{transaction_id}",
+    response_model=QueryStatusResponse,
+    summary="Obtenir le statut d'un job",
+    description="Retourne l'état courant d'une transaction soumise (pending/running/completed/failed).",
+    responses={
+        200: {"description": "Statut du job"},
+        404: {"description": "Job introuvable"},
+    },
+)
 async def get_job_status(transaction_id: UUID):
     repo = transaction_repository()
     data = await repo.find_by_id(transaction_id)

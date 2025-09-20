@@ -46,7 +46,19 @@ async def _sse_stream(redis, stream_key: str, start_id: str) -> AsyncIterator[by
                 yield b"data: " + payload + b"\n\n"
 
 
-@router.get("/stream", response_class=StreamingResponse)
+@router.get(
+    "/stream",
+    response_class=StreamingResponse,
+    summary="SSE: flux d'événements du tenant",
+    description=(
+        "Stream Server-Sent Events en temps réel depuis Redis Streams (events:{tenant_id}).\n"
+        "Supporte le header Last-Event-ID pour reprise après reconnexion."
+    ),
+    responses={
+        200: {"description": "Flux SSE"},
+        401: {"description": "Non autorisé"},
+    },
+)
 async def event_stream(request: Request, ctx: RequestContext = Depends(get_request_context)):
     """Server-Sent Events stream scoped to the tenant.
 

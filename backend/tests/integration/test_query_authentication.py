@@ -65,8 +65,8 @@ def test_query_with_valid_token():
         headers={"Authorization": f"Bearer {customer.api_key.value}"},
         json={"query": "MATCH (n) RETURN n", "parameters": {}, "timeout_seconds": 1},
     )
-    # Either success 200 or adapter-level handled error but not auth error
-    assert response.status_code in (200, 400)
+    # Either async accepted (202), success 200 or adapter-level handled error but not auth error
+    assert response.status_code in (200, 202, 400)
     if response.status_code == 200:
         body = response.json()
         assert "results" in body

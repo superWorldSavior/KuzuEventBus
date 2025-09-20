@@ -60,11 +60,11 @@ services:
 
   # Redis Insight - Interface pour Redis (dev only)
   redis-insight:
-    image: redislabs/redisinsight:latest
+    image: redis/redisinsight:latest
     ports:
       - "8001:5540"
     volumes:
-      - redis_insight_data:/db
+      - redis_insight_data:/data
     depends_on:
       - redis
 
@@ -87,7 +87,7 @@ services:
       # MinIO configuration
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin123
+      MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: kuzu-databases
       MINIO_SECURE: "false"
     ports:
@@ -112,7 +112,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin123
+      MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: kuzu-databases
       MINIO_SECURE: "false"
     command: ["python", "backend/scripts/run_query_worker.py"]

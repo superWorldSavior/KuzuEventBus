@@ -17,11 +17,8 @@ import kuzu  # type: ignore
 from datetime import datetime
 from uuid import uuid4
 
-from src.domain.database_management.provisioning import (
-    DatabaseProvisioningService,
-    DatabaseName,
-    DatabaseMetadata,
-)
+from src.domain.shared.ports.database_management import DatabaseProvisioningService
+from src.domain.database_management.value_objects import DatabaseName, DatabaseMetadata
 from src.infrastructure.logging.config import infra_logger
 
 

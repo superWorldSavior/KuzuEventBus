@@ -70,7 +70,9 @@ services:
 
   # API - FastAPI server
   api:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     depends_on:
       - postgres
       - redis
@@ -96,7 +98,9 @@ services:
 
   # Worker - Async query processor (Redis Streams)
   worker:
-    build: .
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     depends_on:
       - postgres
       - redis

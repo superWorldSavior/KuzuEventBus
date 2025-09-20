@@ -1,24 +1,24 @@
 import { useEffect } from "react";
-import { useNotificationStore, mockNotifications } from "../../app/stores/notifications";
+import { useNotificationStore, mockNotifications, type Notification } from "../../app/stores/notifications";
 
 /**
- * Hook to initialize mock notifications for development
- * This would be replaced with real notification fetching in production
+ * Hook to initialize demo notifications for development/demo purposes only
+ * This should be removed in production when real notification system is implemented
  */
-export function useNotificationInit() {
+export function useNotificationInit(enableMockData = false) {
   const { addNotification, notifications } = useNotificationStore();
 
   useEffect(() => {
-    // Only add mock notifications if none exist (first time loading)
-    if (notifications.length === 0) {
+    // Only add mock notifications if explicitly enabled AND none exist
+    if (enableMockData && notifications.length === 0 && import.meta.env.DEV) {
       // Add mock notifications with some delay to simulate real-time arrival
-      mockNotifications.forEach((notification, index) => {
+      mockNotifications.forEach((notification: Omit<Notification, "id" | "timestamp" | "read">, index: number) => {
         setTimeout(() => {
           addNotification(notification);
         }, index * 1000); // Stagger by 1 second each
       });
     }
-  }, [addNotification, notifications.length]);
+  }, [enableMockData, addNotification, notifications.length]);
 }
 
 /**

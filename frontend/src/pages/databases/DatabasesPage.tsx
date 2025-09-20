@@ -29,8 +29,8 @@ const transformDatabaseData = (apiDatabase: any) => ({
   name: apiDatabase.name,
   displayName: apiDatabase.name,
   sizeGB: (apiDatabase.size_bytes || 0) / (1024 * 1024 * 1024), // Convert bytes to GB
-  nodeCount: Math.floor(Math.random() * 10000), // Mock data since not in API yet
-  relationshipCount: Math.floor(Math.random() * 50000), // Mock data since not in API yet
+  nodeCount: apiDatabase.node_count || 0, // Use real data from API
+  relationshipCount: apiDatabase.relationship_count || 0, // Use real data from API
   status: "active" as const, // All databases are active for now
   createdAt: new Date(apiDatabase.created_at),
   lastQueried: apiDatabase.last_accessed ? new Date(apiDatabase.last_accessed) : null,

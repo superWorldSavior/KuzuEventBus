@@ -1,4 +1,5 @@
 // Advanced testing utilities for dashboard and query system components
+// Updated to match real backend API contracts
 
 import { vi } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -7,45 +8,58 @@ import { BrowserRouter } from 'react-router-dom';
 import React from 'react';
 import userEvent from '@testing-library/user-event';
 
-// Mock data generators
+// Real backend API response mock data - matching actual endpoints
 export const mockDashboardStats = {
   totalDatabases: 5,
-  totalStorageGB: 25.4,
-  queriesToday: 142,
-  avgQueryTimeMs: 234,
+  totalQueries: 142,
+  totalStorageBytes: 27262976, // ~25.4GB in bytes
+  avgQueryResponseTimeMs: 234,
   activeConnections: 3,
   lastUpdated: new Date().toISOString(),
-  trends: {
-    databasesGrowth: 12.5,
-    storageGrowth: 8.3,
-    queryGrowth: -5.2,
-    performanceChange: 15.7,
-  },
+  // Real backend may include additional metrics
+  databasesTrend: 12.5,
+  storageTrend: 8.3,
+  queryTrend: -5.2,
+  performanceTrend: 15.7,
 };
 
+// Match backend database entity structure
 export const mockDatabase = {
-  database_id: 'db-12345',
+  id: 'db-12345',
   name: 'test-database',
   description: 'Test database for unit tests',
-  tenant_id: 'tenant-123',
-  created_at: '2024-01-01T00:00:00Z',
-  size_bytes: 1048576,
-  table_count: 3,
-  last_accessed: '2024-01-15T10:30:00Z',
+  tenantId: 'tenant-123',
+  createdAt: '2024-01-01T00:00:00Z',
+  updatedAt: '2024-01-15T10:30:00Z',
+  sizeBytes: 1048576,
+  nodeCount: 150,
+  edgeCount: 300,
+  status: 'active' as const,
+  // Backend-specific fields
+  connectionStatus: 'connected' as const,
+  lastBackup: '2024-01-14T20:00:00Z',
 };
 
+// Match real query execution response structure
 export const mockQueryResult = {
-  id: 'query-123',
+  transactionId: 'txn-query-123',
+  status: 'completed' as const,
   query: 'MATCH (n) RETURN n LIMIT 10',
-  status: 'success' as const,
-  executionTime: 245,
-  createdAt: '2024-01-15T10:30:00Z',
-  database: 'test-database',
-  resultCount: 10,
-  data: [
-    { 'n.id': '1', 'n.name': 'Alice' },
-    { 'n.id': '2', 'n.name': 'Bob' },
-  ],
+  databaseId: 'db-12345',
+  startedAt: '2024-01-15T10:30:00Z',
+  completedAt: '2024-01-15T10:30:00.245Z',
+  results: {
+    rows: [
+      { 'n.id': '1', 'n.name': 'Alice' },
+      { 'n.id': '2', 'n.name': 'Bob' },
+    ],
+    totalCount: 10,
+    executionTimeMs: 245,
+    columns: ['n.id', 'n.name'],
+  },
+  // Backend metadata
+  parameters: {},
+  timeoutSeconds: 30,
 };
 
 // Enhanced render function with query client options
@@ -102,7 +116,7 @@ export function renderWithProviders(
   };
 }
 
-// API mocking utilities
+// API mocking utilities - matching real backend contracts
 export const createMockApi = () => {
   const mockGet = vi.fn();
   const mockPost = vi.fn();
@@ -115,24 +129,79 @@ export const createMockApi = () => {
     put: mockPut,
     delete: mockDelete,
     
-    // Helper methods for common scenarios
+    // Helper methods for real backend endpoint responses
     mockSuccessfulDashboardStats: () => {
-      mockGet.mockResolvedValueOnce({ data: mockDashboardStats });
+      mockGet.mockResolvedValueOnce({ 
+        data: mockDashboardStats,
+        status: 200,
+      });
     },
     
     mockSuccessfulDatabases: () => {
       mockGet.mockResolvedValueOnce({ 
-        data: { databases: [mockDatabase] } 
+        data: { databases: [mockDatabase] },
+        status: 200,
       });
     },
     
-    mockSuccessfulQuery: () => {
-      mockPost.mockResolvedValueOnce({ data: mockQueryResult });
+    mockSuccessfulQuerySubmission: () => {
+      mockPost.mockResolvedValueOnce({ 
+        data: { 
+          transactionId: 'txn-query-123',
+          status: 'submitted',
+          message: 'Query submitted for async execution'
+        },
+        status: 202, // Accepted for async processing
+      });
     },
     
-    mockApiError: (status = 500, message = 'Server Error') => {
+    mockSuccessfulQueryStatus: () => {
+      mockGet.mockResolvedValueOnce({
+        data: mockQueryResult,
+        status: 200,
+      });
+    },
+
+    mockCustomerRegistration: () => {
+      mockPost.mockResolvedValueOnce({
+        data: {
+          customer_id: 'cust-12345',
+          tenant_name: 'test-tenant',
+          organization_name: 'Test Org',
+          admin_email: 'admin@test.com',
+          api_key: 'kb_test_key_12345',
+          subscription_status: 'active',
+          created_at: new Date().toISOString(),
+        },
+        status: 201,
+      });
+    },
+    
+    mockApiError: (status = 500, message = 'Internal Server Error', details = {}) => {
       const error = new Error(message) as any;
-      error.response = { status, data: { message } };
+      error.response = { 
+        status, 
+        data: { 
+          error: message,
+          details,
+          timestamp: new Date().toISOString(),
+          path: '/api/v1/test',
+        }
+      };
+      mockGet.mockRejectedValueOnce(error);
+      mockPost.mockRejectedValueOnce(error);
+    },
+
+    mockAuthenticationError: () => {
+      const error = new Error('Invalid API key') as any;
+      error.response = {
+        status: 401,
+        data: {
+          error: 'Authentication failed',
+          details: 'Invalid or expired API key',
+          timestamp: new Date().toISOString(),
+        }
+      };
       mockGet.mockRejectedValueOnce(error);
       mockPost.mockRejectedValueOnce(error);
     },
@@ -170,36 +239,74 @@ export const waitForQueryToFinish = async (queryClient: QueryClient, queryKey: s
   });
 };
 
-// Mock WebSocket for real-time features
-export const createMockWebSocket = () => {
-  const mockWebSocket = {
-    send: vi.fn(),
+// Mock EventSource for SSE real-time features (replaces WebSocket mock)
+export const createMockEventSource = () => {
+  const mockEventSource = {
+    url: '',
+    readyState: 0, // EventSource.CONNECTING = 0
+    onopen: null as ((event: Event) => void) | null,
+    onmessage: null as ((event: MessageEvent) => void) | null,
+    onerror: null as ((event: Event) => void) | null,
     close: vi.fn(),
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
-    readyState: WebSocket.OPEN,
+    dispatchEvent: vi.fn(),
     
-    // Helper to trigger events
-    triggerMessage: (data: any) => {
-      const event = new MessageEvent('message', {
-        data: JSON.stringify(data)
-      });
-      const messageHandler = mockWebSocket.addEventListener.mock.calls
-        .find(call => call[0] === 'message')?.[1];
-      if (messageHandler) messageHandler(event);
+    // Helper methods to trigger events in tests
+    triggerOpen: () => {
+      mockEventSource.readyState = 1; // EventSource.OPEN = 1
+      if (mockEventSource.onopen) {
+        mockEventSource.onopen(new Event('open'));
+      }
     },
     
-    triggerClose: () => {
-      const closeHandler = mockWebSocket.addEventListener.mock.calls
-        .find(call => call[0] === 'close')?.[1];
-      if (closeHandler) closeHandler(new CloseEvent('close'));
+    triggerMessage: (eventData: any) => {
+      const event = new MessageEvent('message', {
+        data: JSON.stringify(eventData),
+        lastEventId: Date.now().toString(),
+      });
+      if (mockEventSource.onmessage) {
+        mockEventSource.onmessage(event);
+      }
+    },
+    
+    triggerQueryComplete: (transactionId: string, results: any = {}) => {
+      mockEventSource.triggerMessage({
+        event_type: 'completed',
+        transaction_id: transactionId,
+        database_id: 'db-12345',
+        rows_count: '10',
+        execution_time_ms: '245',
+        ...results,
+      });
+    },
+
+    triggerQueryFailed: (transactionId: string, error = 'Query execution failed') => {
+      mockEventSource.triggerMessage({
+        event_type: 'failed',
+        transaction_id: transactionId,
+        database_id: 'db-12345',
+        error,
+      });
+    },
+    
+    triggerError: () => {
+      mockEventSource.readyState = 2; // EventSource.CLOSED = 2
+      if (mockEventSource.onerror) {
+        mockEventSource.onerror(new Event('error'));
+      }
     },
   };
 
-  // Mock the global WebSocket constructor
-  (global as any).WebSocket = vi.fn(() => mockWebSocket);
+  // Mock the global EventSource constructor
+  (global as any).EventSource = vi.fn((url: string) => {
+    mockEventSource.url = url;
+    // Simulate async connection
+    setTimeout(() => mockEventSource.triggerOpen(), 0);
+    return mockEventSource;
+  });
   
-  return mockWebSocket;
+  return mockEventSource;
 };
 
 // Performance testing utilities
@@ -304,4 +411,61 @@ export const createMockStorage = () => {
     key: vi.fn((index: number) => Array.from(storage.keys())[index] || null),
     get length() { return storage.size; },
   };
+};
+
+// Helper to create consistent API error responses
+export const createAPIError = (
+  message: string,
+  statusCode = 400,
+  errorCode = 'VALIDATION_ERROR'
+) => {
+  const error = new Error(message);
+  (error as any).response = {
+    status: statusCode,
+    data: {
+      error: {
+        code: errorCode,
+        message,
+        details: message,
+        timestamp: new Date().toISOString(),
+      },
+    },
+  };
+  return error;
+};
+
+// Helper for network errors (no response object)
+export const createNetworkError = (message = 'Network Error') => {
+  const error = new Error(message);
+  (error as any).code = 'NETWORK_ERROR';
+  return error;
+};
+
+// Helper for specific backend errors
+export const createBackendErrors = {
+  authenticationFailed: () => createAPIError(
+    'Authentication failed. Please check your API key.',
+    401,
+    'AUTHENTICATION_ERROR'
+  ),
+  databaseNotFound: (id: string) => createAPIError(
+    `Database not found: ${id}`,
+    404,
+    'DATABASE_NOT_FOUND'
+  ),
+  queryExecutionFailed: (reason: string) => createAPIError(
+    `Query execution failed: ${reason}`,
+    400,
+    'QUERY_EXECUTION_ERROR'
+  ),
+  rateLimitExceeded: () => createAPIError(
+    'Rate limit exceeded. Please wait before retrying.',
+    429,
+    'RATE_LIMIT_EXCEEDED'
+  ),
+  validationError: (field: string) => createAPIError(
+    `Validation failed for field: ${field}`,
+    400,
+    'VALIDATION_ERROR'
+  ),
 };

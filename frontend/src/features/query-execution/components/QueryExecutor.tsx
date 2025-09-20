@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import LazyCypherEditor from "@/shared/ui/lazy/LazyCypherEditor";
 import { QueryExecutionControls } from "./QueryExecutionControls";
 import { QueryProgress } from "./QueryProgress";
 import { useDatabases, useRunQuery } from "@/shared/hooks/useApi";
+import { useSSE } from "@/shared/hooks/useSSE";
 import { cn } from "@/shared/lib";
 
 interface QueryExecutorProps {
@@ -55,6 +56,92 @@ export function QueryExecutor({
   const { data: databases = [] } = useDatabases();
   const runQueryMutation = useRunQuery();
 
+  // SSE connection for real-time query status updates
+  const { connect, disconnect } = useSSE<{
+    event_type: 'completed' | 'timeout' | 'failed';
+    transaction_id: string;
+    database_id: string;
+    rows_count?: string;
+    execution_time_ms?: string;
+    error?: string;
+  }>({
+    url: '/api/v1/events/stream',
+    onMessage: useCallback((event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data) as {
+          event_type: 'completed' | 'timeout' | 'failed';
+          transaction_id: string;
+          database_id: string;
+          rows_count?: string;
+          execution_time_ms?: string;
+          error?: string;
+        };
+
+        if (!data || !execution.id || data.transaction_id !== execution.id) {
+          return;
+        }
+
+        setExecution(prev => {
+          const newExecution = (() => {
+            switch (data.event_type) {
+              case 'completed':
+                return {
+                  ...prev,
+                  status: "completed" as const,
+                  endTime: new Date(),
+                  progress: 100,
+                  resultCount: data.rows_count ? parseInt(data.rows_count, 10) : 0,
+                };
+              case 'timeout':
+              case 'failed':
+                return {
+                  ...prev,
+                  status: "error" as const,
+                  endTime: new Date(),
+                  errorMessage: data.error || `Query ${data.event_type}`,
+                };
+              default:
+                return prev;
+            }
+          })();
+
+          // Trigger completion callback when query finishes successfully
+          if (data.event_type === 'completed' && prev.status === "running") {
+            setTimeout(() => {
+              onExecutionComplete?.({
+                transactionId: data.transaction_id,
+                results: {
+                  rows: [],
+                  totalCount: data.rows_count ? parseInt(data.rows_count, 10) : 0,
+                  executionTimeMs: data.execution_time_ms ? parseInt(data.execution_time_ms, 10) : 0,
+                }
+              });
+            }, 0);
+          }
+
+          // Trigger error callback when query fails
+          if ((data.event_type === 'timeout' || data.event_type === 'failed') && prev.status === "running") {
+            setTimeout(() => {
+              onExecutionError?.(data.error || `Query ${data.event_type}`);
+            }, 0);
+          }
+
+          return newExecution;
+        });
+      } catch (error) {
+        console.warn('Failed to parse SSE message:', error);
+      }
+    }, [execution.id]),
+    reconnectInterval: 1000,
+    maxReconnectAttempts: 5,
+  });
+
+  // Connect to SSE when component mounts and disconnect on unmount
+  useEffect(() => {
+    connect();
+    return () => disconnect();
+  }, [connect, disconnect]);
+
   // Update query when prop changes
   useEffect(() => {
     if (initialQuery !== query) {
@@ -90,60 +177,50 @@ export function QueryExecutor({
       return;
     }
 
-    const executionId = `exec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Start execution
+    // Start execution with temporary ID, will be replaced with transaction_id from backend
     setExecution({
-      id: executionId,
+      id: "",
       query: query.trim(),
       database: currentDatabase,
       status: "running",
       startTime: new Date(),
-      progress: 0,
+      progress: 10, // Initial progress to show something is happening
     });
 
     onExecutionStart?.();
 
     try {
-      // Simulate progress updates
-      const progressInterval = setInterval(() => {
-        setExecution(prev => {
-          if (prev.status === "running" && prev.progress !== undefined && prev.progress < 95) {
-            return {
-              ...prev,
-              progress: Math.min(95, prev.progress + Math.random() * 15),
-            };
-          }
-          return prev;
-        });
-      }, 500);
-
-      // Execute the query
+      // Execute the query - the real transaction_id comes from the backend response
       const result = await runQueryMutation.mutateAsync({
         query: query.trim(),
         databaseId: currentDatabase,
         parameters: {},
       });
 
-      // Clear progress interval
-      clearInterval(progressInterval);
-
-      // Complete execution
+      // Update execution with the real transaction ID from backend
+      const transactionId = (result as any)?.transactionId || (result as any)?.transaction_id || "";
+      
       setExecution(prev => ({
         ...prev,
-        status: "completed",
-        endTime: new Date(),
-        progress: 100,
-        resultCount: (result as any)?.results?.rows?.length || 0,
+        id: transactionId,
+        progress: transactionId ? 50 : 100, // If we have transaction_id, wait for SSE; otherwise complete immediately
       }));
 
-      onExecutionComplete?.(result);
+      // If no transaction ID is returned (synchronous execution), complete immediately
+      if (!transactionId) {
+        setExecution(prev => ({
+          ...prev,
+          status: "completed",
+          endTime: new Date(),
+          progress: 100,
+          resultCount: (result as any)?.results?.rows?.length || 0,
+        }));
+
+        onExecutionComplete?.(result);
+      }
+      // If we have transaction_id, SSE will handle completion
 
     } catch (error) {
-      // Clear progress interval on error
-      const progressInterval = setInterval(() => {}, 0);
-      clearInterval(progressInterval);
-
       const errorMessage = error instanceof Error ? error.message : "Query execution failed";
       
       setExecution(prev => ({

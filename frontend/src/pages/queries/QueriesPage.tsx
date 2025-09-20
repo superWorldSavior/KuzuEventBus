@@ -53,18 +53,15 @@ export function QueriesPage() {
   void databases;
 
   const handleExecutionComplete = (results: any) => {
-    const mockResult: QueryResult = {
-      id: Date.now().toString(),
+    // Use real query results from the API response
+    const queryResult: QueryResult = {
+      id: results.transactionId || Date.now().toString(),
       status: "success",
-      executionTime: results?.executionTime || Math.floor(Math.random() * 200) + 50,
-      resultCount: results?.data?.length || Math.floor(Math.random() * 100) + 1,
-      data: results?.data || [
-        { "n.name": "Alice", "n.age": 30 },
-        { "n.name": "Bob", "n.age": 25 },
-        { "n.name": "Charlie", "n.age": 35 },
-      ]
+      executionTime: results.results?.executionTimeMs || 0,
+      resultCount: results.results?.totalCount || 0,
+      data: results.results?.rows || []
     };
-    setQueryResult(mockResult);
+    setQueryResult(queryResult);
   };
 
   const handleExecutionError = (error: string) => {

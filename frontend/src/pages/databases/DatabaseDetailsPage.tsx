@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -15,46 +14,25 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { SchemaViewer } from "@/features/database-management/components/SchemaViewer";
-
-interface DatabaseDetails {
-  id: string;
-  name: string;
-  status: "active" | "inactive" | "error";
-  size: string;
-  nodeCount: number;
-  relationshipCount: number;
-  created: string;
-  lastAccessed: string;
-  description?: string;
-}
+import { useDatabase, useDatabaseStats } from "@/features/database-management/hooks/useDatabases";
 
 export function DatabaseDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [database, setDatabase] = useState<DatabaseDetails | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // Use real hooks to fetch database data
+  const { data: database, isLoading: isDatabaseLoading, error: databaseError } = useDatabase(id!);
+  const { data: stats, isLoading: isStatsLoading } = useDatabaseStats(id!);
 
-  // Mock database data
-  useEffect(() => {
-    if (id) {
-      setTimeout(() => {
-        setDatabase({
-          id: id,
-          name: `Database ${id}`,
-          status: "active",
-          size: "127.5 MB",
-          nodeCount: 1785,
-          relationshipCount: 3570,
-          created: "2024-01-15",
-          lastAccessed: "2024-01-20 14:30",
-          description: "Customer relationship management database containing person, company, and product data with their interconnections.",
-        });
-        setIsLoading(false);
-      }, 800);
-    }
-  }, [id]);
+  const formatBytes = (bytes: number) => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
 
-  const getStatusBadge = (status: DatabaseDetails["status"]) => {
+  const getStatusBadge = (status: "active" | "inactive" | "error") => {
     const statusConfig = {
       active: { label: "Active", className: "bg-green-50 text-green-700 border-green-200" },
       inactive: { label: "Inactive", className: "bg-gray-50 text-gray-700 border-gray-200" },
@@ -69,7 +47,28 @@ export function DatabaseDetailsPage() {
     );
   };
 
-  if (isLoading || !database) {
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return 'Never';
+    return new Date(dateString).toLocaleString();
+  };
+
+  // Show error state
+  if (databaseError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+        <Database size={48} className="text-gray-400" />
+        <h2 className="text-lg font-semibold">Database not found</h2>
+        <p className="text-gray-600">The database you're looking for doesn't exist or has been removed.</p>
+        <Button onClick={() => navigate('/databases')}>
+          <ArrowLeft size={16} className="mr-2" />
+          Back to Databases
+        </Button>
+      </div>
+    );
+  }
+
+  // Loading state
+  if (isDatabaseLoading || isStatsLoading || !database) {
     return (
       <div className="space-y-6">
         {/* Header skeleton */}
@@ -126,9 +125,9 @@ export function DatabaseDetailsPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center space-x-3">
                 <span>{database.name}</span>
-                {getStatusBadge(database.status)}
+                {getStatusBadge("active")} {/* All databases are active by default */}
               </h1>
-              <p className="text-gray-600">{database.description}</p>
+              <p className="text-gray-600">{database.description || "No description provided"}</p>
             </div>
           </div>
         </div>
@@ -159,7 +158,7 @@ export function DatabaseDetailsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Database Size</p>
-              <p className="text-2xl font-bold text-gray-900">{database.size}</p>
+              <p className="text-2xl font-bold text-gray-900">{formatBytes(database.sizeBytes)}</p>
             </div>
             <HardDrives className="w-8 h-8 text-gray-400" />
           </div>
@@ -168,9 +167,9 @@ export function DatabaseDetailsPage() {
         <div className="bg-white rounded-lg border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Nodes</p>
+              <p className="text-sm font-medium text-gray-600">Tables</p>
               <p className="text-2xl font-bold text-gray-900">
-                {database.nodeCount.toLocaleString()}
+                {database.tableCount.toLocaleString()}
               </p>
             </div>
             <Users className="w-8 h-8 text-gray-400" />
@@ -180,9 +179,9 @@ export function DatabaseDetailsPage() {
         <div className="bg-white rounded-lg border p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Relationships</p>
+              <p className="text-sm font-medium text-gray-600">Queries</p>
               <p className="text-2xl font-bold text-gray-900">
-                {database.relationshipCount.toLocaleString()}
+                {stats?.queryCount?.toLocaleString() || '0'}
               </p>
             </div>
             <Graph className="w-8 h-8 text-gray-400" />
@@ -193,7 +192,7 @@ export function DatabaseDetailsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Last Accessed</p>
-              <p className="text-sm font-bold text-gray-900">{database.lastAccessed}</p>
+              <p className="text-sm font-bold text-gray-900">{formatDateTime(database.lastAccessed)}</p>
             </div>
             <Clock className="w-8 h-8 text-gray-400" />
           </div>

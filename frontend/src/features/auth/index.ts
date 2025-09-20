@@ -23,8 +23,7 @@ export type {
   RegistrationResponse,
   LoginFormData,
   RegistrationFormData,
-  AuthError,
-  DemoUser
+  AuthError
 } from "./types";
 
 // Constants

@@ -1,29 +1,37 @@
 // Analytics API service
 import { apiClient } from "@/shared/api/client";
+import { handleApiError, markEndpointWorking } from "@/shared/lib/errorHandling";
 
 export class AnalyticsAPI {
   /**
    * Get dashboard statistics
    */
   async getDashboardStats() {
+    const endpoint = "GET /api/v1/dashboard/stats";
+    
     try {
       const response = await apiClient.get("/api/v1/dashboard/stats");
+      markEndpointWorking(endpoint);
       return response.data;
     } catch (error) {
-      // Mock dashboard statistics
+      // For analytics, we want to provide fallback data with error tracking
+      const errorDetails = handleApiError(endpoint, error);
+      console.warn('Dashboard stats not available, using fallback data:', errorDetails);
+      
       return {
-        totalDatabases: 8,
-        totalStorageGB: 4.2,
-        queriesToday: 143,
-        avgQueryTimeMs: 42,
-        activeConnections: 12,
+        totalDatabases: 0,
+        totalStorageBytes: 0, // Changed to bytes to match backend
+        queriesToday: 0,
+        avgQueryTimeMs: 0,
+        activeConnections: 0,
         lastUpdated: new Date().toISOString(),
+        _mock: true, // Indicate this is fallback data
         systemHealth: {
-          status: "healthy",
-          uptime: "15d 7h 32m",
-          memoryUsage: 68.5,
-          cpuUsage: 23.2,
-          diskUsage: 45.8
+          status: "unknown",
+          uptime: "N/A",
+          memoryUsage: 0,
+          cpuUsage: 0,
+          diskUsage: 0
         }
       };
     }
@@ -33,40 +41,18 @@ export class AnalyticsAPI {
    * Get recent queries across all databases
    */
   async getRecentQueries(limit = 10) {
+    const endpoint = "GET /api/v1/queries/recent";
+    
     try {
       const response = await apiClient.get(`/api/v1/queries/recent?limit=${limit}`);
+      markEndpointWorking(endpoint);
       return response.data;
     } catch (error) {
-      // Mock recent queries
-      return [
-        {
-          id: "1",
-          database: "social-network",
-          query: "MATCH (n:Person) RETURN count(n) as person_count",
-          status: "completed",
-          executionTime: 45,
-          timestamp: new Date(Date.now() - 1000 * 60 * 2).toISOString(),
-          resultCount: 1,
-        },
-        {
-          id: "2", 
-          database: "ecommerce-db",
-          query: "MATCH (p:Product)-[:BELONGS_TO]->(c:Category) RETURN c.name, count(p) as product_count",
-          status: "completed",
-          executionTime: 89,
-          timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-          resultCount: 12,
-        },
-        {
-          id: "3",
-          database: "inventory-system", 
-          query: "MATCH (i:Item) WHERE i.stock < 10 RETURN i",
-          status: "running",
-          executionTime: null,
-          timestamp: new Date(Date.now() - 1000 * 30).toISOString(),
-          resultCount: null,
-        },
-      ];
+      // Provide empty array with error tracking
+      const errorDetails = handleApiError(endpoint, error);
+      console.warn('Recent queries not available, returning empty list:', errorDetails);
+      
+      return [];
     }
   }
 

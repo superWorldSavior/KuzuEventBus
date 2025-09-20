@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Lock } from "@phosphor-icons/react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { getDefaultDemoUser } from "@/shared/lib/demo-users";
+import { validateApiKeyFormat, maskApiKey } from "@/features/auth/utils/validation";
+// Removed demo user utilities - no more demo authentication
 import SEO from "@/shared/ui/seo/SEO";
 import { 
   AuthLayout, 
@@ -12,7 +13,7 @@ import {
   AuthButton, 
   FormDivider 
 } from "@/features/auth/components/AuthFormComponents";
-import { DemoUserInfo } from "@/features/auth/components/DemoUserInfo";
+// Removed DemoUserInfo - authentication now requires real API keys
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -27,8 +28,16 @@ export function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      setError("Please enter both email and password");
+    // Treat email field as API key for login
+    if (!email) {
+      setError("API key is required");
+      return;
+    }
+
+    // Client-side validation of API key format
+    const validation = validateApiKeyFormat(email);
+    if (!validation.isValid) {
+      setError(validation.error || "Invalid API key format");
       return;
     }
 
@@ -36,9 +45,10 @@ export function LoginPage() {
     setError("");
 
     try {
-      const result = await loginWithApiKey({ apiKey: email }); // Treat email field as API key for now
+      const result = await loginWithApiKey({ apiKey: email });
 
       if (result.success) {
+        console.log("Login successful with API key:", maskApiKey(email)); // Log masked for security
         navigate("/dashboard", { replace: true });
       } else {
         // Handle the error case - result.error is AuthError type
@@ -53,25 +63,8 @@ export function LoginPage() {
   };
 
   const handleDemoLogin = async () => {
-    setIsLoading(true);
-    setError("");
-
-    try {
-      const demoUser = getDefaultDemoUser();
-      // Use demo user email as API key for demo purposes
-      const result = await loginWithApiKey({ apiKey: demoUser.email });
-
-      if (result.success) {
-        navigate("/dashboard", { replace: true });
-      } else {
-        setError(result.error?.message || "Demo login failed");
-      }
-    } catch (error) {
-      console.error("Demo login error:", error);
-      setError("Demo login failed. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    // Demo login removed - users must use real API keys from registration
+    setError("Demo login has been disabled. Please register for an API key or use your existing credentials.");
   };
 
   return (
@@ -85,7 +78,7 @@ export function LoginPage() {
         title="Welcome back"
         subtitle="Sign in to your Kuzu EventBus account"
       >
-        <DemoUserInfo />
+        {/* Removed DemoUserInfo - authentication now requires real API keys */}
         
         {error && <ErrorMessage message={error} />}
 

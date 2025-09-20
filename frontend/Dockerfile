@@ -1,39 +1,76 @@
 # Multi-stage build for Vite React TypeScript app
-FROM node:20-alpine AS builder
+FROM node:22.13-alpine3.20 AS base
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
 
 # Set working directory
 WORKDIR /app
+
+# Set NODE_ENV for optimization
+ENV NODE_ENV=production
 
 # Copy package files
 COPY package.json package-lock.json* ./
 
 # Install dependencies
-RUN npm ci --only=production=false
+RUN npm ci --omit=dev --prefer-offline --no-audit --no-fund && \
+    npm cache clean --force
 
-# Copy source code
-COPY . .
+# Development stage (for potential dev builds)
+FROM base AS dev-deps
+ENV NODE_ENV=development
+RUN npm ci --prefer-offline --no-audit --no-fund
 
-# Build the application
-RUN npm run build
+# Build stage
+FROM dev-deps AS builder
 
-# Production stage
-FROM nginx:alpine
+# Copy source code with better layering
+COPY tsconfig.json tsconfig.node.json vite.config.ts ./
+COPY tailwind.config.js postcss.config.js ./
+COPY index.html ./
+COPY src/ ./src/
 
-# Install curl for health checks
-RUN apk add --no-cache curl
+# Build the application with type checking
+RUN npm run type-check && \
+    npm run build
+
+# Production stage with security hardening
+FROM nginx:1.27-alpine3.20 AS production
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nextjs -u 1001
+
+# Install curl for health checks and security updates
+RUN apk add --no-cache curl && \
+    apk upgrade --no-cache
 
 # Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder --chown=nextjs:nodejs /app/dist /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copy nginx configuration with proper permissions
+COPY --chown=nextjs:nodejs nginx.conf /etc/nginx/nginx.conf
+
+# Create necessary directories with correct permissions
+RUN mkdir -p /var/cache/nginx /var/log/nginx /var/run && \
+    chown -R nextjs:nodejs /var/cache/nginx /var/log/nginx /var/run /usr/share/nginx/html
+
+# Switch to non-root user
+USER nextjs
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost/health || exit 1
+# Add labels for better container management
+LABEL maintainer="KuzuEventBus Team" \
+      version="1.0" \
+      description="KuzuEventBus Frontend - React/TypeScript with Vite" \
+      org.opencontainers.image.source="https://github.com/superWorldSavior/KuzuEventBus"
 
-# Start nginx
+# Health check with improved configuration
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Start nginx with proper signal handling
 CMD ["nginx", "-g", "daemon off;"]

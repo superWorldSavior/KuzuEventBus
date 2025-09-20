@@ -1,6 +1,6 @@
-import { AdvancedSearch } from "@/components/search/AdvancedSearch";
-import { SearchResults } from "@/components/search/SearchResults";
-import { SearchResult } from "@/store/search";
+import { AdvancedSearch } from "@/features/search/components/AdvancedSearch";
+import { SearchResults } from "@/features/search/components/SearchResults";
+import { SearchResult } from "@/features/search/stores/search";
 
 export function SearchPage() {
   const handleResultSelect = (result: SearchResult) => {

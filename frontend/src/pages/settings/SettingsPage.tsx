@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
 
 interface UserProfile {
   name: string;
@@ -92,7 +92,7 @@ export function SettingsPage() {
                 <Input
                   id="name"
                   value={profile.name}
-                  onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfile({ ...profile, name: e.target.value })}
                   placeholder="Enter your name"
                 />
               </div>
@@ -104,7 +104,7 @@ export function SettingsPage() {
                   id="email"
                   type="email"
                   value={profile.email}
-                  onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfile({ ...profile, email: e.target.value })}
                   placeholder="Enter your email"
                 />
               </div>
@@ -115,7 +115,7 @@ export function SettingsPage() {
                 <Input
                   id="organization"
                   value={profile.organization}
-                  onChange={(e) => setProfile({ ...profile, organization: e.target.value })}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setProfile({ ...profile, organization: e.target.value })}
                   placeholder="Enter your organization"
                 />
               </div>
@@ -140,7 +140,7 @@ export function SettingsPage() {
                   id="timeout"
                   type="number"
                   value={databaseSettings.defaultTimeout.toString()}
-                  onChange={(e) => setDatabaseSettings({ 
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDatabaseSettings({ 
                     ...databaseSettings, 
                     defaultTimeout: parseInt(e.target.value) || 30 
                   })}
@@ -154,7 +154,7 @@ export function SettingsPage() {
                   id="connections"
                   type="number"
                   value={databaseSettings.maxConnections.toString()}
-                  onChange={(e) => setDatabaseSettings({ 
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDatabaseSettings({ 
                     ...databaseSettings, 
                     maxConnections: parseInt(e.target.value) || 10 
                   })}

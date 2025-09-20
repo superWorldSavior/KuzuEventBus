@@ -1,233 +1,138 @@
 # Kuzu Event Bus - AI Coding Agent Instructions
 
+## 📋 Context-Driven Instructions
+
+This project consists of both backend and frontend components. **Always refer to the appropriate detailed instruction file based on the context of your work:**
+
+### 🔧 Backend Development
+
+When working on backend code (FastAPI, Python, domain logic, infrastructure, databases, APIs):
+**→ Use `.github/instructions/backend.instructions.md` as your primary context**
+
+### 🎨 Frontend Development
+
+When working on frontend code (React, TypeScript, UI components, pages, features):
+**→ Use `.github/instructions/frontend.instructions.md` as your primary context**
+
 ## 🎯 Project Overview
 
-Multi-tenant **Kuzu graph database service** with FastAPI and hexagonal architecture. Core mission: Simple, testable, evolvable service following Clean Architecture, **TDD (Test-Driven Development)**, **DDD (Domain-Driven Design)**, and YAGNI principles, failfast and logs.
+**KuzuEventBus** is a modern multi-tenant **Kuzu graph database service** with:
 
-## 🏗️ Architecture Fundamentals
+- **Backend**: FastAPI with hexagonal architecture
+- **Frontend**: React/TypeScript with Feature-Sliced Design
+- **Core Mission**: Simple, testable, evolvable service following Clean Architecture
 
-### Hexagonal Architecture (STRICT)
-
-```
-src/
-├── domain/              # Pure business logic (CustomerAccount, TenantName)
-├── application/         # Use case orchestration (CustomerAccountService)
-├── infrastructure/      # Technical adapters (InMemoryTenantRepository)
-└── api/                # FastAPI controllers (customers, databases, health)
-```
-
-**CRITICAL**: Domain never depends on infrastructure. Use Protocol-based ports for dependency inversion.
-
-### YAGNI Strategy
-
-- **Start simple**: Memory-based implementations for MVP
-- **Migrate progressively**: PostgreSQL/Redis only when metrics justify
-- **No over-engineering**: One feature at a time
-
-### Development Methodologies
+## 🚀 Development Methodologies (Both Layers)
 
 - **TDD (Test-Driven Development)**: Red-Green-Refactor cycle mandatory
 - **DDD (Domain-Driven Design)**: Business logic drives architecture
+- **XP (eXtreme Programming)**: Continuous integration, permanent refactoring
 - **Fail Fast**: Explicit validation, immediate error detection
+- **YAGNI**: You aren't gonna need it - start simple, evolve when needed
 
-## 📝 Development Workflow
+## 🏗️ Architecture Overview
 
-### Test-First Development (TDD)
+### Backend: Hexagonal Architecture
 
-```bash
-# Run tests (from backend/)
-pytest                          # All tests
-pytest tests/unit/             # Unit tests only
-pytest tests/integration/      # Integration tests
-pytest --cov=src               # With coverage
+```
+backend/src/
+├── domain/              # Pure business logic
+├── application/         # Use case orchestration
+├── infrastructure/      # Technical adapters
+└── presentation/api/    # FastAPI controllers
 ```
 
-**TDD Cycle**: Red (failing test) → Green (minimal code) → Refactor (improve)
-**Test Structure**: `tests/{unit,integration,e2e}/` mirroring `src/` structure
+### Frontend: Feature-Sliced Design
 
-### Development Environment
+```
+frontend/src/
+├── app/                 # Application layer - routing, providers
+├── pages/               # Page compositions - route entry points
+├── widgets/             # Complex UI blocks - dashboard widgets
+├── features/            # Business features - auth, queries, databases
+├── entities/            # Business entities - customer, tenant, query
+└── shared/              # Reusable code - UI components, utilities
+```
+
+## ⚡ Quick Start Commands
+
+### Backend Development
 
 ```bash
-# Setup (from backend/)
-python -m venv venv
-source venv/bin/activate
+cd backend/
+python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-
-# Services
-docker-compose up -d           # Redis, PostgreSQL, MinIO
-
-# Run API server
-uvicorn src.api.main:app --reload
+pytest                    # Run tests
+uvicorn src.presentation.api.main:app --reload
 ```
 
-## 🎯 Core Patterns & Conventions
+### Frontend Development
 
-### 1. Protocol-Based Ports (Not ABC)
-
-```python
-# ✅ GOOD: Port in domain/shared/ports/
-@runtime_checkable
-class CustomerAccountRepository(Protocol):
-    async def save(self, customer: CustomerAccount) -> str: ...
-
-# ✅ GOOD: Adapter in infrastructure/
-class InMemoryCustomerRepository:
-    async def save(self, customer: CustomerAccount) -> str:
-        # Implementation
+```bash
+cd frontend/
+npm install
+npm run dev               # Development server
+npm test                  # Run tests
+npm run build             # Production build
 ```
 
-### 2. Immutable Value Objects
+### Full Stack
 
-```python
-@dataclass(frozen=True)
-class TenantName:
-    value: str
-
-    def __post_init__(self):
-        if len(self.value) < 3:
-            raise ValidationError("Must be at least 3 characters")
-        if not re.match(r'^[a-z0-9-]+$', self.value):
-            raise ValidationError("Invalid characters")
+```bash
+docker-compose up -d      # Services (Redis, PostgreSQL, MinIO)
+make dev                  # Start both backend and frontend
 ```
 
-### 3. Explicit Exception Handling
+## 🎯 Context Detection Rules
 
-```python
-# ✅ GOOD: Specific business exceptions
-class BusinessRuleViolation(Exception): pass
-class ValidationError(Exception): pass
+**Automatically use the appropriate instruction file when:**
 
-# ✅ GOOD: Fail fast validation
-if not tenant_name:
-    raise ValidationError("Tenant name required")
+### Backend Context Triggers:
 
-# ❌ BAD: Silent failures
-if not tenant_name:
-    return None
-```
+- Working with files in `backend/` directory
+- Python/FastAPI code generation
+- API endpoints, middleware, authentication
+- Domain entities, use cases, repositories
+- Database queries, infrastructure adapters
+- pytest tests, backend configuration
 
-### 4. FastAPI Dependency Injection
+### Frontend Context Triggers:
 
-```python
-# ✅ GOOD: Factory functions for YAGNI
-def get_customer_service() -> CustomerAccountService:
-    return CustomerAccountService(
-        account_repository=InMemoryTenantRepository(),
-        auth_service=SimpleAuthService(),
-    )
+- Working with files in `frontend/` directory
+- React/TypeScript code generation
+- UI components, pages, features
+- State management, API integration
+- Frontend routing, form handling
+- Vitest tests, frontend configuration
 
-# Use in endpoints
-@router.post("/register")
-async def register(
-    request: CustomerRegistrationRequest,
-    service: CustomerAccountService = Depends(get_customer_service)
-):
-```
+## 📁 Key Reference Files
 
-### 5. API Key Pattern
+### Backend
 
-```python
-# ✅ GOOD: Consistent format with prefix
-def generate_api_key() -> str:
-    return f"kb_{secrets.token_urlsafe(32)}"
+- `backend/src/domain/shared/ports/` - Protocol definitions
+- `backend/src/domain/tenant_management/customer_account.py` - Core patterns
+- `backend/src/infrastructure/memory/` - YAGNI implementations
+- `backend/pyproject.toml` - Test configuration
 
-# ✅ GOOD: Format validation
-if not api_key.startswith("kb_"):
-    raise ValidationError("Invalid API key format")
-```
+### Frontend
 
-## 🛠️ Key Implementation Details
+- `frontend/src/shared/ui/` - Reusable UI components
+- `frontend/src/features/` - Business feature implementations
+- `frontend/src/shared/api/` - API integration patterns
+- `frontend/package.json` - Frontend dependencies
 
-### Multi-Tenant Isolation
+## ⚠️ Universal Constraints
 
-- **Customer**: Top-level account entity
-- **Tenant**: Isolated workspace within customer
-- **Storage**: Tenant-specific folders in MinIO (`/{tenant_name}/databases/`)
+- **Context-first approach**: Always consult the appropriate detailed instruction file
+- **NEVER recreate existing files** - Extend existing implementations
+- **Follow established patterns** - Check existing structure before adding new code
+- **Test-driven development** - Write tests first for both backend and frontend
+- **Type safety mandatory** - MyPy for Python, TypeScript strict mode
+- **Explicit naming** - File names must clearly indicate purpose and layer
 
-### Authentication Middleware
+---
 
-Located in `src/api/middleware/authentication.py` - validates API keys across all endpoints except health checks.
+**🎯 Remember: This is a high-level overview. For detailed patterns, conventions, and implementation guidelines, always refer to:**
 
-### Current MVP Scope
-
-**Implemented**:
-
-- ✅ Customer registration with API key generation
-- ✅ Health checks (`/health/`)
-- ✅ Architecture foundation
-- ✅ 84+ passing tests
-
-**Next priorities**:
-
-1. API key authentication on endpoints
-2. Database management endpoints
-3. Query execution basics
-4. Migration to persistent storage (only when needed)
-
-## 🎯 Code Generation Guidelines
-
-When generating code:
-
-1. **Type hints mandatory** - MyPy must pass
-2. **Async/await** for all I/O operations
-3. **Domain language** - Use business vocabulary (CustomerAccount, not User)
-4. **Protocol over ABC** - Use `@runtime_checkable` protocols
-5. **Frozen dataclasses** - For all value objects
-6. **Test-first** - Write failing test before implementation
-7. **Repository pattern** - For all data persistence
-8. **Dependency injection** - Use FastAPI Depends()
-
-### Critical File Management Rules
-
-- **Explicit file names** - `customer_account_service.py`, not `service.py`
-- **Respect hexagonal layers** - Never put domain logic in infrastructure files
-- **Modify existing files** - Don't recreate files that already exist, update them
-- **Follow existing structure** - Check `src/` layout before creating new files
-
-### Example: Adding New Domain Entity
-
-```python
-# 1. Value object
-@dataclass(frozen=True)
-class DatabaseName:
-    value: str
-    def __post_init__(self): # validation
-
-# 2. Port (interface)
-class DatabaseRepository(Protocol):
-    async def save(self, db: Database) -> str: ...
-
-# 3. Entity
-@dataclass
-class Database:
-    name: DatabaseName
-    tenant_id: str
-
-# 4. Test first
-def test_database_creation():
-    db = Database(DatabaseName("test-db"), "tenant-123")
-    assert db.name.value == "test-db"
-
-# 5. Service
-class DatabaseManagementService:
-    def __init__(self, repository: DatabaseRepository): ...
-```
-
-## 📁 Key Files to Reference
-
-- `src/domain/shared/ports/` - All protocol definitions
-- `src/domain/tenant_management/customer_account.py` - Core entity patterns
-- `src/infrastructure/memory/` - YAGNI implementation examples
-- `src/api/routers/customers.py` - FastAPI endpoint patterns
-- `pyproject.toml` - Test configuration and dependencies
-
-Focus on following existing patterns rather than introducing new approaches. The codebase prioritizes consistency and simplicity over clever solutions.
-
-## ⚠️ Important Constraints
-
-- **NEVER recreate existing files** - Always modify/extend existing implementations
-- **Respect hexagonal boundaries** - Domain code stays in `domain/`, infrastructure in `infrastructure/`
-- **Use explicit naming** - File names must clearly indicate their purpose and layer
-- **Check existing structure first** - Use semantic search to understand current implementation before adding new code
-- **NO "Enhanced" prefixes** - Never create files with "Enhanced", "Improved", "Better" or similar prefixes. Instead, merge enhanced functionality directly into existing components or create new files with descriptive names
-- **Avoid duplication** - Always merge functionality into existing components rather than creating duplicated files with prefix variations
+- **Backend work**: `.github/instructions/backend.instructions.md`
+- **Frontend work**: `.github/instructions/frontend.instructions.md`

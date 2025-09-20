@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { Database, Code, HardDrive, Pulse } from "@phosphor-icons/react";
-import { RecentQueriesWidget } from "@/components/dashboard/RecentQueriesWidget";
-import { ActivityTimeline } from "@/components/dashboard/ActivityTimeline";
-import { QuickActions } from "@/components/dashboard/QuickActions";
-import { MetricsGrid } from "@/components/dashboard/MetricsGrid";
-import { ChartShowcase } from "@/components/charts/ChartShowcase";
-import { useDashboardStats, useRecentQueries, useRecentActivity } from "@/hooks/useApi";
+import { RecentQueriesWidget } from "@/widgets/dashboard/RecentQueriesWidget";
+import { ActivityTimeline } from "@/widgets/dashboard/ActivityTimeline";
+import { QuickActions } from "@/widgets/dashboard/QuickActions";
+import { MetricsGrid } from "@/widgets/dashboard/MetricsGrid";
+import { ChartShowcase } from "@/widgets/charts/ChartShowcase";
+import { useDashboardStats, useRecentQueries, useRecentActivity } from "@/shared/hooks/useApi";
 
 export function DashboardPage() {
   const navigate = useNavigate();

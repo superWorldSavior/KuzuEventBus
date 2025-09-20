@@ -1,6 +1,6 @@
-import { NodePalette } from "@/components/query-builder/NodePalette";
-import { QueryCanvas } from "@/components/query-builder/QueryCanvas";
-import { PropertyPanel } from "@/components/query-builder/PropertyPanel";
+import { NodePalette } from "@/features/query-execution/components/query-builder/NodePalette";
+import { QueryCanvas } from "@/features/query-execution/components/query-builder/QueryCanvas";
+import { PropertyPanel } from "@/features/query-execution/components/query-builder/PropertyPanel";
 
 export function VisualQueryBuilderPage() {
   return (

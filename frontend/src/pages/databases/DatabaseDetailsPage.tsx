@@ -12,9 +12,9 @@ import {
   HardDrives,
   Users,
 } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { SchemaViewer } from "@/components/databases/SchemaViewer";
+import { Button } from "@/shared/ui/button";
+import { Badge } from "@/shared/ui/badge";
+import { SchemaViewer } from "@/features/database-management/components/SchemaViewer";
 
 interface DatabaseDetails {
   id: string;

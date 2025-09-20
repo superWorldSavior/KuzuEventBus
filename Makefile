@@ -1,12 +1,15 @@
 SHELL := /bin/bash
 
-.PHONY: compose-up compose-down compose-logs wait api test unit integration e2e install env start worker compose-api compose-all
+
+.PHONY: compose-up compose-down compose-logs wait api test unit integration e2e install env start worker dev dev-start dev-stop dev-logs dev-build
+
 
 env:
 	@echo "Loading .env if present"; \
 	if [ -f .env ]; then export $(grep -v '^#' .env | xargs); fi; \
 	true
 
+# Production/Traditional Docker Compose commands
 compose-up:
 	docker-compose up -d postgres redis minio
 
@@ -21,6 +24,41 @@ compose-down:
 
 compose-logs:
 	docker-compose logs -f --tail=200
+
+# Development environment with hot reload
+dev-build:
+	@echo "🔨 Building development Docker images..."
+	docker-compose -f docker-compose.dev.yml build --no-cache
+
+dev-start: dev-build
+	@echo "🚀 Starting development environment with hot reload..."
+	docker-compose -f docker-compose.dev.yml up -d
+	@echo "✅ Development environment started!"
+	@echo ""
+	@echo "📱 Application URLs:"
+	@echo "  Frontend (HMR):   http://localhost:3000"
+	@echo "  Backend API:      http://localhost:8000"
+	@echo "  API Docs:         http://localhost:8000/docs"
+	@echo "  Adminer:          http://localhost:8080"
+	@echo "  Redis Insight:    http://localhost:8001"
+	@echo "  MinIO Console:    http://localhost:9001"
+	@echo ""
+	@echo "🔥 Hot reload is enabled for both frontend and backend!"
+	@echo "💡 Use 'make dev-logs' to view logs"
+
+dev-stop:
+	@echo "🛑 Stopping development environment..."
+	docker-compose -f docker-compose.dev.yml down --remove-orphans
+
+dev-logs:
+	docker-compose -f docker-compose.dev.yml logs -f --tail=100
+
+dev-restart:
+	@echo "🔄 Restarting development environment..."
+	docker-compose -f docker-compose.dev.yml restart
+
+# Alias for development
+dev: dev-start
 
 wait:
 	bash scripts/wait-for-services.sh

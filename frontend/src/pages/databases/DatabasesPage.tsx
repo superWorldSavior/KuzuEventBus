@@ -10,18 +10,18 @@ import {
   Eye,
   DotsThree,
 } from "@phosphor-icons/react";
-import { cn } from "@/utils";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/shared/lib";
+import { Button } from "@/shared/ui/button";
+import { Input } from "@/shared/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
-import { CreateDatabaseModal } from "@/components/databases/CreateDatabaseModal";
-import { useDatabases, useDeleteDatabase } from "@/hooks/useApi";
+} from "@/shared/ui/dropdown-menu";
+import { Badge } from "@/shared/ui/badge";
+import { CreateDatabaseModal } from "@/features/database-management/components/CreateDatabaseModal";
+import { useDatabases, useDeleteDatabase } from "@/shared/hooks/useApi";
 
 // Transform API data to match component expectations
 const transformDatabaseData = (apiDatabase: any) => ({

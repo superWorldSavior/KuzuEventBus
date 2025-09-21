@@ -187,6 +187,7 @@ services:
     environment:
       NODE_ENV: development
       VITE_API_URL: http://localhost:8000
+      VITE_ENABLE_SSE: true
       # Vite HMR configuration for Docker
       VITE_HMR_HOST: localhost
       VITE_HMR_PORT: 3001

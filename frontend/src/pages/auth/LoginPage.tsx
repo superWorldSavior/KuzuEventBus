@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { User, Lock } from "@phosphor-icons/react";
+import { Lock } from "@phosphor-icons/react";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { validateApiKeyFormat, maskApiKey } from "@/features/auth/utils/validation";
+// Email/password login: plus d'auth par API key ici
 // Removed demo user utilities - no more demo authentication
 import SEO from "@/shared/ui/seo/SEO";
 import { 
@@ -10,8 +10,7 @@ import {
   AuthInput, 
   PasswordInput, 
   ErrorMessage, 
-  AuthButton, 
-  FormDivider 
+  AuthButton 
 } from "@/features/auth/components/AuthFormComponents";
 // Removed DemoUserInfo - authentication now requires real API keys
 
@@ -22,22 +21,17 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { loginWithApiKey } = useAuth();
+  const { loginWithCredentials } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Treat email field as API key for login
     if (!email) {
-      setError("API key is required");
+      setError("Email requis");
       return;
     }
-
-    // Client-side validation of API key format
-    const validation = validateApiKeyFormat(email);
-    if (!validation.isValid) {
-      setError(validation.error || "Invalid API key format");
+    if (!password) {
+      setError("Mot de passe requis");
       return;
     }
 
@@ -45,14 +39,12 @@ export function LoginPage() {
     setError("");
 
     try {
-      const result = await loginWithApiKey({ apiKey: email });
+      const result = await loginWithCredentials({ email, password });
 
       if (result.success) {
-        console.log("Login successful with API key:", maskApiKey(email)); // Log masked for security
         navigate("/dashboard", { replace: true });
       } else {
-        // Handle the error case - result.error is AuthError type
-        setError(result.error?.message || "Login failed");
+        setError(result.error?.message || "Échec de la connexion");
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -62,10 +54,7 @@ export function LoginPage() {
     }
   };
 
-  const handleDemoLogin = async () => {
-    // Demo login removed - users must use real API keys from registration
-    setError("Demo login has been disabled. Please register for an API key or use your existing credentials.");
-  };
+  // Demo login supprimé: authentification via email/mot de passe uniquement
 
   return (
     <>
@@ -117,18 +106,7 @@ export function LoginPage() {
             Sign in
           </AuthButton>
 
-          <FormDivider />
-
-          <AuthButton
-            type="button"
-            variant="secondary"
-            onClick={handleDemoLogin}
-            isLoading={isLoading}
-            loadingText="Loading demo..."
-          >
-            <User className="w-4 h-4 mr-2" />
-            Try Demo Account
-          </AuthButton>
+          {/* Removed demo account button */}
         </form>
 
         <div className="mt-6 text-center">

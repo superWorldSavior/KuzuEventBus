@@ -35,12 +35,22 @@ make integration    # 21 passed, 2 skipped (au dernier run)
 ### Authentification
 
 - Header: `Authorization: Bearer kb_<votre_api_key>`
-- Obtenir une clé: `POST /api/v1/customers/register`
+- Obtenir une clé: `POST /api/v1/auth/register` ou `POST /api/v1/auth/login`
+
+- SSE sécurisé (JWT court‑vécu):
+  - Mint token: `POST /api/v1/auth/sse-token` (authentifié via Bearer ci‑dessus)
+  - Consommer SSE: `GET /api/v1/events/stream?token=<jwt>`
+  - Le token SSE est scope‑limité (`sse:read`) et expire (TTL par défaut: 300s)
 
 ### Endpoints principaux
 
+- Auth
+  - `POST /api/v1/auth/register` → enregistrement + API key (public)
+  - `POST /api/v1/auth/login` → connexion email/password, retourne API key
+  - `POST /api/v1/auth/sse-token` → mint JWT pour connexion SSE (auth requise)
+
 - Customers
-  - `POST /api/v1/customers/register` → enregistrement + API key (public)
+  - `GET /api/v1/customers/{customer_id}` → détails du compte (validation de session)
   - `GET /api/v1/customers/{customer_id}/api-keys`
   - `DELETE /api/v1/customers/{customer_id}/api-keys/{api_key}`
 

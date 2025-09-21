@@ -2,7 +2,8 @@
 import type { Customer } from "@/entities/customer";
 
 export interface LoginCredentials {
-  apiKey: string;
+  email: string;
+  password: string;
 }
 
 export interface RegistrationData {

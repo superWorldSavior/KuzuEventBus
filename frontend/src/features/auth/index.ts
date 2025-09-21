@@ -8,7 +8,7 @@ export { DemoUserInfo } from "./components/DemoUserInfo";
 export { useAuth } from "./hooks/useAuth";
 
 // Services
-export { authApi } from "./services/authApi";
+export { authApi } from "./services/auth.api";
 
 // Stores
 export { useAuthStore } from "./stores/authStore";

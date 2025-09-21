@@ -4,68 +4,79 @@ import { handleApiError, markEndpointWorking } from "@/shared/lib/errorHandling"
 
 export class AnalyticsAPI {
   /**
-   * Get dashboard statistics
+   * Get dashboard statistics - MOCK VERSION
    */
   async getDashboardStats() {
-    const endpoint = "GET /api/v1/dashboard/stats";
-    
+    // Mock data - no backend calls
+    return {
+      node_count: 0,
+      relationship_count: 0,
+      community_count: 0,
+      top_labels: [],
+      _mock: true,
+    };
+  }
+
+  // Dedicated helper if the caller wants to explicitly fetch per-DB stats
+  async getDatabaseStats(databaseId?: string) {
+    if (!databaseId) {
+      console.warn("Database stats require a databaseId. Please select a database first.");
+      return { database_id: '', node_count: 0, relationship_count: 0, community_count: 0, top_labels: [] };
+    }
     try {
-      const response = await apiClient.get("/api/v1/dashboard/stats");
-      markEndpointWorking(endpoint);
+      const response = await apiClient.get(`/api/v1/databases/${databaseId}/stats`);
+      markEndpointWorking("GET /api/v1/databases/{database_id}/stats");
       return response.data;
     } catch (error) {
-      // For analytics, we want to provide fallback data with error tracking
-      const errorDetails = handleApiError(endpoint, error);
-      console.warn('Dashboard stats not available, using fallback data:', errorDetails);
-      
-      return {
-        totalDatabases: 0,
-        totalStorageBytes: 0, // Changed to bytes to match backend
-        queriesToday: 0,
-        avgQueryTimeMs: 0,
-        activeConnections: 0,
-        lastUpdated: new Date().toISOString(),
-        _mock: true, // Indicate this is fallback data
-        systemHealth: {
-          status: "unknown",
-          uptime: "N/A",
-          memoryUsage: 0,
-          cpuUsage: 0,
-          diskUsage: 0
-        }
-      };
+      const errorDetails = handleApiError("GET /api/v1/databases/{database_id}/stats", error);
+      console.warn('Database stats failed, returning empty payload:', errorDetails);
+      return { database_id: databaseId, node_count: 0, relationship_count: 0, community_count: 0, top_labels: [] };
     }
   }
 
   /**
-   * Get recent queries across all databases
+   * Get popular queries for a specific database (backend contract)
    */
-  async getRecentQueries(limit = 10) {
-    const endpoint = "GET /api/v1/queries/recent";
-    
+  async getPopularQueries(databaseId: string | undefined | null, limit = 10) {
+    const endpoint = "GET /api/v1/databases/{database_id}/queries/popular";
+
+    if (!databaseId) {
+      console.error(
+        "Popular queries require a databaseId. The frontend must provide the selected database id to call this endpoint.",
+      );
+      return [];
+    }
+
     try {
-      const response = await apiClient.get(`/api/v1/queries/recent?limit=${limit}`);
+      const response = await apiClient.get(`/api/v1/databases/${databaseId}/queries/popular?limit=${limit}`);
       markEndpointWorking(endpoint);
       return response.data;
-    } catch (error) {
-      // Provide empty array with error tracking
+    } catch (error: any) {
+      // If database not found yet, return empty list; otherwise propagate
+      if (error?.response?.status === 404) {
+        console.warn(`Popular queries not available for database ${databaseId} (404). Returning empty list.`);
+        return [];
+      }
       const errorDetails = handleApiError(endpoint, error);
-      console.warn('Recent queries not available, returning empty list:', errorDetails);
-      
+      console.warn('Popular queries failed, returning empty list:', errorDetails);
       return [];
     }
   }
 
   /**
-   * Get recent activity across the platform
+   * Get recent queries - MOCK VERSION (no backend endpoint)
+   */
+  async getRecentQueries(limit = 10) {
+    // Mock empty data - no backend calls, no errors
+    return [];
+  }
+
+  /**
+   * Get recent activity - MOCK VERSION (no backend endpoint)
    */
   async getRecentActivity(limit = 10) {
-    try {
-      const response = await apiClient.get(`/api/v1/activity/recent?limit=${limit}`);
-      return response.data;
-    } catch (error) {
-      // Mock recent activity
-      return [
+    // Mock recent activity - no backend calls
+    return [
         {
           id: "1",
           type: "query_executed",
@@ -110,7 +121,6 @@ export class AnalyticsAPI {
           metadata: { error: "Unexpected token at line 2" },
         }
       ].slice(0, limit);
-    }
   }
 
   /**

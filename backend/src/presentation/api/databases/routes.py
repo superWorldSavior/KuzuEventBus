@@ -420,11 +420,7 @@ async def upload_database_file(
         raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-def _not_implemented() -> None:
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="Database management endpoints are not implemented yet",
-    )
+
 
 
 @router.get(

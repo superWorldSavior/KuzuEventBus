@@ -46,8 +46,8 @@ export function validateApiKeyFormat(apiKey: string): ApiKeyValidationResult {
     };
   }
 
-  // Check for valid characters (alphanumeric + underscore)
-  if (!/^kb_[a-zA-Z0-9_]+$/.test(apiKey)) {
+  // Check for valid characters (alphanumeric + underscore + hyphen) - URL-safe
+  if (!/^kb_[a-zA-Z0-9_-]+$/.test(apiKey)) {
     return {
       isValid: false,
       error: 'API key contains invalid characters'
@@ -83,6 +83,10 @@ export function isCredentialsPotentiallyExpired(): boolean {
   }
 
   const stored = parseInt(storedTimestamp, 10);
+  // Fail fast: invalid, NaN, negative or zero timestamps are considered expired
+  if (!Number.isFinite(stored) || Number.isNaN(stored) || stored <= 0) {
+    return true;
+  }
   const now = Date.now();
   const sevenDays = 7 * 24 * 60 * 60 * 1000; // 7 days in ms
 

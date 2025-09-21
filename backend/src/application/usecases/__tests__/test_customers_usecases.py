@@ -47,6 +47,8 @@ async def test_register_customer_success(ports):
         cache_service=ports["cache"],
     )
     ports["accounts"].find_by_tenant_name.return_value = None
+    # Ensure email is considered available for success path
+    ports["accounts"].find_by_email.return_value = None
     ports["auth"].generate_api_key.return_value = "kb_" + "a" * 40
     ports["auth"].hash_password.return_value = "hashed_password_123"
 

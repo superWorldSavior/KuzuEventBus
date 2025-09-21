@@ -16,7 +16,7 @@ export function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [tenantName, setTenantName] = useState("");
-  const [organizationName, setOrganizationName] = useState("");
+  // Organization Name retiré du formulaire: valeur par défaut "default"
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,10 +25,42 @@ export function RegisterPage() {
   const { register } = useAuth();
   const navigate = useNavigate();
 
+  // Backend constraints reminder for tenant_name:
+  // - 3..50 chars
+  // - ^[a-z0-9][a-z0-9-]*[a-z0-9]$
+  // - no consecutive '--'
+  const sanitizeTenant = (name: string): string => {
+    // to lowercase
+    let n = name.toLowerCase();
+    // replace anything not [a-z0-9-] by '-'
+    n = n.replace(/[^a-z0-9-]+/g, "-");
+    // collapse multiple '-'
+    n = n.replace(/-{2,}/g, "-");
+    // trim leading/trailing '-'
+    n = n.replace(/^-+/, "").replace(/-+$/, "");
+    // limit length 50
+    if (n.length > 50) n = n.slice(0, 50);
+    return n;
+  };
+  const getTenantValidationError = (name: string): string | null => {
+    const n = name.trim();
+    if (n.length < 3 || n.length > 50) {
+      return "Tenant name must be between 3 and 50 characters";
+    }
+    if (n.includes("--")) {
+      return "Tenant name cannot contain consecutive hyphens ('--')";
+    }
+    const re = /^[a-z0-9][a-z0-9-]*[a-z0-9]$/;
+    if (!re.test(n)) {
+      return "Tenant name must be lowercase alphanumerics and hyphens only, cannot start/end with '-'";
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!adminEmail || !password || !tenantName || !organizationName) {
+    if (!adminEmail || !password || !tenantName) {
       setError("Please fill in all required fields");
       return;
     }
@@ -43,23 +75,54 @@ export function RegisterPage() {
       return;
     }
 
+    // Sanitize inputs
+    const sanitizedTenant = sanitizeTenant(tenantName);
+    const sanitizedOrg = "default";
+    const sanitizedEmail = adminEmail.trim();
+
+    // Validate tenant_name against backend rules to avoid 422
+    const tenantErr = getTenantValidationError(sanitizedTenant);
+    if (tenantErr) {
+      setError(tenantErr);
+      return;
+    }
+
+    // Basic org/email checks
+    // Organization name forcé à "default" (pas de validation nécessaire)
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(sanitizedEmail)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     setIsLoading(true);
     setError("");
 
     try {
       const result = await register({ 
-        tenantName, 
-        organizationName, 
-        adminEmail 
+        tenantName: sanitizedTenant, 
+        organizationName: sanitizedOrg, 
+        adminEmail: sanitizedEmail,
+        password: password,
       });
       
       if (result.success) {
         navigate("/dashboard");
       } else {
-        setError(result.error?.message || "Registration failed. Please try again.");
+        // Surface more explicit validation hints
+        const msg = result.error?.message || "Registration failed. Please try again.";
+        if (msg.includes("422")) {
+          setError("Registration failed (422). Please check Tenant Name formatting (lowercase letters, digits, hyphens; no start/end hyphen; no '--').");
+        } else {
+          setError(msg);
+        }
       }
     } catch (err: any) {
-      setError(err?.message || "Registration failed. Please try again.");
+      const msg = err?.message || "Registration failed. Please try again.";
+      if (msg.includes("422")) {
+        setError("Registration failed (422). Please check Tenant Name formatting (lowercase letters, digits, hyphens; no start/end hyphen; no '--').");
+      } else {
+        setError(msg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -86,22 +149,12 @@ export function RegisterPage() {
               label="Tenant Name"
               placeholder="my-organization"
               value={tenantName}
-              onChange={setTenantName}
+              onChange={(v) => setTenantName(v)}
               required
               autoComplete="organization"
             />
             
-            <AuthInput
-              id="organization-name"
-              name="organizationName"
-              type="text"
-              label="Organization Name"
-              placeholder="My Organization Inc."
-              value={organizationName}
-              onChange={setOrganizationName}
-              required
-              autoComplete="organization"
-            />
+            {/* Organization Name removed: default handled in code */}
             
             <AuthInput
               id="admin-email"

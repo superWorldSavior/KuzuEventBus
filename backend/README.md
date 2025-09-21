@@ -149,11 +149,21 @@ make compose-down          # arrêter/supprimer les conteneurs
 ## 📘 API actuelle (MVP)
 
 ### Auth
-- Header: `Authorization: Bearer kb_<api_key>`
-- Obtenir une clé: `POST /api/v1/customers/register`
+- REST (recommandé): `Authorization: Bearer kb_<api_key>`
+- Legacy (temporaire): `X-API-Key: kb_<api_key>` (sera déprécié)
+- Obtenir une API key: `POST /api/v1/auth/register` ou `POST /api/v1/auth/login`
+- SSE sécurisé (JWT court‑vécu):
+  - Mint token: `POST /api/v1/auth/sse-token` (authentifié via Bearer ci‑dessus)
+  - Consommer SSE: `GET /api/v1/events/stream?token=<jwt>`
+  - Le token SSE est scope‑limité (`sse:read`) et expire (TTL par défaut: 300s)
+
+### Auth
+- `POST /api/v1/auth/register` (public) – inscription avec email/password
+- `POST /api/v1/auth/login` (public) – connexion email/password
+- `POST /api/v1/auth/sse-token` (auth requise) – mint JWT pour SSE
 
 ### Customers
-- `POST /api/v1/customers/register` (public)
+- `GET  /api/v1/customers/{customer_id}` – détails minimas du compte (validation de session côté frontend)
 - `GET  /api/v1/customers/{customer_id}/api-keys`
 - `DELETE /api/v1/customers/{customer_id}/api-keys/{api_key}`
 
@@ -174,7 +184,9 @@ make compose-down          # arrêter/supprimer les conteneurs
 - `GET  /api/v1/jobs/{transaction_id}` – statut du job
 
 ### Events
-- `GET  /api/v1/events/stream` – SSE scoping tenant
+- `GET  /api/v1/events/stream?token=<jwt>` – flux SSE scoping tenant
+  - Le paramètre `token` est un JWT court‑vécu émis par `POST /api/v1/auth/sse-token`
+  - Les API keys en query string ne sont pas acceptées (sécurité)
 
 Docs interactives: http://localhost:8000/docs et http://localhost:8000/redoc
 

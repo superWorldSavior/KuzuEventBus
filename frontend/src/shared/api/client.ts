@@ -5,7 +5,7 @@ import {
   markEndpointWorking, 
   getBackendIntegrationStatus as getStatus,
   type BackendEndpointStatus 
-} from "../lib/errorHandling";
+} from "@/shared/lib/errorHandling";
 
 // Re-export for backwards compatibility
 export function getBackendIntegrationStatus(): BackendEndpointStatus[] {

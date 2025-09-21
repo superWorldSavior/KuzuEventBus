@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useNotifications } from './useNotifications';
-import { createErrorNotification, getUserFriendlyError, type ApiErrorDetails } from '../lib/errorHandling';
+import { createErrorNotification, getUserFriendlyError, type ApiErrorDetails } from '@/shared/lib/errorHandling';
 
 /**
  * Hook for handling API errors with user-friendly notifications

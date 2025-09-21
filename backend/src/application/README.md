@@ -213,7 +213,36 @@ InfrastructureException (Services) → 500 Internal Error (HTTP)
 - **SubmitAsyncQueryUseCase** (`submit_async_query.py`)
   - Entrée: `{ tenant_id, database_id, query, parameters, timeout_seconds, priority }`
   - Sortie: `{ transaction_id }`
-  - Ports: `MessageQueueService`, `TransactionRepository`
+  - Ports: `MessageQueueService`, `TransactionRepository`, `QueryCatalogRepository`
+  - Notes: Incrémente l'usage de la requête (catalogue) au moment de la soumission
+    (normalisation + hash). Opération non bloquante (fail-fast) qui n'empêche pas la
+    création du job en cas d'échec d'écriture catalogue.
+
+### Query Catalog – Popular & Favorites
+
+- **ListPopularQueriesUseCase** (orchestration simple via routes)
+  - Entrée: `{ tenant_id, database_id, limit=10 }`
+  - Sortie: `[{ query_hash, query_text, usage_count, last_used_at }]`
+  - Ports: `QueryCatalogRepository`
+  - Règles: Exclut les favoris du classement (filtrage SQL côté adapter)
+
+- **ListFavoriteQueriesUseCase** (orchestration simple via routes)
+  - Entrée: `{ tenant_id, database_id }`
+  - Sortie: `[{ query_hash, query_text, created_at }]`
+  - Ports: `QueryCatalogRepository`
+
+- **AddFavoriteQueryUseCase** (orchestration simple via routes)
+  - Entrée: `{ tenant_id, database_id, query }`
+  - Sortie: `{ query_hash, query_text, created_at }`
+  - Ports: `QueryCatalogRepository`
+  - Règles: Normalisation du texte + hash stable; maximum 10 favoris par base
+    (sinon `BusinessRuleViolation`)
+
+- **RemoveFavoriteQueryUseCase** (orchestration simple via routes)
+  - Entrée: `{ tenant_id, database_id, query_hash }`
+  - Sortie: `{ removed: bool }`
+  - Ports: `QueryCatalogRepository`
+  - Règles: Suppression idempotente (retourne `removed=false` si absent)
 
 ## 🚀 Evolution Strategy
 

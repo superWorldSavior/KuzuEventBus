@@ -16,11 +16,19 @@ from src.presentation.api.context.request_context import (
 from src.infrastructure.dependencies import (
     message_queue_service,
     transaction_repository,
+    query_catalog_repository,
 )
 from src.application.usecases.submit_async_query import (
     SubmitAsyncQueryUseCase,
     SubmitAsyncQueryRequest,
 )
+from src.application.dtos.query_catalog import (
+    PopularQueryItem,
+    FavoriteQueryItem,
+    AddFavoriteRequest,
+    RemoveFavoriteResponse,
+)
+from src.domain.query_catalog.value_objects import QueryText, QueryHash
 from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/databases", tags=["queries"])
@@ -56,6 +64,7 @@ async def execute_query(
     usecase = SubmitAsyncQueryUseCase(
         queue=message_queue_service(),
         transactions=transaction_repository(),
+        query_catalog=query_catalog_repository(),
     )
     req = SubmitAsyncQueryRequest(
         tenant_id=ctx.tenant_id,
@@ -74,6 +83,116 @@ async def execute_query(
         estimated_completion=now + timedelta(seconds=request_model.timeout_seconds),
     )
 
+
+@router.get(
+    "/{database_id}/queries/popular",
+    response_model=list[PopularQueryItem],
+    summary="Lister les requêtes les plus utilisées (hors favoris)",
+)
+async def list_popular_queries(
+    database_id: UUID,
+    limit: int = 10,
+    ctx: RequestContext = Depends(get_request_context),
+) -> list[PopularQueryItem]:
+    repo = query_catalog_repository()
+    items = await repo.list_most_used(
+        tenant_id=ctx.tenant_id,
+        database_id=database_id,
+        limit=min(max(1, limit), 50),
+    )
+    return [
+        PopularQueryItem(
+            query_hash=i["query_hash"],
+            query_text=i["query_text"],
+            usage_count=int(i["usage_count"]),
+            last_used_at=i["last_used_at"],
+        )
+        for i in items
+    ]
+
+
+@router.get(
+    "/{database_id}/queries/favorites",
+    response_model=list[FavoriteQueryItem],
+    summary="Lister les requêtes favorites",
+)
+async def list_favorites(
+    database_id: UUID,
+    ctx: RequestContext = Depends(get_request_context),
+) -> list[FavoriteQueryItem]:
+    repo = query_catalog_repository()
+    items = await repo.list_favorites(
+        tenant_id=ctx.tenant_id,
+        database_id=database_id,
+    )
+    return [
+        FavoriteQueryItem(
+            query_hash=i["query_hash"],
+            query_text=i["query_text"],
+            created_at=i["created_at"],
+        )
+        for i in items
+    ]
+
+
+@router.post(
+    "/{database_id}/queries/favorites",
+    response_model=FavoriteQueryItem,
+    summary="Ajouter une requête aux favoris (max 10)",
+)
+async def add_favorite(
+    database_id: UUID,
+    body: AddFavoriteRequest,
+    ctx: RequestContext = Depends(get_request_context),
+) -> FavoriteQueryItem:
+    repo = query_catalog_repository()
+    try:
+        qt = QueryText(body.query)
+        qh = QueryHash.from_query_text(qt)
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    try:
+        await repo.add_favorite(
+            tenant_id=ctx.tenant_id,
+            database_id=database_id,
+            query_text=qt.value,
+            query_hash=qh.value,
+        )
+    except Exception as exc:  # noqa: BLE001
+        # BusinessRuleViolation or others
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    return FavoriteQueryItem(
+        query_hash=qh.value,
+        query_text=qt.value,
+        created_at=datetime.now(timezone.utc),
+    )
+
+
+@router.delete(
+    "/{database_id}/queries/favorites/{query_hash}",
+    response_model=RemoveFavoriteResponse,
+    summary="Supprimer une requête des favoris",
+)
+async def remove_favorite(
+    database_id: UUID,
+    query_hash: str,
+    ctx: RequestContext = Depends(get_request_context),
+) -> RemoveFavoriteResponse:
+    # Normalize + basic validation via VO
+    try:
+        qh = QueryHash(query_hash.strip().lower())
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    repo = query_catalog_repository()
+    removed = await repo.remove_favorite(
+        tenant_id=ctx.tenant_id,
+        database_id=database_id,
+        query_hash=qh.value,
+    )
+    return RemoveFavoriteResponse(removed=removed)
 
 @jobs_router.get(
     "/{transaction_id}",

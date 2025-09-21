@@ -59,6 +59,10 @@ make integration    # 21 passed, 2 skipped (au dernier run)
 - Queries (asynchrones)
   - `POST /api/v1/databases/{database_id}/query` → soumettre une requête (202)
   - `GET  /api/v1/jobs/{transaction_id}` → statut d'un job
+  - `GET  /api/v1/databases/{database_id}/queries/popular` → lister les requêtes les plus utilisées (hors favoris)
+  - `GET  /api/v1/databases/{database_id}/queries/favorites` → lister les requêtes favorites (max 10)
+  - `POST /api/v1/databases/{database_id}/queries/favorites` → ajouter un favori (body: `{ "query": "MATCH (n) RETURN n" }`)
+  - `DELETE /api/v1/databases/{database_id}/queries/favorites/{query_hash}` → supprimer un favori
 
 - Events
   - `GET  /api/v1/events/stream` → SSE du tenant

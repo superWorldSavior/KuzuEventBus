@@ -12,6 +12,7 @@ from functools import lru_cache
 from src.domain.shared.ports.tenant_management import CustomerAccountRepository
 from src.domain.shared.ports.authentication import AuthenticationService
 from src.domain.shared.ports.notifications import NotificationService
+from src.domain.shared.ports.query_catalog import QueryCatalogRepository
 
 from src.infrastructure.logging.config import infra_logger
 
@@ -153,3 +154,14 @@ def snapshot_repository():
 
     infra_logger.info("Using PostgresSnapshotRepository for DB snapshots")
     return PostgresSnapshotRepository()
+
+
+@lru_cache
+def query_catalog_repository() -> QueryCatalogRepository:
+    """Provide query catalog repository (Postgres-backed)."""
+    from src.infrastructure.database.query_catalog_repository import (
+        PostgresQueryCatalogRepository,
+    )
+
+    infra_logger.info("Using PostgresQueryCatalogRepository for query catalog")
+    return PostgresQueryCatalogRepository()

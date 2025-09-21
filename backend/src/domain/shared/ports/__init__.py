@@ -23,6 +23,7 @@ from .query_execution import (
     TransactionStatus,
 )
 from .cache import CacheService
+from .query_catalog import QueryCatalogRepository
 
 # Re-export all port protocols for easy importing
 from .tenant_management import CustomerAccountRepository
@@ -48,4 +49,6 @@ __all__ = [
     "NotificationService",
     "ServerSentEventService",
     "EventStoreService",
+    # Query Catalog
+    "QueryCatalogRepository",
 ]

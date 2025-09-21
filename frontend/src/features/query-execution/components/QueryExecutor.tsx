@@ -3,6 +3,7 @@ import LazyCypherEditor from "@/shared/ui/lazy/LazyCypherEditor";
 import { QueryExecutionControls } from "./QueryExecutionControls";
 import { QueryProgress } from "./QueryProgress";
 import { useDatabases, useRunQuery } from "@/shared/hooks/useApi";
+import { useCancelQuery } from "../hooks/useQueries";
 import { useSSE } from "@/shared/hooks/useSSE";
 import { cn } from "@/shared/lib";
 
@@ -55,6 +56,7 @@ export function QueryExecutor({
   // API hooks
   const { data: databases = [] } = useDatabases();
   const runQueryMutation = useRunQuery();
+  const cancelQueryMutation = useCancelQuery();
 
   // SSE connection for real-time query status updates
   const { connect, disconnect } = useSSE<{
@@ -234,7 +236,17 @@ export function QueryExecutor({
     }
   };
 
-  const handleStop = () => {
+  const handleStop = async () => {
+    // If we have a transaction ID and the query is running, send cancellation request
+    if (execution.id && (execution.status === "running" || execution.status === "paused")) {
+      try {
+        await cancelQueryMutation.mutateAsync(execution.id);
+      } catch (error) {
+        console.error('Failed to cancel query:', error);
+        // Continue with local cancellation even if API call fails
+      }
+    }
+    
     setExecution(prev => ({
       ...prev,
       status: "cancelled",

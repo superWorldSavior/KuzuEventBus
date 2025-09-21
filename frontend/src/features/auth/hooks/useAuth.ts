@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { useAuthStore } from "../stores/authStore";
 import { authApi } from "../services/authApi";
+import { demoAuthService } from "../services/demoAuthService";
 import { log } from "@/shared/lib/logger";
 import type { RegistrationData, LoginCredentials, AuthError } from "../types";
 import type { Customer } from "@/entities/customer";
@@ -210,6 +211,42 @@ export function useAuth() {
     }
   }, [storeLogout, setLoading]);
 
+  // Demo login functionality
+  const handleDemoLogin = useCallback(async () => {
+    try {
+      setLoading(true);
+      clearError();
+
+      if (!demoAuthService.isDemoModeAvailable()) {
+        throw new Error('Demo mode is not available. Please check your configuration.');
+      }
+
+      const customer = await demoAuthService.loginWithDemoAccount();
+      const demoUser = demoAuthService.getDemoUserInfo();
+      
+      login(customer, demoUser.apiKey);
+      
+      log.info("Demo login successful", { customerId: customer.id });
+      return { success: true, data: customer };
+    } catch (error) {
+      const authError: AuthError = {
+        code: 'LOGIN_FAILED',
+        message: error instanceof Error ? error.message : 'Demo login failed',
+        details: error
+      };
+      
+      setError(authError.message);
+      log.error("Demo login failed", { error: authError });
+      
+      return {
+        success: false,
+        error: authError
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, [setLoading, clearError, setError, login]);
+
   // Update user profile
   const updateProfile = useCallback(async (updates: { organizationName?: string; adminEmail?: string }) => {
     try {
@@ -253,6 +290,7 @@ export function useAuth() {
     
     // Actions
     loginWithApiKey: handleLoginWithApiKey,
+    loginWithDemo: handleDemoLogin,
     register: handleRegister,
     logout: handleLogout,
     updateProfile,

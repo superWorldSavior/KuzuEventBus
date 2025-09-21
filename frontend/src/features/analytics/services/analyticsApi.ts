@@ -12,7 +12,24 @@ export class AnalyticsAPI {
     try {
       const response = await apiClient.get("/api/v1/dashboard/stats");
       markEndpointWorking(endpoint);
-      return response.data;
+      
+      // Transform snake_case to camelCase
+      const data = response.data;
+      return {
+        totalDatabases: data.total_databases || data.totalDatabases || 0,
+        totalStorageBytes: data.total_storage_bytes || data.totalStorageBytes || 0, // Keep as bytes for consistency
+        queriesToday: data.queries_today || data.queriesToday || 0,
+        avgQueryTimeMs: data.avg_query_time_ms || data.avgQueryTimeMs || 0,
+        activeConnections: data.active_connections || data.activeConnections || 0,
+        lastUpdated: data.last_updated || data.lastUpdated || new Date().toISOString(),
+        systemHealth: {
+          status: data.system_health?.status || data.systemHealth?.status || "healthy",
+          uptime: data.system_health?.uptime || data.systemHealth?.uptime || "N/A",
+          memoryUsage: data.system_health?.memory_usage || data.systemHealth?.memoryUsage || 0,
+          cpuUsage: data.system_health?.cpu_usage || data.systemHealth?.cpuUsage || 0,
+          diskUsage: data.system_health?.disk_usage || data.systemHealth?.diskUsage || 0
+        }
+      };
     } catch (error) {
       // For analytics, we want to provide fallback data with error tracking
       const errorDetails = handleApiError(endpoint, error);
@@ -46,7 +63,21 @@ export class AnalyticsAPI {
     try {
       const response = await apiClient.get(`/api/v1/queries/recent?limit=${limit}`);
       markEndpointWorking(endpoint);
-      return response.data;
+      
+      // Transform backend response format
+      const queries = response.data;
+      return queries.map((query: any) => ({
+        id: query.transaction_id || query.id,
+        content: query.query_text || query.content || query.query,
+        databaseId: query.database_id || query.databaseId,
+        status: query.status,
+        createdAt: query.created_at || query.createdAt,
+        startedAt: query.started_at || query.startedAt,
+        completedAt: query.completed_at || query.completedAt,
+        durationMs: query.execution_time_ms || query.durationMs,
+        errorMessage: query.error_message || query.errorMessage,
+        parameters: query.parameters,
+      }));
     } catch (error) {
       // Provide empty array with error tracking
       const errorDetails = handleApiError(endpoint, error);
@@ -60,10 +91,28 @@ export class AnalyticsAPI {
    * Get recent activity across the platform
    */
   async getRecentActivity(limit = 10) {
+    const endpoint = "GET /api/v1/activity/recent";
+    
     try {
       const response = await apiClient.get(`/api/v1/activity/recent?limit=${limit}`);
-      return response.data;
+      markEndpointWorking(endpoint);
+      
+      // Transform backend response format
+      const activities = response.data;
+      return activities.map((activity: any) => ({
+        id: activity.id,
+        type: activity.activity_type || activity.type,
+        title: activity.title,
+        description: activity.description,
+        timestamp: activity.created_at || activity.timestamp,
+        user: activity.user_email || activity.user,
+        metadata: activity.metadata,
+      }));
     } catch (error) {
+      // Provide fallback data with error tracking
+      const errorDetails = handleApiError(endpoint, error);
+      console.warn('Recent activity not available, using fallback data:', errorDetails);
+      
       // Mock recent activity
       return [
         {
@@ -117,10 +166,35 @@ export class AnalyticsAPI {
    * Get performance metrics over time
    */
   async getPerformanceMetrics(timeRange: "1h" | "24h" | "7d" | "30d" = "7d") {
+    const endpoint = `GET /api/v1/analytics/query-performance`;
+    
     try {
-      const response = await apiClient.get(`/api/v1/analytics/performance?range=${timeRange}`);
-      return response.data;
+      const response = await apiClient.get(`/api/v1/analytics/query-performance?range=${timeRange}`);
+      markEndpointWorking(endpoint);
+      
+      // Transform backend response format
+      const data = response.data;
+      return {
+        queryPerformance: data.query_performance?.map((item: any) => ({
+          timestamp: item.timestamp,
+          avgTime: item.avg_time_ms || item.avgTime,
+          queryCount: item.query_count || item.queryCount,
+        })) || data.queryPerformance || [],
+        storageUsage: data.storage_usage?.map((item: any) => ({
+          timestamp: item.timestamp,
+          usageGB: item.usage_gb || item.usageGB,
+        })) || data.storageUsage || [],
+        connectionMetrics: data.connection_metrics?.map((item: any) => ({
+          timestamp: item.timestamp,
+          activeConnections: item.active_connections || item.activeConnections,
+          totalConnections: item.total_connections || item.totalConnections,
+        })) || data.connectionMetrics || [],
+      };
     } catch (error) {
+      // Provide fallback data with error tracking
+      const errorDetails = handleApiError(endpoint, error);
+      console.warn('Performance metrics not available, using fallback data:', errorDetails);
+      
       // Mock performance metrics
       return {
         queryPerformance: [
@@ -148,6 +222,7 @@ export class AnalyticsAPI {
           { timestamp: "2024-01-04T00:00:00Z", activeConnections: 15, totalConnections: 42 },
           { timestamp: "2024-01-05T00:00:00Z", activeConnections: 11, totalConnections: 28 },
           { timestamp: "2024-01-06T00:00:00Z", activeConnections: 13, totalConnections: 35 },
+          { timestamp: "2024-01-07T00:00:00Z", activeConnections: 12, totalConnections: 33 },
           { timestamp: "2024-01-07T00:00:00Z", activeConnections: 12, totalConnections: 33 },
         ]
       };

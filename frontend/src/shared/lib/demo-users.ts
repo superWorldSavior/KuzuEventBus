@@ -2,6 +2,9 @@ interface DemoUser {
   name: string;
   email: string;
   password: string;
+  apiKey: string;
+  tenantName: string;
+  customerId: string;
   role: string;
   description: string;
 }
@@ -11,6 +14,9 @@ export const DEMO_USERS: DemoUser[] = [
     name: "Demo Admin",
     email: "demo@kuzu-eventbus.com",
     password: "demo123",
+    apiKey: "kb_demo_1234567890abcdef1234567890abcdef",
+    tenantName: "demo-tenant",
+    customerId: "demo-customer-12345",
     role: "admin",
     description:
       "Full access to all features - ideal for exploring the platform",
@@ -19,6 +25,9 @@ export const DEMO_USERS: DemoUser[] = [
     name: "Database Manager",
     email: "manager@kuzu-eventbus.com",
     password: "manager123",
+    apiKey: "kb_demo_manager_1234567890abcdef123456",
+    tenantName: "demo-tenant",
+    customerId: "demo-manager-12345",
     role: "manager",
     description: "Can manage databases and run queries",
   },
@@ -26,6 +35,9 @@ export const DEMO_USERS: DemoUser[] = [
     name: "Query User",
     email: "user@kuzu-eventbus.com",
     password: "user123",
+    apiKey: "kb_demo_user_1234567890abcdef1234567890",
+    tenantName: "demo-tenant",
+    customerId: "demo-user-12345",
     role: "user",
     description: "Can run queries and view results",
   },
@@ -36,6 +48,9 @@ export const getDefaultDemoUser = (): DemoUser => {
     name: "Demo Admin",
     email: import.meta.env.VITE_DEMO_EMAIL || "demo@kuzu-eventbus.com",
     password: import.meta.env.VITE_DEMO_PASSWORD || "demo123",
+    apiKey: import.meta.env.VITE_DEMO_API_KEY || "kb_demo_1234567890abcdef1234567890abcdef",
+    tenantName: import.meta.env.VITE_DEMO_TENANT_NAME || "demo-tenant",
+    customerId: import.meta.env.VITE_DEMO_CUSTOMER_ID || "demo-customer-12345",
     role: "admin",
     description: "Default demo user with full access",
   };

@@ -52,6 +52,10 @@ compose-logs: check-compose-v2
 # Development environment with hot reload
 dev-build: check-compose-v2
 	@echo " Building development Docker images..."
+	$(DOCKER_COMPOSE) -f docker-compose.dev.yml build
+
+dev-build-clean: check-compose-v2
+	@echo " Building development Docker images (clean build)..."
 	$(DOCKER_COMPOSE) -f docker-compose.dev.yml build --no-cache
 
 dev-start: dev-build

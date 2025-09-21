@@ -14,14 +14,14 @@ export const databaseApi = {
       
       // Transform API response to match Database entity
       return response.data.map((db: any) => ({
-        id: db.database_id,
+        id: db.database_id || db.id,
         name: db.name,
         description: db.description,
-        tenantId: db.tenant_id || 'unknown',
-        createdAt: db.created_at,
-        sizeBytes: db.size_bytes || 0,
-        tableCount: db.table_count || 0,
-        lastAccessed: db.last_accessed,
+        tenantId: db.tenant_id || db.tenantId || 'unknown',
+        createdAt: db.created_at || db.createdAt,
+        sizeBytes: db.size_bytes || db.sizeBytes || 0,
+        tableCount: db.table_count || db.tableCount || 0,
+        lastAccessed: db.last_accessed || db.lastAccessed,
       }));
     } catch (error) {
       throw handleApiError(endpoint, error);
@@ -38,14 +38,14 @@ export const databaseApi = {
       
       const db = response.data;
       return {
-        id: db.database_id,
+        id: db.database_id || db.id,
         name: db.name,
         description: db.description,
-        tenantId: db.tenant_id || 'unknown',
-        createdAt: db.created_at,
-        sizeBytes: db.size_bytes || 0,
-        tableCount: db.table_count || 0,
-        lastAccessed: db.last_accessed,
+        tenantId: db.tenant_id || db.tenantId || 'unknown',
+        createdAt: db.created_at || db.createdAt,
+        sizeBytes: db.size_bytes || db.sizeBytes || 0,
+        tableCount: db.table_count || db.tableCount || 0,
+        lastAccessed: db.last_accessed || db.lastAccessed,
       };
     } catch (error) {
       throw handleApiError(endpoint, error);
@@ -62,14 +62,14 @@ export const databaseApi = {
       
       const db = response.data;
       return {
-        id: db.database_id,
+        id: db.database_id || db.id,
         name: db.name,
         description: db.description,
-        tenantId: db.tenant_id,
-        createdAt: db.created_at,
-        sizeBytes: db.size_bytes || 0,
-        tableCount: db.table_count || 0,
-        lastAccessed: db.last_accessed,
+        tenantId: db.tenant_id || db.tenantId,
+        createdAt: db.created_at || db.createdAt,
+        sizeBytes: db.size_bytes || db.sizeBytes || 0,
+        tableCount: db.table_count || db.tableCount || 0,
+        lastAccessed: db.last_accessed || db.lastAccessed,
       };
     } catch (error) {
       throw handleApiError(endpoint, error);
@@ -86,14 +86,14 @@ export const databaseApi = {
       
       const db = response.data;
       return {
-        id: db.database_id,
+        id: db.database_id || db.id,
         name: db.name,
         description: db.description,
-        tenantId: db.tenant_id,
-        createdAt: db.created_at,
-        sizeBytes: db.size_bytes || 0,
-        tableCount: db.table_count || 0,
-        lastAccessed: db.last_accessed,
+        tenantId: db.tenant_id || db.tenantId,
+        createdAt: db.created_at || db.createdAt,
+        sizeBytes: db.size_bytes || db.sizeBytes || 0,
+        tableCount: db.table_count || db.tableCount || 0,
+        lastAccessed: db.last_accessed || db.lastAccessed,
       };
     } catch (error) {
       throw handleApiError(endpoint, error);
@@ -149,9 +149,9 @@ export const databaseApi = {
       
       return {
         success: response.data.success,
-        fileId: response.data.file_id,
+        fileId: response.data.file_id || response.data.fileId,
         message: response.data.message,
-        recordsImported: response.data.records_imported,
+        recordsImported: response.data.records_imported || response.data.recordsImported,
       };
     } catch (error) {
       throw handleApiError(endpoint, error);
@@ -168,12 +168,12 @@ export const databaseApi = {
       
       const stats = response.data;
       return {
-        id: stats.database_id,
+        id: stats.database_id || stats.id,
         name: stats.name,
-        sizeBytes: stats.size_bytes || 0,
-        tableCount: stats.table_count || 0,
-        queryCount: stats.query_count || 0,
-        lastQueryAt: stats.last_query_at,
+        sizeBytes: stats.size_bytes || stats.sizeBytes || 0,
+        tableCount: stats.table_count || stats.tableCount || 0,
+        queryCount: stats.query_count || stats.queryCount || 0,
+        lastQueryAt: stats.last_query_at || stats.lastQueryAt,
       };
     } catch (error) {
       throw handleApiError(endpoint, error);

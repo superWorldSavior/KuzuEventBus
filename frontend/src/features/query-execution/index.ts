@@ -29,6 +29,7 @@ export { QueryExecutor } from "./components/QueryExecutor";
 export { QueryExecutionControls } from "./components/QueryExecutionControls";
 export { QueryProgress } from "./components/QueryProgress";
 export { QueryResultsViewer } from "./components/QueryResultsViewer";
+export { QueryHistory } from "./components/QueryHistory";
 export { VirtualizedQueryResults } from "./components/VirtualizedQueryResults";
 
 // Export query builder components

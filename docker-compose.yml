@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   # PostgreSQL - Métadonnées de l'application
   postgres:

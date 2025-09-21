@@ -81,7 +81,7 @@ export function DashboardPage() {
       title: "Total Databases",
       value: dashboardStats?.totalDatabases ?? 0,
       icon: <Database className="w-5 h-5" />,
-      trend: dashboardStats?.databasesTrend ? { direction: "up" as const, percentage: dashboardStats.databasesTrend } : undefined,
+      trend: undefined, // Trend data not yet available from backend
       onClick: () => handleMetricClick("databases"),
     },
     {
@@ -89,15 +89,17 @@ export function DashboardPage() {
       title: "Queries Today",
       value: dashboardStats?.queriesToday ?? 0,
       icon: <Code className="w-5 h-5" />,
-      trend: dashboardStats?.queriesTodayTrend ? { direction: "up" as const, percentage: dashboardStats.queriesTodayTrend } : undefined,
+      trend: undefined, // Trend data not yet available from backend
       onClick: () => handleMetricClick("queries"),
     },
     {
       id: "storage",
       title: "Storage Used",
-      value: dashboardStats?.totalStorageGB ? `${dashboardStats.totalStorageGB}GB` : "0GB",
+      value: dashboardStats?.totalStorageBytes 
+        ? `${(dashboardStats.totalStorageBytes / (1024 * 1024 * 1024)).toFixed(1)}GB`
+        : "0GB",
       icon: <HardDrive className="w-5 h-5" />,
-      trend: dashboardStats?.storageTrend ? { direction: "up" as const, percentage: dashboardStats.storageTrend } : undefined,
+      trend: undefined, // Trend data not yet available from backend
       onClick: () => handleMetricClick("storage"),
     },
     {
@@ -105,7 +107,7 @@ export function DashboardPage() {
       title: "Avg Query Time",
       value: `${dashboardStats?.avgQueryTimeMs ?? 42}ms`,
       icon: <Pulse className="w-5 h-5" />,
-      trend: { direction: "down" as const, percentage: 15 },
+      trend: { direction: "down" as const, percentage: 15 }, // Static trend for now
       onClick: () => handleMetricClick("performance"),
     },
   ];

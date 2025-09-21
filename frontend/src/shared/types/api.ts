@@ -149,14 +149,22 @@ export interface QueryCancelRequest {
   reason?: string;
 }
 
-// Analytics Types (for missing backend endpoints)  
+// Analytics Types (for backend integration)  
 export interface DashboardStatsResponse {
   totalDatabases: number;
-  totalStorageGB: number;
+  totalStorageBytes: number; // Changed from totalStorageGB to match actual API response
   queriesToday: number;
   avgQueryTimeMs: number;
   activeConnections: number;
   lastUpdated: string;
+  systemHealth: {
+    status: string;
+    uptime: string;
+    memoryUsage: number;
+    cpuUsage: number;
+    diskUsage: number;
+  };
+  _mock?: boolean; // Indicates fallback data
 }
 
 export interface RecentQueryResponse {

@@ -1,9 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import LazyCypherEditor from "@/shared/ui/lazy/LazyCypherEditor";
 import { QueryExecutionControls } from "./QueryExecutionControls";
 import { QueryProgress } from "./QueryProgress";
 import { useDatabases, useRunQuery } from "@/shared/hooks/useApi";
-import { useSSE } from "@/shared/hooks/useSSE";
 import { cn } from "@/shared/lib";
 
 interface QueryExecutorProps {
@@ -56,91 +55,55 @@ export function QueryExecutor({
   const { data: databases = [] } = useDatabases();
   const runQueryMutation = useRunQuery();
 
-  // SSE connection for real-time query status updates
-  const { connect, disconnect } = useSSE<{
-    event_type: 'completed' | 'timeout' | 'failed';
-    transaction_id: string;
-    database_id: string;
-    rows_count?: string;
-    execution_time_ms?: string;
-    error?: string;
-  }>({
-    url: '/api/v1/events/stream',
-    onMessage: useCallback((event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data) as {
-          event_type: 'completed' | 'timeout' | 'failed';
-          transaction_id: string;
-          database_id: string;
-          rows_count?: string;
-          execution_time_ms?: string;
-          error?: string;
-        };
+  // NOTE: No local SSE subscription here. We rely on the single global SSE
+  // in useSSENotifications to surface completion/error notifications.
 
-        if (!data || !execution.id || data.transaction_id !== execution.id) {
-          return;
-        }
-
-        setExecution(prev => {
-          const newExecution = (() => {
-            switch (data.event_type) {
-              case 'completed':
-                return {
-                  ...prev,
-                  status: "completed" as const,
-                  endTime: new Date(),
-                  progress: 100,
-                  resultCount: data.rows_count ? parseInt(data.rows_count, 10) : 0,
-                };
-              case 'timeout':
-              case 'failed':
-                return {
-                  ...prev,
-                  status: "error" as const,
-                  endTime: new Date(),
-                  errorMessage: data.error || `Query ${data.event_type}`,
-                };
-              default:
-                return prev;
-            }
-          })();
-
-          // Trigger completion callback when query finishes successfully
-          if (data.event_type === 'completed' && prev.status === "running") {
-            setTimeout(() => {
-              onExecutionComplete?.({
-                transactionId: data.transaction_id,
-                results: {
-                  rows: [],
-                  totalCount: data.rows_count ? parseInt(data.rows_count, 10) : 0,
-                  executionTimeMs: data.execution_time_ms ? parseInt(data.execution_time_ms, 10) : 0,
-                }
-              });
-            }, 0);
-          }
-
-          // Trigger error callback when query fails
-          if ((data.event_type === 'timeout' || data.event_type === 'failed') && prev.status === "running") {
-            setTimeout(() => {
-              onExecutionError?.(data.error || `Query ${data.event_type}`);
-            }, 0);
-          }
-
-          return newExecution;
-        });
-      } catch (error) {
-        console.warn('Failed to parse SSE message:', error);
-      }
-    }, [execution.id]),
-    reconnectInterval: 1000,
-    maxReconnectAttempts: 5,
-  });
-
-  // Connect to SSE when component mounts and disconnect on unmount
+  // Abonnement au flux SSE central via CustomEvent 'sse:event'
   useEffect(() => {
-    connect();
-    return () => disconnect();
-  }, [connect, disconnect]);
+    const handler = (evt: Event) => {
+      const { detail } = evt as CustomEvent<{
+        event_type: 'completed' | 'timeout' | 'failed';
+        transaction_id?: string;
+        database_id?: string;
+        rows_count?: string;
+        execution_time_ms?: string;
+        error?: string;
+      }>;
+
+      if (!detail || !execution.id) return;
+      if (!detail.transaction_id || detail.transaction_id !== execution.id) return;
+
+      if (detail.event_type === 'completed') {
+        setExecution((prev: QueryExecution) => ({
+          ...prev,
+          status: 'completed',
+          endTime: new Date(),
+          progress: 100,
+          resultCount: typeof detail.rows_count === 'string' ? parseInt(detail.rows_count, 10) : prev.resultCount,
+        }));
+        // Optionnel: prévenir le parent si nécessaire (résultats viendront de l’API si on les demande ensuite)
+        onExecutionComplete?.({ transactionId: detail.transaction_id });
+        return;
+      }
+
+      if (detail.event_type === 'failed' || detail.event_type === 'timeout') {
+        const errMsg = detail.error || `Query ${detail.event_type}`;
+        setExecution((prev: QueryExecution) => ({
+          ...prev,
+          status: 'error',
+          endTime: new Date(),
+          errorMessage: errMsg,
+        }));
+        onExecutionError?.(errMsg);
+        return;
+      }
+    };
+
+    window.addEventListener('sse:event', handler as EventListener);
+    return () => {
+      window.removeEventListener('sse:event', handler as EventListener);
+    };
+  }, [execution.id, onExecutionComplete, onExecutionError]);
 
   // Update query when prop changes
   useEffect(() => {

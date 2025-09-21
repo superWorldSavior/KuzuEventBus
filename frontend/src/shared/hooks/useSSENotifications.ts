@@ -1,6 +1,8 @@
 import { useEffect, useCallback } from 'react';
 import { useSSE } from './useSSE';
 import { useNotificationStore } from '@/app/stores/notifications';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '@/shared/hooks/useApi';
 
 /**
  * Hook for integrating SSE events with the notification system.
@@ -8,6 +10,13 @@ import { useNotificationStore } from '@/app/stores/notifications';
  */
 export function useSSENotifications() {
   const { addNotification } = useNotificationStore();
+  const queryClient = useQueryClient();
+  
+  // Only connect if user has an API key (is authenticated)
+  const apiKey = localStorage.getItem('kuzu_api_key');
+  if (!apiKey || !apiKey.startsWith('kb_')) {
+    return { isConnected: false as boolean };
+  }
 
   const { connect, disconnect, isConnected } = useSSE<{
     event_type: 'completed' | 'timeout' | 'failed' | 'database_created' | 'database_deleted' | 'backup_complete';
@@ -25,9 +34,24 @@ export function useSSENotifications() {
       try {
         const data = JSON.parse(event.data);
         
+        // Dispatch a DOM event for lightweight cross-component communication
+        // Components (e.g., QueryExecutor) can subscribe without opening SSE
+        const type = data?.event_type as string | undefined;
+        if (type) {
+          window.dispatchEvent(new CustomEvent('sse:event', { detail: data }));
+        }
+        
         // Convert SSE events to user notifications
         switch (data.event_type) {
           case 'completed':
+            // Invalidate relevant caches
+            queryClient.invalidateQueries({ queryKey: queryKeys.recentQueries() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
+            queryClient.invalidateQueries({ queryKey: queryKeys.recentActivity() });
+            if (data.database_id) {
+              queryClient.invalidateQueries({ queryKey: queryKeys.database(data.database_id) });
+              queryClient.invalidateQueries({ queryKey: queryKeys.databaseMetrics(data.database_id) });
+            }
             addNotification({
               title: 'Query Completed',
               message: `Query executed successfully in ${
@@ -40,6 +64,8 @@ export function useSSENotifications() {
             break;
 
           case 'timeout':
+            queryClient.invalidateQueries({ queryKey: queryKeys.recentQueries() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.recentActivity() });
             addNotification({
               title: 'Query Timeout',
               message: 'Your query took too long to execute and was cancelled.',
@@ -50,6 +76,9 @@ export function useSSENotifications() {
             break;
 
           case 'failed':
+            queryClient.invalidateQueries({ queryKey: queryKeys.recentQueries() });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
+            queryClient.invalidateQueries({ queryKey: queryKeys.recentActivity() });
             addNotification({
               title: 'Query Failed',
               message: data.error || 'An error occurred while executing your query.',
@@ -60,6 +89,8 @@ export function useSSENotifications() {
             break;
 
           case 'database_created':
+            queryClient.invalidateQueries({ queryKey: queryKeys.databases });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
             addNotification({
               title: 'Database Created',
               message: `New database ${data.database_name || 'database'} has been successfully created.`,
@@ -70,6 +101,8 @@ export function useSSENotifications() {
             break;
 
           case 'database_deleted':
+            queryClient.invalidateQueries({ queryKey: queryKeys.databases });
+            queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
             addNotification({
               title: 'Database Deleted',
               message: `Database ${data.database_name || 'database'} has been successfully deleted.`,
@@ -80,6 +113,9 @@ export function useSSENotifications() {
             break;
 
           case 'backup_complete':
+            if (data.database_id) {
+              queryClient.invalidateQueries({ queryKey: queryKeys.databaseMetrics(data.database_id) });
+            }
             addNotification({
               title: 'Backup Complete',
               message: `Database backup for ${data.database_name || 'database'} completed successfully.`,
@@ -104,8 +140,8 @@ export function useSSENotifications() {
         console.warn('Failed to parse SSE notification event:', error);
       }
     }, [addNotification]),
-    reconnectInterval: 5000,
-    maxReconnectAttempts: 10,
+    reconnectInterval: 10000,
+    maxReconnectAttempts: 3,
   });
 
   // Auto-connect on mount

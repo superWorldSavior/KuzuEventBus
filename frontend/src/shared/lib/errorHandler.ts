@@ -1,3 +1,4 @@
+import React from 'react';
 interface ErrorContext {
   userId?: string;
   sessionId?: string;
@@ -135,7 +136,7 @@ export class ErrorHandler {
       url: window.location.href,
       userAgent: navigator.userAgent,
       timestamp: new Date().toISOString(),
-      buildVersion: process.env.REACT_APP_VERSION || 'unknown',
+      buildVersion: (import.meta as any)?.env?.VITE_APP_VERSION || 'unknown',
     };
   }
 
@@ -150,7 +151,7 @@ export class ErrorHandler {
 
   private async sendErrorReport(errorReport: ErrorReport) {
     // In development, just log to console
-    if (process.env.NODE_ENV === 'development') {
+    if ((import.meta as any)?.env?.DEV === true) {
       console.group(`🚨 Error Report: ${errorReport.errorId}`);
       console.error('Message:', errorReport.message);
       console.error('Stack:', errorReport.stack);
@@ -280,4 +281,4 @@ if (typeof window !== 'undefined') {
 }
 
 // Fix React import for the hook
-import React from 'react';
+// (no longer needed, already imported at the top)

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { apiClient } from '@/shared/api/client';
 
 interface SSEOptions {
   url: string;
@@ -11,6 +12,7 @@ interface SSEOptions {
   onError?: (event: Event) => void;
   onMessage?: (event: MessageEvent) => void;
 }
+
 
 interface SSEState<T = any> {
   data: T | null;
@@ -38,24 +40,31 @@ export function useSSE<T = any>(options: SSEOptions) {
 
   const {
     url,
-    reconnectInterval = 3000,
-    maxReconnectAttempts = 5,
+    reconnectInterval = 5000,
+    maxReconnectAttempts = 3,
     withCredentials = true,
     onOpen,
     onError,
     onMessage,
   } = options;
 
-  // Build URL with auth token if available
-  const buildUrl = useCallback(() => {
-    const urlObj = new URL(url, window.location.origin);
-    if (token) {
-      urlObj.searchParams.set('token', token);
-    }
-    return urlObj.toString();
-  }, [url, token]);
+  // Cache a short-lived SSE JWT (minted server-side)
+  const sseTokenRef = useRef<string | null>(null);
+  const sseTokenExpRef = useRef<number>(0);
 
-  const connect = useCallback(() => {
+  const getValidSseToken = useCallback(async (): Promise<string> => {
+    const now = Date.now();
+    if (!sseTokenRef.current || now >= (sseTokenExpRef.current - 60_000)) {
+      // Mint a new SSE token (requires REST auth to be valid)
+      const resp = await apiClient.post('/api/v1/auth/sse-token');
+      const { token: sseToken, expires_in } = resp.data as { token: string; expires_in: number };
+      sseTokenRef.current = sseToken;
+      sseTokenExpRef.current = now + expires_in * 1000;
+    }
+    return sseTokenRef.current!;
+  }, []);
+
+  const connect = useCallback(async () => {
     // Don't connect if already connecting or connected
     if (eventSourceRef.current?.readyState === EventSource.CONNECTING ||
         eventSourceRef.current?.readyState === EventSource.OPEN) {
@@ -65,7 +74,12 @@ export function useSSE<T = any>(options: SSEOptions) {
     setState(prev => ({ ...prev, isConnecting: true, error: null }));
 
     try {
-      const eventSource = new EventSource(buildUrl(), {
+      const baseUrl = new URL(url, window.location.origin);
+      const sseJwt = await getValidSseToken();
+      baseUrl.searchParams.set('token', sseJwt);
+      const fullUrl = baseUrl.toString();
+
+      const eventSource = new EventSource(fullUrl, {
         withCredentials,
       });
 
@@ -143,7 +157,7 @@ export function useSSE<T = any>(options: SSEOptions) {
         isConnected: false,
       }));
     }
-  }, [buildUrl, withCredentials, onOpen, onMessage, onError, reconnectInterval, maxReconnectAttempts, url]);
+  }, [getValidSseToken, withCredentials, onOpen, onMessage, onError, reconnectInterval, maxReconnectAttempts, url]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {

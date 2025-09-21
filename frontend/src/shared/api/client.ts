@@ -30,12 +30,12 @@ apiClient.interceptors.request.use(
       _t: Date.now(),
     };
 
-    // Primary authentication: API key (KB_ prefix)
+    // Primary authentication: API key (KB_ prefix) via Authorization: Bearer
     const apiKey = localStorage.getItem('kuzu_api_key');
     if (apiKey) {
       // Validate API key format
       if (apiKey.startsWith('kb_') && apiKey.length > 10) {
-        config.headers['X-API-Key'] = apiKey;
+        config.headers.Authorization = `Bearer ${apiKey}`;
       } else {
         // Invalid API key format - clear it
         console.warn("Invalid API key format detected, clearing stored credentials");
@@ -48,12 +48,12 @@ apiClient.interceptors.request.use(
           console.warn("API request without valid authentication");
         }
       }
-    }
-
-    // Legacy Bearer token support (for backward compatibility only)
-    const token = localStorage.getItem('auth_token');
-    if (token && !config.headers.Authorization && !apiKey) {
-      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // Legacy Bearer token support (for backward compatibility only)
+      const token = localStorage.getItem('auth_token');
+      if (token && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
 
     // Add tenant context if available (helpful for multi-tenant debugging)
@@ -143,7 +143,7 @@ export const apiService = {
     organization_name: string;
     admin_email: string;
   }) {
-    const response = await apiClient.post("/api/v1/customers/register", data);
+    const response = await apiClient.post("/api/v1/auth/register", data);
     
     // Store API key for future requests
     if (response.data?.api_key) {

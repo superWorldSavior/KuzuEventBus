@@ -1,5 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useCallback } from "react";
 import { Database, Code, HardDrive, Pulse } from "@phosphor-icons/react";
 import { RecentQueriesWidget } from "@/widgets/dashboard/RecentQueriesWidget";
 import { ActivityTimeline } from "@/widgets/dashboard/ActivityTimeline";
@@ -7,7 +6,6 @@ import { QuickActions } from "@/widgets/dashboard/QuickActions";
 import { MetricsGrid } from "@/widgets/dashboard/MetricsGrid";
 import { ChartShowcase } from "@/widgets/charts/ChartShowcase";
 import { useDashboardStats, useRecentQueries, useRecentActivity } from "@/shared/hooks/useApi";
-import { useSSE } from "@/shared/hooks/useSSE";
 
 export function DashboardPage() {
   const navigate = useNavigate();
@@ -17,37 +15,7 @@ export function DashboardPage() {
   const { data: recentQueries, isLoading: queriesLoading, refetch: refetchQueries } = useRecentQueries();
   const { data: recentActivity, isLoading: activityLoading, refetch: refetchActivity } = useRecentActivity();
 
-  // SSE connection for real-time dashboard updates
-  const { connect, disconnect } = useSSE<{
-    event_type: 'completed' | 'timeout' | 'failed' | 'database_created' | 'database_deleted';
-    transaction_id?: string;
-    database_id?: string;
-    [key: string]: any;
-  }>({
-    url: '/api/v1/events/stream',
-    onMessage: useCallback((event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        // Refresh dashboard data when significant events occur
-        if (data.event_type === 'completed' || data.event_type === 'database_created' || data.event_type === 'database_deleted') {
-          refetchStats();
-          refetchQueries();
-          refetchActivity();
-        }
-      } catch (error) {
-        console.warn('Failed to parse dashboard SSE message:', error);
-      }
-    }, [refetchStats, refetchQueries, refetchActivity]),
-    reconnectInterval: 5000,
-    maxReconnectAttempts: 10,
-  });
-
-  // Connect to SSE when component mounts
-  useEffect(() => {
-    connect();
-    return () => disconnect();
-  }, [connect, disconnect]);
+  // NOTE: No local SSE here. We rely on the single global SSE in useSSENotifications
 
   const handleMetricClick = (metric: string) => {
     switch (metric) {

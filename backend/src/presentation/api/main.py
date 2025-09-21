@@ -6,10 +6,13 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.infrastructure.logging.config import api_logger, setup_logging
 from src.presentation.api.middleware.authentication import AuthenticationMiddleware
 from src.presentation.api import customers, databases, health, queries
+from src.presentation.api.analytics import routes as analytics_routes
+from src.presentation.api.auth import routes as auth_routes
 from src.presentation.api.events import routes as events_routes
 
 _env_path = Path(__file__).resolve().parents[4] / "backend" / ".env"
@@ -33,6 +36,15 @@ app = FastAPI(
 # Middlewares
 app.add_middleware(AuthenticationMiddleware)
 
+# CORS (allow frontend dev origin)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Routers
 app.include_router(health.router, prefix="/health", tags=["health"])
 app.include_router(customers.router, prefix="/api/v1/customers", tags=["customers"])
@@ -40,6 +52,8 @@ app.include_router(databases.router, prefix="/api/v1/databases", tags=["database
 app.include_router(queries.router, prefix="/api/v1", tags=["queries"])
 app.include_router(queries.jobs_router, prefix="/api/v1", tags=["jobs"])
 app.include_router(events_routes.router, prefix="/api/v1", tags=["events"])
+app.include_router(auth_routes.router, prefix="/api/v1", tags=["auth"])
+app.include_router(analytics_routes.router, prefix="/api/v1", tags=["analytics"])
 
 
 @app.get("/")

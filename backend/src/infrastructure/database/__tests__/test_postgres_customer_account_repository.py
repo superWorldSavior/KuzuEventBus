@@ -30,12 +30,15 @@ def repository() -> PostgresCustomerAccountRepository:
 
 @pytest.fixture
 def sample_account() -> CustomerAccount:
-    return CustomerAccount(
+    account = CustomerAccount(
         id=EntityId(uuid.uuid4()),
         name=TenantName(f"tenant-{uuid.uuid4().hex[:8]}"),
         email=EmailAddress(f"admin-{uuid.uuid4().hex[:8]}@example.com"),
         status=CustomerAccountStatus.ACTIVE,
     )
+    # Add password_hash for DB constraint
+    setattr(account, "password_hash", "test_salt:test_hash")
+    return account
 
 
 @pytest.mark.asyncio

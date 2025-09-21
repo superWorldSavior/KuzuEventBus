@@ -8,6 +8,7 @@ application layer code.
 from __future__ import annotations
 
 import secrets
+import hashlib
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -70,3 +71,19 @@ class ApiKeyAuthenticationService(AuthenticationService):
             "key_name": rec["key_name"],
             "active": True,
         }
+
+    async def hash_password(self, password: str) -> str:
+        """Hash a password using SHA-256 with salt (MVP implementation)."""
+        # MVP: Simple hashing. Production should use bcrypt/argon2
+        salt = secrets.token_hex(16)
+        hashed = hashlib.sha256((password + salt).encode()).hexdigest()
+        return f"{salt}:{hashed}"
+
+    async def verify_password(self, password: str, password_hash: str) -> bool:
+        """Verify a password against its hash."""
+        try:
+            salt, hashed = password_hash.split(":", 1)
+            expected = hashlib.sha256((password + salt).encode()).hexdigest()
+            return expected == hashed
+        except ValueError:
+            return False

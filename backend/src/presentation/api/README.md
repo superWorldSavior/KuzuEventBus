@@ -17,14 +17,6 @@ L’API est entièrement documentée via OpenAPI. Utilisez les pages interactive
 - Les descriptions, schémas de requêtes/réponses et codes d’erreur sont maintenus directement dans les décorateurs FastAPI (summary/description/responses).
 - Pour une vue d’ensemble (Quickstart & endpoints), voir le `README.md` racine et `backend/README.md`.
 
-## 📚 Query Catalog (Popular & Favorites)
-
-Routes sous `/api/v1/databases/{database_id}`:
-
-- `GET  /queries/popular` → liste les requêtes les plus utilisées (hors favoris)
-- `GET  /queries/favorites` → liste les requêtes favorites (max 10)
-- `POST /queries/favorites` → ajoute un favori, body `{ "query": "MATCH (n) RETURN n" }`
-- `DELETE /queries/favorites/{query_hash}` → supprime un favori
 
 Exemple rapide (avec Authorization Bearer):
 

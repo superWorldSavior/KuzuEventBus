@@ -133,3 +133,6 @@ backups/
 
 # Redis dumps
 dump.rdb
+
+#sql tests
+test.session.sql

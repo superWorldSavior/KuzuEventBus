@@ -29,8 +29,9 @@ def _register_customer(client: TestClient):
         "tenant_name": f"tenant-{uuid.uuid4().hex[:6]}",
         "organization_name": "TestOrg",
         "admin_email": f"admin-{uuid.uuid4().hex[:6]}@example.com",
+        "password": "test-password-123",
     }
-    resp = client.post("/api/v1/customers/register", json=registration_data)
+    resp = client.post("/api/v1/auth/register", json=registration_data)
     assert resp.status_code == 200, resp.text
     data = resp.json()
     return data["customer_id"], data["api_key"]

@@ -28,6 +28,10 @@ from src.application.usecases.revoke_customer_api_key import (
     RevokeCustomerApiKeyUseCase,
     RevokeCustomerApiKeyRequest,
 )
+from src.application.usecases.get_customer_details import (
+    GetCustomerDetailsUseCase,
+    GetCustomerDetailsRequest,
+)
 
 router = APIRouter()
 
@@ -55,44 +59,40 @@ def get_revoke_key_uc() -> RevokeCustomerApiKeyUseCase:
     )
 
 
-@router.post(
-    "/register",
-    response_model=CustomerRegistrationResponse,
-    summary="Enregistrer un client et obtenir une API key",
+def get_details_uc() -> GetCustomerDetailsUseCase:
+    return GetCustomerDetailsUseCase(
+        account_repository=customer_repository(),
+        cache_service=cache_service(),
+    )
+
+
+# NOTE: Register endpoint moved to /api/v1/auth/register for better organization
+
+
+@router.get(
+    "/{customer_id}",
+    summary="Obtenir les détails d'un client",
     description=(
-        "Crée un compte client (tenant + organisation) et retourne une clé API initiale.\n\n"
-        "Cet endpoint est public (pas d'auth requise)."
+        "Retourne les informations essentielles du compte client pour valider la session côté frontend."
     ),
     responses={
-        200: {"description": "Client enregistré, API key émise"},
-        400: {"description": "Requête invalide"},
+        200: {"description": "Détails du client"},
+        404: {"description": "Client introuvable"},
     },
 )
-async def register_customer(
-    request: CustomerRegistrationRequest,
-    uc: RegisterCustomerUseCase = Depends(get_register_uc),
-) -> CustomerRegistrationResponse:
-    """Register a new customer account."""
+async def get_customer_details(
+    customer_id: UUID,
+    uc: GetCustomerDetailsUseCase = Depends(get_details_uc),
+):
+    """Get minimal customer details for session validation."""
     try:
-        # Execute use case
-        result = await uc.execute(
-            RegisterCustomerRequest(
-                tenant_name=request.tenant_name,
-                organization_name=request.organization_name,
-                admin_email=request.admin_email,
-            )
-        )
-
-        return CustomerRegistrationResponse(
-            customer_id=str(result.customer_id),
-            tenant_name=result.tenant_name,
-            organization_name=result.organization_name,
-            admin_email=result.admin_email,
-            api_key=result.api_key,
-            subscription_status=result.subscription_status,
-            created_at=result.created_at,
-        )
-    except Exception as e:
+        details = await uc.execute(GetCustomerDetailsRequest(customer_id=customer_id))
+        if not details:
+            raise HTTPException(status_code=404, detail="Customer not found")
+        return details
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e))
 
 

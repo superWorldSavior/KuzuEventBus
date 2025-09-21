@@ -24,6 +24,7 @@ class RegisterCustomerRequest:
     tenant_name: str
     admin_email: str
     organization_name: str
+    password: str
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,11 @@ class RegisterCustomerUseCase:
         if existing:
             raise ValueError(f"Tenant '{req.tenant_name}' already exists")
 
+        # Check if email already used
+        existing_email = await self._account_repository.find_by_email(admin_email_vo.value)
+        if existing_email is not None:
+            raise ValueError("Admin email already in use")
+
         # Create new customer account
         customer_id = EntityId(uuid4())
         account = CustomerAccount(
@@ -69,6 +75,10 @@ class RegisterCustomerUseCase:
             status=CustomerAccountStatus.ACTIVE,
         )
         setattr(account, "organization_name", req.organization_name)
+
+        # Hash password and store
+        password_hash = await self._auth_service.hash_password(req.password)
+        setattr(account, "password_hash", password_hash)
 
         # Generate initial API key and attach to account
         raw_key = await self._auth_service.generate_api_key(

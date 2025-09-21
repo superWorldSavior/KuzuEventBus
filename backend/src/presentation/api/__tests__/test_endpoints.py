@@ -47,9 +47,10 @@ def test_customer_registration():
         "organization_name": "Test Company Inc",
         "admin_email": "admin@testcompany.com",
         # Remove subscription_plan for YAGNI simplicity
+        "password": "test-password-123",
     }
     
-    response = client.post("/api/v1/customers/register", json=registration_data)
+    response = client.post("/api/v1/auth/register", json=registration_data)
     
     # Debug: print response for troubleshooting
     if response.status_code != 200:

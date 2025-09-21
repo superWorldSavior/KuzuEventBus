@@ -26,6 +26,7 @@ class TestCustomerAccountDTOs:
             tenant_name="test-company",
             admin_email="admin@test-company.com",
             organization_name="Test Company Inc",
+            password="test-password-123",
         )
 
         assert request.tenant_name == "test-company"
@@ -39,6 +40,7 @@ class TestCustomerAccountDTOs:
                 tenant_name="invalid--name",  # consecutive hyphens
                 admin_email="admin@test.com",
                 organization_name="Test Co",
+                password="test-password-123",
             )
 
     def test_customer_registration_request_invalid_email(self):
@@ -48,6 +50,7 @@ class TestCustomerAccountDTOs:
                 tenant_name="valid-name",
                 admin_email="invalid-email",  # not a valid email
                 organization_name="Test Co",
+                password="test-password-123",
             )
 
     def test_customer_registration_response(self):

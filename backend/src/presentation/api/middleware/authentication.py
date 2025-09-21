@@ -4,17 +4,19 @@ Authentication middleware for API key validation.
 Validates Bearer tokens against Customer API keys in repository.
 """
 from typing import Optional
+from uuid import UUID
 from fastapi import HTTPException, status
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer
 from fastapi.requests import Request
-from fastapi.responses import Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from jose import JWTError
 
 from src.domain.tenant_management.customer_account import CustomerAccount, CustomerAccountStatus
 from src.presentation.api.context.request_context import RequestContext
 from src.domain.shared.ports.tenant_management import CustomerAccountRepository
 from src.infrastructure.logging.config import auth_logger
+from src.infrastructure.auth.jwt_service import jwt_service
 from src.infrastructure.dependencies import customer_repository
 
 security = HTTPBearer(auto_error=False)
@@ -28,7 +30,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         # Lazily resolve repository to avoid initializing heavy infra at import time
         self._repository: CustomerAccountRepository = customer_repository()
         self.protected_paths = ["/api/v1/databases"]  # Paths that require auth
-        self.public_paths = ["/health", "/api/v1/customers/register", "/docs", "/redoc", "/openapi.json"]
+        self.public_paths = ["/health", "/api/v1/auth/register", "/api/v1/auth/login", "/docs", "/redoc", "/openapi.json"]
 
     async def dispatch(self, request: Request, call_next):
         """Process request and validate authentication if needed."""
@@ -36,6 +38,23 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         # Check if path requires authentication
         if not self._requires_auth(request.url.path):
             return await call_next(request)
+
+        # Special-case: SSE stream can carry a short-lived JWT via query param
+        # EventSource cannot send custom headers, so we support ?token=<jwt>
+        if request.url.path.startswith("/api/v1/events/stream"):
+            token = request.query_params.get("token")
+            if token:
+                try:
+                    claims = jwt_service().verify_sse_token(token)
+                    request.state.tenant_context = RequestContext(
+                        tenant_id=UUID(claims["tenant_id"]),
+                        tenant_name=claims["tenant_name"],
+                        api_key_suffix=str(claims.get("sub", ""))[-6:] or "jwt",
+                        permissions=["database:read", "database:write", "query:execute"],
+                    )
+                    return await call_next(request)
+                except JWTError:
+                    return JSONResponse(status_code=status.HTTP_401_UNAUTHORIZED, content={"detail": "Invalid SSE token"})
 
         # Extract and validate API key
         try:
@@ -87,7 +106,7 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
     async def _authenticate_request(self, request: Request) -> Optional[CustomerAccount]:
         """Extract and validate API key from request."""
         
-        # Extract Authorization header
+        # Extract API key from headers (Bearer required)
         auth_header = request.headers.get("Authorization")
         if not auth_header:
             raise HTTPException(
@@ -95,16 +114,15 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
                 detail="Authorization header required"
             )
 
-        # Parse Bearer token
         if not auth_header.startswith("Bearer "):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authorization header format"
             )
 
-        # Extract API key
-        api_key = auth_header[7:]  # Remove "Bearer " prefix
-        if not api_key.strip():
+        api_key: Optional[str] = auth_header[7:]
+
+        if not api_key or not api_key.strip():
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="API key required"

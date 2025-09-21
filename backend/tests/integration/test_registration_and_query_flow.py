@@ -18,9 +18,10 @@ async def test_registration_then_authenticated_query_flow():
         "tenant_name": f"tenant-{uuid4().hex[:6]}",
         "admin_email": "flow@example.com",
         "organization_name": "Flow Corp",
+        "password": "test-password-123",
     }
     async with httpx.AsyncClient(app=app, base_url="http://test") as async_client:
-        reg_response = await async_client.post("/api/v1/customers/register", json=reg_payload)
+        reg_response = await async_client.post("/api/v1/auth/register", json=reg_payload)
         assert reg_response.status_code == 200, reg_response.text
         reg_body = reg_response.json()
         api_key = reg_body["api_key"]

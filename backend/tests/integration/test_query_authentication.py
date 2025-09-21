@@ -30,6 +30,8 @@ def _provision_customer():
         status=CustomerAccountStatus.ACTIVE,
         api_key=ApiKey.generate(),
     )
+    # Add password_hash for DB constraint
+    setattr(account, "password_hash", "test_salt:test_hash")
     asyncio.run(repo.save(account))
     return account
 

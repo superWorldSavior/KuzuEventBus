@@ -7,6 +7,7 @@ Services d'authentification et d'autorisation pour sécuriser les endpoints et c
 - **Adapters actifs**
   - `AllowAllAuthorizationService` (MVP) — autorise toutes les actions; sert de garde-fou minimal pour avancer vite.
   - `ApiKeyAuthenticationService` (in-memory) — émet et valide des clés API lors de l'enregistrement client.
+  - `JwtService` — génère des tokens JWT courts-vécus pour l'authentification SSE sécurisée.
 
 - **Ports implémentés**
   - `AuthenticationService` — émission/validation/révocation de clés API.
@@ -15,9 +16,12 @@ Services d'authentification et d'autorisation pour sécuriser les endpoints et c
 - **Dependency Injection** (voir `src/infrastructure/dependencies.py`)
   - `auth_service()` → `ApiKeyAuthenticationService`
   - `authorization_service()` → `AllowAllAuthorizationService`
+  - `jwt_service()` → `JwtService`
 
 - **Variables d'environnement**
-  - Aucune requise au MVP (clé API en mémoire). La persistance Postgres des API keys viendra ensuite.
+  - Aucune requise au MVP pour les API keys (stockage en mémoire). 
+  - JWT: `JWT_SECRET` (défaut: "dev-secret-change-me"), `JWT_TTL_SECONDS` (défaut: 300s)
+  - La persistance Postgres des API keys viendra ensuite.
 
 ## 🔎 Contexte fonctionnel
 

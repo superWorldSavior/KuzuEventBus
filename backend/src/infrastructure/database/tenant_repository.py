@@ -90,9 +90,9 @@ class PostgresCustomerAccountRepository(CustomerAccountRepository):
         models = await self._run(self._select_many, select(CustomerAccountModel))
         return [self._model_to_domain(model) for model in models]
 
-    async def _run(self, func: Callable[..., T], *args) -> T:
+    async def _run(self, operation: Callable[..., T], *args) -> T:
         try:
-            return await asyncio.to_thread(func, *args)
+            return await asyncio.to_thread(operation, *args)
         except SQLAlchemyError as exc:  # noqa: BLE001
             raise RuntimeError(f"Database operation failed: {exc}") from exc
 
@@ -151,6 +151,7 @@ class PostgresCustomerAccountRepository(CustomerAccountRepository):
         model.updated_at = account.updated_at
         model.last_login = account.last_login
         model.organization_name = getattr(account, "organization_name", None)
+        model.password_hash = getattr(account, "password_hash", None)
 
     def _model_to_domain(self, model: Optional[CustomerAccountModel]) -> Optional[CustomerAccount]:
         if model is None:
@@ -184,6 +185,10 @@ class PostgresCustomerAccountRepository(CustomerAccountRepository):
 
         if model.organization_name:
             setattr(account, "organization_name", model.organization_name)
+
+        # Propagate password_hash back to domain entity to avoid overwriting with NULL on subsequent saves
+        if getattr(model, "password_hash", None):
+            setattr(account, "password_hash", model.password_hash)
 
         account.mark_events_as_committed()
         return account

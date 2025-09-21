@@ -1,6 +1,6 @@
 """Postgres implementation of DatabaseMetadataRepository.
 
-Creates a simple table `kuzu_databases` if it does not exist.
+Schema is managed by SQLAlchemy models (see `src/infrastructure/database/models.py`).
 """
 from __future__ import annotations
 
@@ -16,27 +16,10 @@ from src.infrastructure.database.session import SessionFactory
 from src.infrastructure.logging.config import infra_logger
 
 
-_DDL = """
-CREATE TABLE IF NOT EXISTS kuzu_databases (
-    id UUID PRIMARY KEY,
-    tenant_id UUID NOT NULL,
-    name TEXT NOT NULL,
-    filesystem_path TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    UNIQUE (tenant_id, name)
-);
-"""
-
-
 class PostgresDatabaseMetadataRepository(DatabaseMetadataRepository):
     def __init__(self) -> None:
-        self._ensure_schema()
-
-    def _ensure_schema(self) -> None:
-        with SessionFactory() as session:
-            session.execute(text(_DDL))
-            session.commit()
-        infra_logger.info("Ensured kuzu_databases table exists")
+        # Schema creation is handled by SQLAlchemy models during engine init
+        infra_logger.info("Using ORM models for kuzu_databases schema")
 
     async def save(self, meta: DatabaseMetadata) -> UUID:
         with SessionFactory() as session:

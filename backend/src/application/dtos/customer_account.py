@@ -25,6 +25,9 @@ class CustomerRegistrationRequest(BaseModel):
     organization_name: str = Field(
         ..., min_length=2, max_length=100, description="Organization display name"
     )
+    password: str = Field(
+        ..., min_length=8, max_length=128, description="User password"
+    )
     subscription_plan: SubscriptionPlan = Field(
         default=SubscriptionPlan.BASIC, description="Subscription plan type"
     )

@@ -41,10 +41,11 @@ class TestAPIAuthentication:
             "tenant_name": f"new-tenant-{uuid.uuid4().hex[:6]}",
             "organization_name": "New Org",
             "admin_email": "admin@neworg.com",
+            "password": "test-password-123",
         }
 
         # Act
-        response = client.post("/api/v1/customers/register", json=registration_data)
+        response = client.post("/api/v1/auth/register", json=registration_data)
 
         # Assert
         assert response.status_code == 200

@@ -35,3 +35,12 @@ def session_scope() -> Iterator[Session]:
         raise
     finally:
         session.close()
+
+# Create database schema from ORM models (single source of truth)
+try:
+    # Import here to avoid circular import issues
+    from src.infrastructure.database.models import Base
+
+    Base.metadata.create_all(_engine)
+except Exception as _e:  # noqa: BLE001 - best effort creation, infra will log failures elsewhere
+    pass

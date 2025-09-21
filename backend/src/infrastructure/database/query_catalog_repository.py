@@ -19,44 +19,10 @@ from src.infrastructure.database.session import SessionFactory
 from src.infrastructure.logging.config import infra_logger
 
 
-_USAGE_DDL = """
-CREATE TABLE IF NOT EXISTS query_usage (
-    tenant_id UUID NOT NULL,
-    database_id UUID NOT NULL,
-    query_hash TEXT NOT NULL,
-    query_text TEXT NOT NULL,
-    usage_count INT NOT NULL DEFAULT 0,
-    last_used_at TIMESTAMP NOT NULL,
-    PRIMARY KEY (tenant_id, database_id, query_hash)
-);
-CREATE INDEX IF NOT EXISTS idx_query_usage_rank
-    ON query_usage (tenant_id, database_id, usage_count DESC, last_used_at DESC);
-"""
-
-_FAVORITES_DDL = """
-CREATE TABLE IF NOT EXISTS query_favorites (
-    tenant_id UUID NOT NULL,
-    database_id UUID NOT NULL,
-    query_hash TEXT NOT NULL,
-    query_text TEXT NOT NULL,
-    created_at TIMESTAMP NOT NULL,
-    PRIMARY KEY (tenant_id, database_id, query_hash)
-);
-CREATE INDEX IF NOT EXISTS idx_query_favorites_list
-    ON query_favorites (tenant_id, database_id, created_at DESC);
-"""
-
-
 class PostgresQueryCatalogRepository(QueryCatalogRepository):
     def __init__(self) -> None:
-        self._ensure_schema()
-
-    def _ensure_schema(self) -> None:
-        with SessionFactory() as session:
-            session.execute(text(_USAGE_DDL))
-            session.execute(text(_FAVORITES_DDL))
-            session.commit()
-        infra_logger.info("Ensured query catalog tables exist")
+        # Schema creation handled by SQLAlchemy models at engine init
+        infra_logger.info("Using ORM models for query catalog schema")
 
     async def increment_usage(
         self,

@@ -48,12 +48,14 @@ async def test_register_customer_success(ports):
     )
     ports["accounts"].find_by_tenant_name.return_value = None
     ports["auth"].generate_api_key.return_value = "kb_" + "a" * 40
+    ports["auth"].hash_password.return_value = "hashed_password_123"
 
     res = await uc.execute(
         RegisterCustomerRequest(
             tenant_name="acme",
             admin_email="admin@acme.com",
             organization_name="Acme Inc",
+            password="test-password-123",
         )
     )
 

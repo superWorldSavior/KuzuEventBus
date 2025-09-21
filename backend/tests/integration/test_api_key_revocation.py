@@ -14,11 +14,12 @@ def _set_env(tmp_path, monkeypatch):
 
 def _register(client: TestClient):
     payload = {
-        "tenant_name": f"tenant-{uuid4().hex[:6]}",
+        "tenant_name": f"revoke-{uuid4().hex[:6]}",
         "admin_email": "revoke@example.com",
         "organization_name": "Revoke Corp",
+        "password": "test-password-123",
     }
-    r = client.post("/api/v1/customers/register", json=payload)
+    r = client.post("/api/v1/auth/register", json=payload)
     assert r.status_code == 200, r.text
     return r.json()
 

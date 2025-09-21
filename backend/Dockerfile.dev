@@ -41,8 +41,12 @@ RUN pip install -e .[dev]
 ENV PYTHONPATH=/app
 
 # Create non-root user for security (optional, but good practice)
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-RUN chown -R appuser:appuser /app
+# Use UID/GID 1000 to match common host user (ubuntu/developer)
+RUN groupadd -r -g 1000 appuser && useradd -r -u 1000 -g appuser appuser
+
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chown -R appuser:appuser /app
+
 USER appuser
 
 # Expose port

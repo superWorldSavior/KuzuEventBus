@@ -21,7 +21,8 @@ def setup_logging(environment: str = "development") -> None:
         environment = "testing"
 
     # Resolve backend/ path for file sinks (only dev/prod)
-    backend_dir = Path(__file__).resolve().parents[4]
+    # From config.py -> logging -> infrastructure -> src -> backend/
+    backend_dir = Path(__file__).resolve().parents[3]
     logs_dir = backend_dir / "logs"
     
     if environment == "development":

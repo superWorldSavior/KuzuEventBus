@@ -8,8 +8,8 @@ A modern multi-tenant **Kuzu graph database service** with hot reload developmen
 
 - Option A — Docker complet (recommandé)
   ```bash
-  make compose-up                 # Postgres, Redis, MinIO
-  docker-compose up -d api worker # lance l'API et le worker en conteneurs
+  make compose-up                  # Postgres, Redis, MinIO
+  docker compose up -d api worker  # lance l'API et le worker en conteneurs
   ```
 
 - Option B — Dev local (hot-reload)
@@ -388,12 +388,12 @@ make dev
 make dev-logs
 
 # View logs for specific service
-docker-compose -f docker-compose.dev.yml logs -f frontend
-docker-compose -f docker-compose.dev.yml logs -f api
-docker-compose -f docker-compose.dev.yml logs -f worker
+docker compose -f docker-compose.dev.yml logs -f frontend
+docker compose -f docker-compose.dev.yml logs -f api
+docker compose -f docker-compose.dev.yml logs -f worker
 
-# Restart specific service (maintains hot reload)  
-docker-compose -f docker-compose.dev.yml restart api
+# Restart specific service (maintains hot reload)
+docker compose -f docker-compose.dev.yml restart api
 
 # Stop all development services
 make dev-stop

@@ -144,7 +144,7 @@ make compose-down          # arrêter/supprimer les conteneurs
 
 ### Persistence (nouvelle implémentation)
 - Le service utilise désormais PostgreSQL **obligatoirement** (`DATABASE_URL` ou `postgres://kuzu_user:...`).
-- Démarrez les conteneurs `postgres`/`redis` via `docker-compose up -d` avant `uvicorn` ou les tests API pour conserver tenants et clés API.
+- Démarrez les conteneurs `postgres`/`redis` via `docker compose up -d` (ou mieux via `make compose-up`) avant `uvicorn` ou les tests API pour conserver tenants et clés API.
 
 ## 📘 API actuelle (MVP)
 

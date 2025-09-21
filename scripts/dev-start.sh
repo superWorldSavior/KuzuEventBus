@@ -24,28 +24,32 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if Docker and Docker Compose are installed
+# Check if Docker is installed
 if ! command -v docker &> /dev/null; then
     print_error "Docker is not installed or not in PATH"
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    print_error "Docker Compose is not installed or not in PATH"
+# Enforce Docker Compose v2
+if ! docker compose version >/dev/null 2>&1; then
+    print_error "Docker Compose v2 is not installed. Please install it and retry:" 
+    echo "  sudo apt-get update"
+    echo "  sudo apt-get install docker-compose-plugin"
     exit 1
 fi
+DOCKER_COMPOSE="docker compose"
 
 # Stop any existing containers
 print_status "Stopping existing containers..."
-docker-compose -f docker-compose.dev.yml down --remove-orphans || true
+${DOCKER_COMPOSE} -f docker-compose.dev.yml down --remove-orphans || true
 
 # Build development images
 print_status "Building development images..."
-docker-compose -f docker-compose.dev.yml build --no-cache
+${DOCKER_COMPOSE} -f docker-compose.dev.yml build --no-cache
 
 # Start the development environment
 print_status "Starting development environment..."
-docker-compose -f docker-compose.dev.yml up -d
+${DOCKER_COMPOSE} -f docker-compose.dev.yml up -d
 
 # Wait for services to be healthy
 print_status "Waiting for services to be ready..."
@@ -55,14 +59,14 @@ sleep 10
 print_status "Checking service health..."
 
 # Check PostgreSQL
-if docker-compose -f docker-compose.dev.yml exec -T postgres pg_isready -U kuzu_user -d kuzu_eventbus &> /dev/null; then
+if ${DOCKER_COMPOSE} -f docker-compose.dev.yml exec -T postgres pg_isready -U kuzu_user -d kuzu_eventbus &> /dev/null; then
     print_status "✅ PostgreSQL is ready"
 else
     print_warning "⚠️  PostgreSQL is not ready yet"
 fi
 
 # Check Redis
-if docker-compose -f docker-compose.dev.yml exec -T redis redis-cli ping | grep -q PONG; then
+if ${DOCKER_COMPOSE} -f docker-compose.dev.yml exec -T redis redis-cli ping | grep -q PONG; then
     print_status "✅ Redis is ready"
 else
     print_warning "⚠️  Redis is not ready yet"
@@ -107,10 +111,10 @@ echo "  ✅ Frontend React/TS files reload automatically with HMR"
 echo "  ✅ Worker processes restart on code changes"
 echo ""
 echo -e "${YELLOW}📝 Development Tips:${NC}"
-echo "  • Backend logs:    docker-compose -f docker-compose.dev.yml logs -f api"
-echo "  • Frontend logs:   docker-compose -f docker-compose.dev.yml logs -f frontend"
-echo "  • Worker logs:     docker-compose -f docker-compose.dev.yml logs -f worker"
-echo "  • All logs:        docker-compose -f docker-compose.dev.yml logs -f"
-echo "  • Stop all:        docker-compose -f docker-compose.dev.yml down"
+echo "  • Backend logs:    ${DOCKER_COMPOSE} -f docker-compose.dev.yml logs -f api"
+echo "  • Frontend logs:   ${DOCKER_COMPOSE} -f docker-compose.dev.yml logs -f frontend"
+echo "  • Worker logs:     ${DOCKER_COMPOSE} -f docker-compose.dev.yml logs -f worker"
+echo "  • All logs:        ${DOCKER_COMPOSE} -f docker-compose.dev.yml logs -f"
+echo "  • Stop all:        ${DOCKER_COMPOSE} -f docker-compose.dev.yml down"
 echo ""
 echo -e "${GREEN}🚀 Happy coding! Your changes will be reflected immediately.${NC}"

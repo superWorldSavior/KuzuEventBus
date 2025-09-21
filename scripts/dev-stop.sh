@@ -19,6 +19,15 @@ print_warning() {
     echo -e "${YELLOW}[WARN]${NC} $1"
 }
 
+# Enforce Docker Compose v2
+if ! docker compose version >/dev/null 2>&1; then
+    print_warning "Docker Compose v2 is not installed. Please install it and retry:"
+    echo "  sudo apt-get update"
+    echo "  sudo apt-get install docker-compose-plugin"
+    exit 1
+fi
+DOCKER_COMPOSE="docker compose"
+
 # Check if docker-compose.dev.yml exists
 if [ ! -f "docker-compose.dev.yml" ]; then
     print_warning "docker-compose.dev.yml not found. Make sure you're in the project root directory."
@@ -27,7 +36,7 @@ fi
 
 # Stop and remove containers
 print_status "Stopping all development containers..."
-docker-compose -f docker-compose.dev.yml down --remove-orphans
+${DOCKER_COMPOSE} -f docker-compose.dev.yml down --remove-orphans
 
 # Clean up any dangling containers from the dev network
 print_status "Cleaning up development network..."

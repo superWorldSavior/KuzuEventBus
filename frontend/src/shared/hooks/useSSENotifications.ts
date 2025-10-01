@@ -4,6 +4,27 @@ import { useNotificationStore } from '@/app/stores/notifications';
 import { useQueryClient } from '@tanstack/react-query';
 import { queryKeys } from '@/shared/hooks/useApi';
 
+// Simple in-memory de-duplication of SSE events using transaction_id + event_type
+const seenEvents: Map<string, number> = new Map();
+function markAndCheckSeenEvent(transactionId: string, eventType: string): boolean {
+  const key = `${transactionId}:${eventType}`;
+  const now = Date.now();
+  const ts = seenEvents.get(key);
+  if (ts && now - ts < 60_000) {
+    // seen in the last 60s, treat as duplicate
+    return true;
+  }
+  seenEvents.set(key, now);
+  // basic pruning to avoid unbounded growth
+  if (seenEvents.size > 5000) {
+    const cutoff = now - 60_000;
+    for (const [k, val] of seenEvents) {
+      if (val < cutoff) seenEvents.delete(k);
+    }
+  }
+  return false;
+}
+
 /**
  * Hook for integrating SSE events with the notification system.
  * Automatically creates notifications based on backend events.
@@ -31,14 +52,29 @@ export function useSSENotifications() {
   }>({
     url: '/api/v1/events/stream',
     onMessage: useCallback((event: MessageEvent) => {
+      console.log('🔥 [SSE] Raw message received:', event.data);
       try {
         const data = JSON.parse(event.data);
+        
+        // De-dup using transaction_id + event_type
+        if (data.transaction_id && data.event_type) {
+          if (markAndCheckSeenEvent(data.transaction_id, data.event_type)) {
+            // Duplicate event, ignore silently
+            console.log('🔇 [SSE] Duplicate ignored:', data.transaction_id, data.event_type);
+            return;
+          }
+        }
+        
+        console.log('🔥 [SSE] Parsed data:', data);
         
         // Dispatch a DOM event for lightweight cross-component communication
         // Components (e.g., QueryExecutor) can subscribe without opening SSE
         const type = data?.event_type as string | undefined;
         if (type) {
+          console.log('🔥 [SSE] Dispatching window event:', type, 'tx_id:', data.transaction_id);
           window.dispatchEvent(new CustomEvent('sse:event', { detail: data }));
+        } else {
+          console.warn('⚠️ [SSE] No event_type in data:', data);
         }
         
         // Convert SSE events to user notifications

@@ -12,9 +12,12 @@ export const databaseApi = {
       const response = await apiClient.get("/api/v1/databases");
       markEndpointWorking(endpoint);
       
+      // Backend returns {databases: [...], total_count, total_size_bytes}
+      const databaseList = response.data.databases || response.data;
+      
       // Transform API response to match Database entity
-      return response.data.map((db: any) => ({
-        id: db.database_id,
+      return databaseList.map((db: any) => ({
+        id: db.id,
         name: db.name,
         description: db.description,
         tenantId: db.tenant_id || 'unknown',
@@ -38,7 +41,7 @@ export const databaseApi = {
       
       const db = response.data;
       return {
-        id: db.database_id,
+        id: db.id,
         name: db.name,
         description: db.description,
         tenantId: db.tenant_id || 'unknown',
@@ -62,7 +65,7 @@ export const databaseApi = {
       
       const db = response.data;
       return {
-        id: db.database_id,
+        id: db.id,
         name: db.name,
         description: db.description,
         tenantId: db.tenant_id,
@@ -86,7 +89,7 @@ export const databaseApi = {
       
       const db = response.data;
       return {
-        id: db.database_id,
+        id: db.id,
         name: db.name,
         description: db.description,
         tenantId: db.tenant_id,
@@ -168,7 +171,7 @@ export const databaseApi = {
       
       const stats = response.data;
       return {
-        id: stats.database_id,
+        id: stats.id,
         name: stats.name,
         sizeBytes: stats.size_bytes || 0,
         tableCount: stats.table_count || 0,

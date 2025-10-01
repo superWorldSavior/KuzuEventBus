@@ -21,7 +21,7 @@ export function UserMenu({ className }: UserMenuProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, handleLogout } = useAuth();
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -74,7 +74,7 @@ export function UserMenu({ className }: UserMenuProps) {
         setTheme(theme === "light" ? "dark" : "light");
         break;
       case "logout":
-        logout();
+        handleLogout();
         break;
       default:
         break;

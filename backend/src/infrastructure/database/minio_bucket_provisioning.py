@@ -33,7 +33,7 @@ class MinioBucketProvisioningAdapter(BucketProvisioningService):
         endpoint = _get_env("MINIO_ENDPOINT", "localhost:9000")
         access_key = _get_env("MINIO_ACCESS_KEY", "minioadmin")
         # Default secret aligned with our docker-compose configuration
-        secret_key = _get_env("MINIO_SECRET_KEY", "minioadmin123")
+        secret_key = _get_env("MINIO_SECRET_KEY", "minioadmin")
         self._physical_bucket = os.getenv("MINIO_BUCKET", "kuzu-databases")
         secure = os.getenv("MINIO_SECURE", "false").lower() in ("1", "true", "yes")
         self._client = Minio(endpoint, access_key=access_key, secret_key=secret_key, secure=secure)

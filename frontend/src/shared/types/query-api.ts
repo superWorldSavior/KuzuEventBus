@@ -94,13 +94,6 @@ export interface QueryValidationResponse {
   estimated_complexity: "low" | "medium" | "high";
 }
 
-export interface RealTimeUpdateEvent {
-  type: "query_status" | "query_result" | "query_error";
-  transaction_id: string;
-  data: Record<string, unknown>;
-  timestamp: string;
-}
-
 export interface NotificationMessage {
   id: string;
   type: "info" | "success" | "warning" | "error";

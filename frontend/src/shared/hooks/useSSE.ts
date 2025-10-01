@@ -23,13 +23,22 @@ interface SSEState<T = any> {
   reconnectCount: number;
 }
 
+// Module-scoped caches to avoid duplicate token minting across multiple hook instances
+let GLOBAL_SSE_TOKEN: string | null = null;
+let GLOBAL_SSE_TOKEN_EXP_MS = 0;
+let GLOBAL_SSE_MINT_PROMISE: Promise<string> | null = null;
+const GLOBAL_SOURCES: Record<string, { es: EventSource; refCount: number }> = {};
+
 export function useSSE<T = any>(options: SSEOptions) {
   const { token } = useAuth();
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const reconnectCountRef = useRef(0);
+  const currentUrlKeyRef = useRef<string | null>(null);
+  const handlersRef = useRef<{ open?: (e: Event)=>void; message?: (e: MessageEvent)=>void; error?: (e: Event)=>void }>({});
+  const isMountedRef = useRef(true);
 
-  const [state, setState] = useState<SSEState<T>>({
+  const [state, _setState] = useState<SSEState<T>>({
     data: null,
     error: null,
     readyState: EventSource.CLOSED,
@@ -37,6 +46,12 @@ export function useSSE<T = any>(options: SSEOptions) {
     isConnected: false,
     reconnectCount: 0,
   });
+
+  // Safe setState that ignores updates after unmount
+  const setState = useCallback((updater: (prev: SSEState<T>) => SSEState<T>) => {
+    if (!isMountedRef.current) return;
+    _setState(updater);
+  }, []);
 
   const {
     url,
@@ -48,20 +63,31 @@ export function useSSE<T = any>(options: SSEOptions) {
     onMessage,
   } = options;
 
-  // Cache a short-lived SSE JWT (minted server-side)
-  const sseTokenRef = useRef<string | null>(null);
-  const sseTokenExpRef = useRef<number>(0);
-
+  // Cache a short-lived SSE JWT (minted server-side) globally to prevent spamming
   const getValidSseToken = useCallback(async (): Promise<string> => {
     const now = Date.now();
-    if (!sseTokenRef.current || now >= (sseTokenExpRef.current - 60_000)) {
-      // Mint a new SSE token (requires REST auth to be valid)
-      const resp = await apiClient.post('/api/v1/auth/sse-token');
-      const { token: sseToken, expires_in } = resp.data as { token: string; expires_in: number };
-      sseTokenRef.current = sseToken;
-      sseTokenExpRef.current = now + expires_in * 1000;
+    // Still valid? reuse
+    if (GLOBAL_SSE_TOKEN && now < (GLOBAL_SSE_TOKEN_EXP_MS - 60_000)) {
+      return GLOBAL_SSE_TOKEN;
     }
-    return sseTokenRef.current!;
+
+    // If a mint is already in-flight, await it
+    if (GLOBAL_SSE_MINT_PROMISE) return GLOBAL_SSE_MINT_PROMISE;
+
+    GLOBAL_SSE_MINT_PROMISE = (async () => {
+      try {
+        const resp = await apiClient.post('/api/v1/auth/sse-token');
+        const { token: sseToken, expires_in } = resp.data as { token: string; expires_in: number };
+        GLOBAL_SSE_TOKEN = sseToken;
+        GLOBAL_SSE_TOKEN_EXP_MS = Date.now() + expires_in * 1000;
+        return sseToken;
+      } finally {
+        // release lock slightly later to prevent stampede
+        setTimeout(() => { GLOBAL_SSE_MINT_PROMISE = null; }, 50);
+      }
+    })();
+
+    return GLOBAL_SSE_MINT_PROMISE;
   }, []);
 
   const connect = useCallback(async () => {
@@ -79,12 +105,21 @@ export function useSSE<T = any>(options: SSEOptions) {
       baseUrl.searchParams.set('token', sseJwt);
       const fullUrl = baseUrl.toString();
 
-      const eventSource = new EventSource(fullUrl, {
-        withCredentials,
-      });
+      // Reuse existing global EventSource for this URL if present
+      const urlKey = fullUrl.split('?')[0];
+      let source = GLOBAL_SOURCES[urlKey];
+      if (!source || source.es.readyState === EventSource.CLOSED) {
+        source = GLOBAL_SOURCES[urlKey] = {
+          es: new EventSource(fullUrl, { withCredentials }),
+          refCount: 0,
+        };
+      }
 
-      eventSource.onopen = (event) => {
-        console.log('SSE connection opened:', url);
+      // Per-instance handlers via addEventListener
+      const es = source.es;
+
+      const handleOpen = (event: Event) => {
+        console.log('SSE connection opened:', urlKey);
         reconnectCountRef.current = 0;
         setState(prev => ({
           ...prev,
@@ -97,56 +132,53 @@ export function useSSE<T = any>(options: SSEOptions) {
         onOpen?.(event);
       };
 
-      eventSource.onmessage = (event) => {
+      const handleMessage = (event: MessageEvent) => {
         try {
           const data = JSON.parse(event.data);
           setState(prev => ({ ...prev, data }));
-          onMessage?.(event);
-        } catch (parseError) {
-          console.warn('Failed to parse SSE message:', event.data);
-          setState(prev => ({ ...prev, data: event.data }));
-          onMessage?.(event);
+        } catch {
+          setState(prev => ({ ...prev, data: event.data as any }));
         }
+        onMessage?.(event);
       };
 
-      eventSource.onerror = (event) => {
-        console.error('SSE connection error:', event);
+      const handleError = (event: Event) => {
+        // Avoid tight loops: incremental backoff based on reconnectCount
         const error = new Error('SSE connection failed');
-        
         setState(prev => ({
           ...prev,
-          readyState: eventSource.readyState,
+          readyState: es.readyState,
           isConnecting: false,
           isConnected: false,
           error,
         }));
-
         onError?.(event);
 
-        // Attempt reconnection if not manually closed
-        if (eventSource.readyState === EventSource.CLOSED && 
-            reconnectCountRef.current < maxReconnectAttempts) {
+        if (es.readyState === EventSource.CLOSED && reconnectCountRef.current < maxReconnectAttempts) {
           reconnectCountRef.current++;
-          
-          console.log(`Attempting to reconnect SSE (${reconnectCountRef.current}/${maxReconnectAttempts}) in ${reconnectInterval}ms`);
-          
+          const backoff = Math.min(30000, reconnectInterval * reconnectCountRef.current);
           reconnectTimeoutRef.current = setTimeout(() => {
-            setState(prev => ({ 
-              ...prev, 
-              reconnectCount: reconnectCountRef.current 
-            }));
+            setState(prev => ({ ...prev, reconnectCount: reconnectCountRef.current }));
             connect();
-          }, reconnectInterval);
-        } else if (reconnectCountRef.current >= maxReconnectAttempts) {
-          console.error('Max SSE reconnection attempts reached');
-          setState(prev => ({
-            ...prev,
-            error: new Error('Max reconnection attempts reached'),
-          }));
+          }, backoff);
         }
       };
 
-      eventSourceRef.current = eventSource;
+      es.addEventListener('open', handleOpen);
+      es.addEventListener('message', handleMessage);
+      // Also subscribe to named events emitted by the server (backend contract)
+      const namedEvents = ['completed', 'failed', 'timeout'];
+      namedEvents.forEach((evt) => es.addEventListener(evt, handleMessage as any));
+      es.addEventListener('error', handleError);
+
+      source.refCount += 1;
+      eventSourceRef.current = es;
+      currentUrlKeyRef.current = urlKey;
+      handlersRef.current = { open: handleOpen, message: handleMessage, error: handleError };
+      // Keep the list of named events on the ref for cleanup
+      (handlersRef.current as any).namedEvents = ['completed', 'failed', 'timeout'];
+
+      // No return here; cleanup is centrally handled in disconnect()
 
     } catch (error) {
       console.error('Failed to create SSE connection:', error);
@@ -165,9 +197,33 @@ export function useSSE<T = any>(options: SSEOptions) {
       reconnectTimeoutRef.current = null;
     }
 
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
+    const es = eventSourceRef.current;
+    const urlKey = currentUrlKeyRef.current;
+    const handlers = handlersRef.current;
+    if (es && urlKey) {
+      try {
+        if (handlers.open) es.removeEventListener('open', handlers.open);
+        if (handlers.message) es.removeEventListener('message', handlers.message as any);
+        // Remove named event listeners if any were attached
+        const named = (handlers as any).namedEvents as string[] | undefined;
+        if (named && handlers.message) {
+          named.forEach((evt) => {
+            try { es.removeEventListener(evt, handlers.message as any); } catch {}
+          });
+        }
+        if (handlers.error) es.removeEventListener('error', handlers.error);
+      } catch {}
+      const entry = GLOBAL_SOURCES[urlKey];
+      if (entry) {
+        entry.refCount = Math.max(0, entry.refCount - 1);
+        if (entry.refCount === 0) {
+          try { entry.es.close(); } catch {}
+          delete GLOBAL_SOURCES[urlKey];
+        }
+      }
       eventSourceRef.current = null;
+      currentUrlKeyRef.current = null;
+      handlersRef.current = {};
     }
 
     setState(prev => ({
@@ -186,6 +242,7 @@ export function useSSE<T = any>(options: SSEOptions) {
 
   // Auto-connect on mount and token changes
   useEffect(() => {
+    isMountedRef.current = true;
     if (token) {
       connect();
     } else {
@@ -193,9 +250,20 @@ export function useSSE<T = any>(options: SSEOptions) {
     }
 
     return () => {
+      isMountedRef.current = false;
       disconnect();
     };
   }, [token, connect, disconnect]);
+
+  // Vite HMR: ensure we cleanup the global source on dispose to prevent duplicate handlers
+  useEffect(() => {
+    try {
+      const meta: any = (import.meta as any);
+      if (typeof meta !== 'undefined' && meta && meta.hot && typeof meta.hot.dispose === 'function') {
+        meta.hot.dispose(() => { try { disconnect(); } catch {} });
+      }
+    } catch {}
+  }, [disconnect]);
 
   // Cleanup on unmount
   useEffect(() => {

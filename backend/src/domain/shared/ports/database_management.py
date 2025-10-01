@@ -69,6 +69,13 @@ class FileStorageService(Protocol):
         """Get file size in bytes."""
         ...
 
+    async def list_objects(self, prefix: str) -> List[Dict[str, Any]]:
+        """List objects in storage with given prefix.
+        
+        Returns list of dicts with keys: 'key', 'size', 'last_modified'
+        """
+        ...
+
 
 @runtime_checkable
 class KuzuQueryService(Protocol):
@@ -154,7 +161,8 @@ class SnapshotRepository(Protocol):
     ) -> UUID:
         ...
 
-    async def list_by_database(self, tenant_id: UUID, database_id: UUID) -> List[Dict[str, Any]]:
+    async def list_by_database(self, database_id: UUID) -> List[Dict[str, Any]]:
+        """List all snapshots for a database (no tenant_id needed)."""
         ...
 
     async def find_by_id(self, snapshot_id: UUID) -> Optional[Dict[str, Any]]:

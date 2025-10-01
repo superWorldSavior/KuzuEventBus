@@ -37,13 +37,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Main content */}
         <main
           className={cn(
-            "flex-1 overflow-auto transition-all duration-300",
+            "flex-1 overflow-hidden transition-all duration-300",
             "p-4 sm:p-6 lg:p-8",
             // Add subtle animation on content load
             "animate-in fade-in-0 slide-in-from-bottom-4 duration-500"
           )}
         >
-          <div className="max-w-7xl mx-auto">{children}</div>
+          <div className="max-w-7xl mx-auto h-full min-h-0">{children}</div>
         </main>
       </div>
     </div>

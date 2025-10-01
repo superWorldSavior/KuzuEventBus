@@ -28,7 +28,7 @@ class MinioFileStorageService(FileStorageService):
     def __init__(self) -> None:
         endpoint = _get_env("MINIO_ENDPOINT", "localhost:9000")
         access_key = _get_env("MINIO_ACCESS_KEY", "minioadmin")
-        secret_key = _get_env("MINIO_SECRET_KEY", "minioadmin123")
+        secret_key = _get_env("MINIO_SECRET_KEY", "minioadmin")
         secure = os.getenv("MINIO_SECURE", "false").lower() in ("1", "true", "yes")
         self._bucket = os.getenv("MINIO_BUCKET", "kuzu-databases")
 
@@ -137,4 +137,24 @@ class MinioFileStorageService(FileStorageService):
             return await asyncio.to_thread(_head)
         except S3Error as exc:  # noqa: BLE001
             raise RuntimeError(f"MinIO stat failed: {exc}") from exc
+
+    async def list_objects(self, prefix: str) -> list[dict]:
+        """List all objects with given prefix.
+        
+        Returns list of dicts with 'key', 'size', 'last_modified'.
+        """
+        def _list() -> list[dict]:
+            objects = []
+            try:
+                for obj in self._client.list_objects(self._bucket, prefix=prefix, recursive=True):
+                    objects.append({
+                        "key": obj.object_name,
+                        "size": obj.size,
+                        "last_modified": obj.last_modified.isoformat() if obj.last_modified else None,
+                    })
+            except S3Error as exc:
+                infra_logger.warning(f"MinIO list failed for prefix {prefix}: {exc}")
+            return objects
+
+        return await asyncio.to_thread(_list)
 

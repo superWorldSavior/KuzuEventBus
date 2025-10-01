@@ -50,6 +50,26 @@ class _FakeRepo:
         return True
 
 
+class _FakeQueryCatalogRepo:
+    async def record_query(self, tenant_id: UUID, database_id: UUID, query_hash: str, query_text: str) -> None:
+        pass
+
+    async def increment_usage(self, tenant_id: UUID, database_id: UUID, query_hash: str) -> None:
+        pass
+
+    async def list_most_used(self, tenant_id: UUID, database_id: UUID, limit: int = 10):
+        return []
+
+    async def list_favorites(self, tenant_id: UUID, database_id: UUID, limit: int = 100):
+        return []
+
+    async def mark_favorite(self, tenant_id: UUID, database_id: UUID, query_hash: str) -> bool:
+        return True
+
+    async def unmark_favorite(self, tenant_id: UUID, database_id: UUID, query_hash: str) -> bool:
+        return True
+
+
 def _override_ctx():
     # fixed tenant context for tests
     return RequestContext(tenant_id=uuid4(), tenant_name="t", api_key_suffix="x", permissions=[])
@@ -62,6 +82,7 @@ def _override_deps(monkeypatch):
     # override infra deps
     monkeypatch.setattr(deps, "message_queue_service", lambda: _FakeQueue())
     monkeypatch.setattr(deps, "transaction_repository", lambda: _FakeRepo())
+    monkeypatch.setattr(deps, "query_catalog_repository", lambda: _FakeQueryCatalogRepo())
     # ensure auth middleware doesn't try to init real DB repo on startup
     monkeypatch.setattr(deps, "customer_repository", lambda: _FakeCustomerRepo())
     # bypass auth middleware for unit scope

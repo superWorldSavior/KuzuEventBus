@@ -7,6 +7,12 @@ afterEach(() => {
   cleanup();
 });
 
+// Mock @monaco-editor/react
+vi.mock('@monaco-editor/react', () => ({
+  default: () => null,
+  Editor: () => null,
+}));
+
 // Global test setup
 beforeAll(() => {
   // Mock window.matchMedia

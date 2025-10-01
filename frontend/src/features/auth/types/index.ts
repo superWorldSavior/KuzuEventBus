@@ -10,6 +10,7 @@ export interface RegistrationData {
   tenantName: string;
   organizationName: string;
   adminEmail: string;
+  password?: string; // Optional for backward compatibility
 }
 
 export interface AuthUser extends Customer {

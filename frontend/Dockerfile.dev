@@ -16,6 +16,10 @@ COPY package.json package-lock.json* ./
 # Install all dependencies (including devDependencies for development)
 RUN npm ci --prefer-offline --no-audit --no-fund
 
+# Copy the rest of the application code
+# This is done after dependency installation for better Docker layer caching
+COPY . .
+
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nextjs -u 1001 -G nodejs
@@ -23,12 +27,8 @@ RUN addgroup -g 1001 -S nodejs && \
 # Change ownership of the app directory to the non-root user
 RUN chown -R nextjs:nodejs /app
 
-# Switch to non-root user
+# Switch to non-root user (but npm is already installed globally)
 USER nextjs
-
-# Copy the rest of the application code
-# This is done after dependency installation for better Docker layer caching
-COPY --chown=nextjs:nodejs . .
 
 # Expose ports for development server and HMR
 EXPOSE 3000 3001

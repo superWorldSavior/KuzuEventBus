@@ -66,7 +66,7 @@ export const useNavigationStore = create<NavigationStore>()(
   )
 );
 
-// Navigation items configuration
+// Navigation items configuration - MVP only
 export const navigationItems = [
   {
     path: "/dashboard",
@@ -85,18 +85,6 @@ export const navigationItems = [
     label: "Queries",
     icon: "Code",
     description: "Build and execute queries",
-  },
-  {
-    path: "/query-builder",
-    label: "Query Builder",
-    icon: "Code",
-    description: "Visual query construction",
-  },
-  {
-    path: "/analytics",
-    label: "Analytics",
-    icon: "BarChart",
-    description: "Performance insights",
   },
   {
     path: "/settings",

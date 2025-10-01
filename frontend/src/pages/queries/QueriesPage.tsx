@@ -1,11 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   FloppyDisk as Save,
   Folder,
-  Star,
   FileText,
   Clock,
-  Plus,
 } from "@phosphor-icons/react";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
@@ -27,30 +25,16 @@ export function QueriesPage() {
   const [currentQuery, setCurrentQuery] = useState("");
   const [selectedDatabase, setSelectedDatabase] = useState("");
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
-  const [savedQueries] = useState([
-    {
-      id: "1",
-      name: "Top 10 Users",
-      query: "MATCH (n:Person) RETURN n.name, n.age ORDER BY n.age DESC LIMIT 10",
-      database: "social-network",
-      createdAt: new Date(Date.now() - 86400000),
-      favorite: true
-    },
-    {
-      id: "2", 
-      name: "Product Categories",
-      query: "MATCH (p:Product)-[:BELONGS_TO]->(c:Category) RETURN c.name, COUNT(p) as productCount",
-      database: "ecommerce",
-      createdAt: new Date(Date.now() - 172800000),
-      favorite: false
-    }
-  ]);
 
   const { data: recentQueries = [] } = useRecentQueries();
   const { data: databases = [] } = useDatabases();
   
-  // Suppress unused variable warning - will be used for database validation
-  void databases;
+  // Auto-select first database if none selected
+  useEffect(() => {
+    if (!selectedDatabase && databases.length > 0) {
+      setSelectedDatabase(databases[0].id);
+    }
+  }, [databases, selectedDatabase]);
 
   const handleExecutionComplete = (results: any) => {
     // Use real query results from the API response
@@ -97,54 +81,8 @@ export function QueriesPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Left Sidebar - Saved Queries & History */}
+        {/* Left Sidebar - Recent Queries Only */}
         <div className="space-y-6">
-          {/* Saved Queries */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-lg font-semibold text-gray-900">Saved Queries</h3>
-              <Button size="sm" variant="ghost" className="text-xs">
-                <Plus size={14} className="mr-1" />
-                New
-              </Button>
-            </div>
-            
-            <div className="space-y-2">
-              {savedQueries.map((query) => (
-                <div
-                  key={query.id}
-                  className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
-                  onClick={() => {
-                    loadQuery(query.query);
-                    setSelectedDatabase(query.database);
-                  }}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <h4 className="text-sm font-medium text-gray-900">{query.name}</h4>
-                        {query.favorite && (
-                          <Star size={14} className="text-yellow-500 fill-current" />
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1 font-mono truncate">
-                        {query.query}
-                      </p>
-                      <div className="flex items-center justify-between mt-2">
-                        <Badge className="bg-gray-100 text-gray-600 text-xs">
-                          {query.database}
-                        </Badge>
-                        <span className="text-xs text-gray-400">
-                          {query.createdAt.toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Recent Queries */}
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-3">Recent Queries</h3>

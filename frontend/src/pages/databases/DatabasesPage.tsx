@@ -25,7 +25,7 @@ import { useDatabases, useDeleteDatabase } from "@/shared/hooks/useApi";
 
 // Transform API data to match component expectations
 const transformDatabaseData = (apiDatabase: any) => ({
-  id: apiDatabase.database_id,
+  id: apiDatabase.id,
   name: apiDatabase.name,
   displayName: apiDatabase.name,
   sizeGB: (apiDatabase.size_bytes || 0) / (1024 * 1024 * 1024), // Convert bytes to GB

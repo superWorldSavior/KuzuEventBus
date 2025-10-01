@@ -4,7 +4,7 @@ SHELL := /bin/bash
 DOCKER_COMPOSE ?= docker compose
 
 
-.PHONY: compose-up compose-down compose-logs wait api test unit integration integration-noup e2e install env start worker dev dev-start dev-stop dev-logs dev-build dev-restart compose-api compose-all check-compose-v2
+.PHONY: compose-up compose-down compose-logs wait api test unit integration integration-noup e2e install env start worker dev dev-start dev-stop dev-logs dev-build dev-restart compose-api compose-all check-compose-v2 frontend frontend-install
 
 check-compose-v2:
 	@docker compose version >/dev/null 2>&1 || ( \
@@ -124,3 +124,16 @@ integration-noup:
 test: unit
 
 e2e: integration
+
+# Frontend commands
+frontend-install:
+	@echo "📦 Installing frontend dependencies..."
+	cd frontend && npm install
+
+frontend: frontend-install
+	@echo "🎨 Starting frontend dev server (Vite)..."
+	@echo ""
+	@echo "⚠️  Make sure backend is running on port 8200"
+	@echo "   Run 'make api' in another terminal if not started"
+	@echo ""
+	cd frontend && npm run dev

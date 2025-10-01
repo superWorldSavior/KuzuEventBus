@@ -16,6 +16,7 @@ from src.domain.shared.ports.query_execution import (
 )
 from src.domain.shared.ports.query_catalog import QueryCatalogRepository
 from src.domain.query_catalog.value_objects import QueryText, QueryHash
+from src.infrastructure.logging.config import infra_logger
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,7 @@ class SubmitAsyncQueryUseCase:
 
     async def execute(self, req: SubmitAsyncQueryRequest) -> SubmitAsyncQueryResponse:
         tx_id = uuid4()
+        infra_logger.info("Saving transaction to repository", tx_id=str(tx_id), database_id=str(req.database_id))
         await self._tx.save_transaction(
             transaction_id=tx_id,
             tenant_id=req.tenant_id,
@@ -55,6 +57,8 @@ class SubmitAsyncQueryUseCase:
             status=TransactionStatus.PENDING,
             timeout_seconds=req.timeout_seconds,
         )
+        infra_logger.info("Transaction saved", tx_id=str(tx_id))
+        
         # Record usage in catalog if available (fail fast but non-blocking)
         if self._catalog is not None:
             try:
@@ -67,12 +71,16 @@ class SubmitAsyncQueryUseCase:
                     query_hash=qh.value,
                     used_at=datetime.utcnow(),
                 )
-            except Exception:
+                infra_logger.debug("Query recorded in catalog", query_hash=qh.value)
+            except Exception as e:
                 # Do not block submission if catalog write fails
-                pass
-        await self._queue.enqueue_transaction(
+                infra_logger.warning("Failed to record query in catalog", error=str(e))
+                
+        infra_logger.info("Enqueuing transaction", tx_id=str(tx_id), tenant_id=str(req.tenant_id))
+        result = await self._queue.enqueue_transaction(
             transaction_id=tx_id,
             tenant_id=req.tenant_id,
             priority=req.priority,
         )
+        infra_logger.info("Transaction enqueued", tx_id=str(tx_id), result=result)
         return SubmitAsyncQueryResponse(transaction_id=tx_id)

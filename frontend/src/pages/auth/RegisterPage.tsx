@@ -22,7 +22,7 @@ export function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { register } = useAuth();
+  const { handleRegister } = useAuth();
   const navigate = useNavigate();
 
   // Backend constraints reminder for tenant_name:
@@ -98,7 +98,7 @@ export function RegisterPage() {
     setError("");
 
     try {
-      const result = await register({ 
+      const result = await handleRegister({ 
         tenantName: sanitizedTenant, 
         organizationName: sanitizedOrg, 
         adminEmail: sanitizedEmail,

@@ -11,6 +11,11 @@ from src.domain.shared.ports import (
     CustomerAccountRepository,
     NotificationService,
 )
+from src.domain.shared.ports.database_management import (
+    BucketProvisioningService,
+    DatabaseProvisioningService,
+    DatabaseMetadataRepository,
+)
 from src.domain.shared.value_objects import EmailAddress, EntityId, TenantName
 from src.domain.tenant_management.customer_account import (
     CustomerAccount,
@@ -45,11 +50,17 @@ class RegisterCustomerUseCase:
         auth_service: AuthenticationService,
         notification_service: NotificationService,
         cache_service: CacheService,
+        bucket_service: BucketProvisioningService | None = None,
+        database_service: DatabaseProvisioningService | None = None,
+        metadata_repository: DatabaseMetadataRepository | None = None,
     ) -> None:
         self._account_repository = account_repository
         self._auth_service = auth_service
         self._notification_service = notification_service
         self._cache_service = cache_service
+        self._bucket_service = bucket_service
+        self._database_service = database_service
+        self._metadata_repository = metadata_repository
 
     async def execute(self, req: RegisterCustomerRequest) -> RegisterCustomerResponse:
         # Validate inputs
@@ -90,6 +101,22 @@ class RegisterCustomerUseCase:
 
         # Persist account
         await self._account_repository.save(account)
+
+        # Provision default database if services are provided
+        if all([self._bucket_service, self._database_service, self._metadata_repository]):
+            try:
+                from src.domain.database_management.value_objects import DatabaseName
+                
+                # Ensure bucket
+                await self._bucket_service.ensure_bucket(customer_id.value)
+                
+                # Create default database
+                db_name = DatabaseName("main")
+                db_meta = await self._database_service.create_database(customer_id.value, db_name)
+                await self._metadata_repository.save(db_meta)
+            except Exception as e:  # Don't fail registration if provisioning fails
+                # Log but continue - user can create database manually
+                pass
 
         # Notify
         await self._notification_service.send_notification(

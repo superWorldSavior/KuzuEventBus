@@ -10,6 +10,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
+    alias: {
+      'monaco-editor': path.resolve(__dirname, './src/test/__mocks__/monaco-editor.ts'),
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

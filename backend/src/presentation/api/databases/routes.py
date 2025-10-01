@@ -58,6 +58,10 @@ from src.application.usecases.restore_database_from_snapshot import (
     RestoreDatabaseFromSnapshotUseCase,
     RestoreDatabaseFromSnapshotRequest,
 )
+from src.application.usecases.restore_database_pitr import (
+    RestoreDatabasePITRUseCase,
+    RestoreDatabasePITRRequest,
+)
 
 router = APIRouter()
 db_logger = get_logger("database_operations")
@@ -96,6 +100,17 @@ def get_list_snapshots_uc() -> ListDatabaseSnapshotsUseCase:
 
 def get_restore_uc() -> RestoreDatabaseFromSnapshotUseCase:
     return RestoreDatabaseFromSnapshotUseCase(
+        authz=authorization_service(),
+        db_repo=kuzu_database_repository(),
+        snapshots=snapshot_repository(),
+        storage=file_storage_service(),
+        locks=lock_service(),
+        cache=cache_service(),
+    )
+
+
+def get_pitr_restore_uc() -> RestoreDatabasePITRUseCase:
+    return RestoreDatabasePITRUseCase(
         authz=authorization_service(),
         db_repo=kuzu_database_repository(),
         snapshots=snapshot_repository(),
@@ -567,6 +582,67 @@ async def delete_database(
         if not ok:
             raise HTTPException(status_code=404, detail="Database not found")
         return {"deleted": True, "database_id": database_id}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.post(
+    "/{database_id}/restore-pitr",
+    summary="Restaurer la base à un timestamp précis (PITR)",
+    description=(
+        "Point-In-Time Recovery: restaure la base au timestamp spécifié.\n\n"
+        "- Trouve le snapshot le plus proche avant le timestamp\n"
+        "- Rejoue les WAL files jusqu'au timestamp cible\n"
+        "- Opération atomique avec verrou distribué"
+    ),
+    responses={
+        200: {"description": "Restauration PITR réussie"},
+        400: {"description": "Timestamp invalide / Aucun snapshot disponible"},
+        401: {"description": "Non autorisé"},
+        404: {"description": "Base introuvable"},
+    },
+)
+async def restore_database_pitr(
+    database_id: str,
+    target_timestamp: str,  # ISO 8601 format: "2025-01-01T14:30:00Z"
+    ctx: RequestContext = Depends(get_request_context),
+    uc: RestoreDatabasePITRUseCase = Depends(get_pitr_restore_uc),
+) -> dict:
+    """Restore database to specific point in time."""
+    db_logger.info(
+        "PITR restore requested",
+        database_id=database_id,
+        tenant_id=str(ctx.tenant_id),
+        target_timestamp=target_timestamp,
+    )
+    try:
+        from datetime import datetime, timezone
+        
+        dbid = UUID(database_id)
+        target_dt = datetime.fromisoformat(target_timestamp.replace("Z", "+00:00"))
+        
+        res = await uc.execute(
+            RestoreDatabasePITRRequest(
+                tenant_id=ctx.tenant_id,
+                database_id=dbid,
+                target_timestamp=target_dt,
+            )
+        )
+        
+        return {
+            "restored": res.restored,
+            "database_id": str(res.database_id),
+            "target_timestamp": res.target_timestamp,
+            "snapshot_used": res.snapshot_used,
+            "wal_files_replayed": res.wal_files_replayed,
+            "restored_at": res.restored_at,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid timestamp format: {e}") from e
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001

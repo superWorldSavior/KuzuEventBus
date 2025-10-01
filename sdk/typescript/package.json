@@ -1,0 +1,35 @@
+{
+  "name": "@kuzu-eventbus/sdk",
+  "version": "0.1.0",
+  "description": "TypeScript SDK for Kuzu Event Bus API",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "generate": "bash generate-client.sh",
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "example": "ts-node example.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/KuzuEventBus.git",
+    "directory": "sdk/typescript"
+  },
+  "keywords": ["kuzu", "graph-database", "sdk", "typescript", "cypher"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.7.0",
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "cross-fetch": "^4.0.0"
+  }
+}

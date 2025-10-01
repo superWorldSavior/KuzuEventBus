@@ -48,14 +48,14 @@ export class QueryExecutionAPI {
   }
 
   /**
-   * Get query results
+   * Get query results from completed job
    */
   async getQueryResults(transactionId: string): Promise<QueryResult> {
-    const endpoint = `GET /api/v1/queries/${transactionId}/results`;
+    const endpoint = `GET /api/v1/jobs/${transactionId}/results`;
     
     try {
       const response = await apiClient.get(
-        `/api/v1/queries/${transactionId}/results`
+        `/api/v1/jobs/${transactionId}/results`
       );
       markEndpointWorking(endpoint);
       return response.data;

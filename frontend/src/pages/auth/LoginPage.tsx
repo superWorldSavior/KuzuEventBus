@@ -21,7 +21,7 @@ export function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const { loginWithCredentials } = useAuth();
+  const { handleLogin } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,7 +39,7 @@ export function LoginPage() {
     setError("");
 
     try {
-      const result = await loginWithCredentials({ email, password });
+      const result = await handleLogin({ email, password });
 
       if (result.success) {
         navigate("/dashboard", { replace: true });

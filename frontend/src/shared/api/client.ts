@@ -12,9 +12,15 @@ export function getBackendIntegrationStatus(): BackendEndpointStatus[] {
   return getStatus();
 }
 
+// API base URL from environment variable (defaults to empty string for Vite proxy)
+// For SSH tunnel dev: set VITE_API_URL=http://localhost:8200 in frontend/.env.local
+// For direct VM access: leave empty (uses Vite proxy)
+// For production: set VITE_API_URL=https://your-api.com
+const baseURL = import.meta.env.VITE_API_URL || "";
+
 // Create axios instance with base configuration
 export const apiClient: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000",
+  baseURL: baseURL,
   timeout: 30000, // 30 seconds
   headers: {
     "Content-Type": "application/json",
@@ -77,6 +83,23 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error: AxiosError<ErrorResponse>) => {
+    // DEBUG: Log full error context including final URL seen by Axios/XHR
+    try {
+      const cfg: any = error.config || {};
+      const respUrl = (error.request && (error.request as any).responseURL) || undefined;
+      console.error("❗[API] Response error:", {
+        status: error.response?.status,
+        message: error.message,
+        config: {
+          method: cfg?.method,
+          baseURL: cfg?.baseURL,
+          url: cfg?.url,
+          headers: cfg?.headers,
+        },
+        responseURL: respUrl,
+      });
+    } catch {}
+
     // Handle authentication errors properly
     if (error.response?.status === 401) {
       // Clear any stored authentication data

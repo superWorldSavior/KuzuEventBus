@@ -5,6 +5,7 @@ import path from "path";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
+  // HMR: serve on the same origin as the app. Browser connects to ws://localhost:3100
   
   return {
     plugins: [react()],
@@ -26,27 +27,31 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: true, // Enable access from Docker containers
-      // Hot Module Replacement (HMR) configuration for Docker
+      // HMR served on server port (3000). Browser connects via host port 3100
       hmr: {
-        port: 3001,
-        host: '0.0.0.0'
+        host: 'localhost',
+        clientPort: 3100,
+        protocol: 'ws',
       },
       // Watch for changes with polling (important for Docker)
       watch: {
         usePolling: true,
-        interval: 1000,
         // Ignore node_modules to improve performance
         ignored: ['**/node_modules/**', '**/dist/**']
       },
       proxy: {
         "/api": {
-          target: "http://api:8000", // Use Docker service name in development
+          target: "http://api:8000", // Docker service name (container-to-container on VM)
           changeOrigin: true,
           secure: false,
+          rewrite: (path) => {
+            console.log('[Vite Proxy] Rewriting:', path);
+            return path;
+          },
         },
       },
     },
-    
+
     build: {
       target: 'esnext',
       minify: 'esbuild',

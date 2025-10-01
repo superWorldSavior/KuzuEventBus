@@ -39,6 +39,7 @@ export function useAuth() {
         tenant_name: registrationData.tenantName,
         organization_name: registrationData.organizationName,
         admin_email: registrationData.adminEmail,
+        password: registrationData.password,
       });
 
       // Support both mocked shape { customer, api_key } and backend shape { customer_id, ... }

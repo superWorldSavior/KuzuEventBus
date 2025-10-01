@@ -84,12 +84,12 @@ Tenant C → API Keys → Databases [graph-social]
 make start
 
 # Tester l'onboarding
-curl -X POST http://localhost:8000/api/v1/customers/register \
+curl -X POST http://localhost:8200/api/v1/customers/register \
   -H "Content-Type: application/json" \
   -d '{"tenant_name": "my-startup", "organization_name": "My Startup Inc", "admin_email": "cto@mystartup.com"}'
 
 # Vérifier la documentation
-open http://localhost:8000/docs
+open http://localhost:8200/docs
 ```
 
 ### For Developers
@@ -127,6 +127,8 @@ make integration           # tests d'intégration (Postgres/Redis/MinIO)
 make compose-logs          # suivre les logs docker
 make compose-down          # arrêter/supprimer les conteneurs
 ```
+
+> ⚠️ **Ports personnalisés** : Ce projet utilise des ports non-standard pour éviter les conflits. Voir [PORTS.md](../PORTS.md) pour la liste complète.
 
 ### Lancer l'API (résumé)
 - Avec Make: `make api`
@@ -188,7 +190,7 @@ make compose-down          # arrêter/supprimer les conteneurs
   - Le paramètre `token` est un JWT court‑vécu émis par `POST /api/v1/auth/sse-token`
   - Les API keys en query string ne sont pas acceptées (sécurité)
 
-Docs interactives: http://localhost:8000/docs et http://localhost:8000/redoc
+Docs interactives: http://localhost:8200/docs et http://localhost:8200/redoc
 
 
 ## 🤝 Pour Contribuer

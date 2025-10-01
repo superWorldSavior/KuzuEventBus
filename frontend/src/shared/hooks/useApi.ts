@@ -10,6 +10,7 @@ import {
   QUERY_KEY_STRATEGIES, 
   QUERY_OPTIONS 
 } from "./useQueryConfig";
+import { apiClient } from "@/shared/api/client";
 
 /**
  * @deprecated Use feature-specific hooks instead:
@@ -416,4 +417,65 @@ export function useApiError() {
   };
 
   return { handleError };
+}
+
+// Snapshots and PITR hooks
+export function useDatabaseSnapshots(databaseId: string) {
+  return useQuery({
+    queryKey: ['database-snapshots', databaseId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/api/v1/databases/${databaseId}/snapshots`);
+      return response.data.snapshots || [];
+    },
+    enabled: !!databaseId,
+    staleTime: 30000,
+  });
+}
+
+export function useCreateSnapshot() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (databaseId: string) => {
+      const response = await apiClient.post(`/api/v1/databases/${databaseId}/snapshots`);
+      return response.data;
+    },
+    onSuccess: (_, databaseId) => {
+      queryClient.invalidateQueries({ queryKey: ['database-snapshots', databaseId] });
+    },
+  });
+}
+
+export function useRestoreSnapshot() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ databaseId, snapshotId }: { databaseId: string; snapshotId: string }) => {
+      const response = await apiClient.post(`/api/v1/databases/${databaseId}/restore`, {
+        snapshot_id: snapshotId,
+      });
+      return response.data;
+    },
+    onSuccess: (_, { databaseId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.database(databaseId) });
+      queryClient.invalidateQueries({ queryKey: ['database-snapshots', databaseId] });
+    },
+  });
+}
+
+export function useRestorePITR() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async ({ databaseId, targetTimestamp }: { databaseId: string; targetTimestamp: string }) => {
+      const response = await apiClient.post(
+        `/api/v1/databases/${databaseId}/restore-pitr?target_timestamp=${encodeURIComponent(targetTimestamp)}`
+      );
+      return response.data;
+    },
+    onSuccess: (_, { databaseId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.database(databaseId) });
+      queryClient.invalidateQueries({ queryKey: ['database-snapshots', databaseId] });
+    },
+  });
 }

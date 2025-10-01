@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: kuzu_user
       POSTGRES_PASSWORD: kuzu_password
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Host:5433 → Container:5432 (évite conflit)
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"  # Host:6380 → Container:6379 (évite conflit)
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -37,8 +37,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000" # API
-      - "9001:9001" # Console
+      - "9100:9000" # API (Host:9100 → Container:9000)
+      - "9101:9001" # Console (Host:9101 → Container:9001)
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -54,7 +54,7 @@ services:
   adminer:
     image: adminer:latest
     ports:
-      - "8080:8080"
+      - "8180:8080"  # Host:8180 → Container:8080 (évite conflit)
     depends_on:
       - postgres
 
@@ -62,7 +62,7 @@ services:
   redis-insight:
     image: redis/redisinsight:latest
     ports:
-      - "8001:5540"
+      - "8101:5540"  # Host:8101 → Container:5540 (évite conflit)
     volumes:
       - redis_insight_data:/data
     depends_on:
@@ -91,7 +91,7 @@ services:
       MINIO_BUCKET: kuzu-databases
       MINIO_SECURE: "false"
     ports:
-      - "8000:8000"
+      - "8200:8000"  # Host:8200 → Container:8000 (évite conflit)
     volumes:
       - ./backend:/app/backend
       - kuzu_data:/data/kuzu
@@ -128,11 +128,11 @@ services:
     depends_on:
       - api
     ports:
-      - "3000:80"
+      - "3100:8080"  # Host:3100 → Container:8080 (nginx port)
     environment:
       - NODE_ENV=production
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3

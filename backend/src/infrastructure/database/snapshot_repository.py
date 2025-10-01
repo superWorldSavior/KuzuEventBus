@@ -72,19 +72,33 @@ class PostgresSnapshotRepository(SnapshotRepository):
             session.commit()
         return snapshot_id
 
-    async def list_by_database(self, tenant_id: UUID, database_id: UUID) -> List[Dict[str, Any]]:
+    async def list_by_database(self, database_id: UUID, tenant_id: UUID = None) -> List[Dict[str, Any]]:
+        """List snapshots by database_id, optionally filtered by tenant_id."""
         with SessionFactory() as session:
-            rows = session.execute(
-                text(
-                    """
-                    SELECT id, tenant_id, database_id, object_key, checksum, size_bytes, created_at
-                    FROM kuzu_db_snapshots
-                    WHERE tenant_id=:tenant_id AND database_id=:database_id
-                    ORDER BY created_at DESC
-                    """
-                ),
-                {"tenant_id": str(tenant_id), "database_id": str(database_id)},
-            ).fetchall()
+            if tenant_id:
+                rows = session.execute(
+                    text(
+                        """
+                        SELECT id, tenant_id, database_id, object_key, checksum, size_bytes, created_at
+                        FROM kuzu_db_snapshots
+                        WHERE tenant_id=:tenant_id AND database_id=:database_id
+                        ORDER BY created_at DESC
+                        """
+                    ),
+                    {"tenant_id": str(tenant_id), "database_id": str(database_id)},
+                ).fetchall()
+            else:
+                rows = session.execute(
+                    text(
+                        """
+                        SELECT id, tenant_id, database_id, object_key, checksum, size_bytes, created_at
+                        FROM kuzu_db_snapshots
+                        WHERE database_id=:database_id
+                        ORDER BY created_at DESC
+                        """
+                    ),
+                    {"database_id": str(database_id)},
+                ).fetchall()
         return [
             {
                 "id": r[0],

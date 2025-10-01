@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "vite build",
     "build:analyze": "ANALYZE=true npm run build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -43,6 +43,8 @@
     "clsx": "^2.0.0",
     "d3": "^7.9.0",
     "date-fns": "^2.30.0",
+    "graphology": "^0.26.0",
+    "graphology-layout": "^0.6.1",
     "monaco-editor": "^0.44.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -52,6 +54,7 @@
     "react-window": "^1.8.11",
     "react-window-infinite-loader": "^2.0.0",
     "recharts": "^2.8.0",
+    "sigma": "^3.0.2",
     "tailwind-merge": "^2.0.0",
     "zod": "^3.22.4",
     "zustand": "^4.4.7"

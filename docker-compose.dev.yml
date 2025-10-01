@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: kuzu_user
       POSTGRES_PASSWORD: kuzu_password
     ports:
-      - "5432:5432"
+      - "5433:5432"  # Host:5433 → Container:5432 (évite conflit)
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -22,7 +22,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"  # Host:6380 → Container:6379 (évite conflit)
     command: redis-server --appendonly yes
     volumes:
       - redis_data:/data
@@ -37,8 +37,8 @@ services:
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     ports:
-      - "9000:9000" # API
-      - "9001:9001" # Console
+      - "9100:9000" # API (Host:9100 → Container:9000)
+      - "9101:9001" # Console (Host:9101 → Container:9001)
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
@@ -54,7 +54,7 @@ services:
   adminer:
     image: adminer:latest
     ports:
-      - "8080:8080"
+      - "8180:8080"  # Host:8180 → Container:8080 (évite conflit)
     depends_on:
       - postgres
 
@@ -62,7 +62,7 @@ services:
   redis-insight:
     image: redislabs/redisinsight:latest
     ports:
-      - "8001:5540"
+      - "8101:5540"  # Host:8101 → Container:5540
     volumes:
       - redis_insight_data:/db
     depends_on:
@@ -90,14 +90,14 @@ services:
       # MinIO configuration
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin123
+      MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: kuzu-databases
       MINIO_SECURE: "false"
       # Hot reload configuration
       PYTHONPATH: /app
       WATCHFILES_FORCE_POLLING: "true"
     ports:
-      - "8000:8000"
+      - "8200:8000"  # Host:8200 → Container:8000 (évite conflit)
     volumes:
       # Mount source code for hot reload
       - ./backend:/app:cached
@@ -147,7 +147,7 @@ services:
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin123
+      MINIO_SECRET_KEY: minioadmin
       MINIO_BUCKET: kuzu-databases
       MINIO_SECURE: "false"
       PYTHONPATH: /app
@@ -182,15 +182,15 @@ services:
     depends_on:
       - api
     ports:
-      - "3000:3000"
-      - "3001:3001" # Vite HMR port
+      - "3100:3000"  # Host:3100 → Container:3000 (évite conflit)
+      - "3101:3001" # Vite HMR port
     environment:
       NODE_ENV: development
-      VITE_API_URL: http://localhost:8000
-      VITE_ENABLE_SSE: true
+      # No VITE_API_URL - let Vite proxy handle /api -> backend
+      VITE_ENABLE_SSE: "true"
       # Vite HMR configuration for Docker
       VITE_HMR_HOST: localhost
-      VITE_HMR_PORT: 3001
+      VITE_HMR_PORT: 3101
       VITE_HOST: 0.0.0.0
       VITE_PORT: 3000
       # Enable polling for file changes in Docker

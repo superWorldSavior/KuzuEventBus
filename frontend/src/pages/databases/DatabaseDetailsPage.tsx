@@ -14,15 +14,62 @@ import {
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { SchemaViewer } from "@/features/database-management/components/SchemaViewer";
+import { DatabaseVersionsSidebar } from "@/features/database-management/components/DatabaseVersionsSidebar";
 import { useDatabase, useDatabaseStats } from "@/features/database-management/hooks/useDatabases";
+import { 
+  useDatabaseSnapshots, 
+  useCreateSnapshot, 
+  useRestoreSnapshot, 
+  useRestorePITR 
+} from "@/shared/hooks/useApi";
+import { useToast } from "@/shared/hooks/use-toast";
 
 export function DatabaseDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   // Use real hooks to fetch database data
   const { data: database, isLoading: isDatabaseLoading, error: databaseError } = useDatabase(id!);
   const { data: stats, isLoading: isStatsLoading } = useDatabaseStats(id!);
+  const { data: snapshots = [], isLoading: snapshotsLoading } = useDatabaseSnapshots(id!);
+  
+  // Mutations
+  const createSnapshot = useCreateSnapshot();
+  const restoreSnapshot = useRestoreSnapshot();
+  const restorePITR = useRestorePITR();
+
+  const handleCreateSnapshot = async () => {
+    try {
+      await createSnapshot.mutateAsync(id!);
+      toast({ title: "Snapshot created", description: "Database snapshot created successfully" });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to create snapshot", variant: "destructive" });
+    }
+  };
+
+  const handleRestoreSnapshot = async (snapshotId: string) => {
+    if (!confirm('Restore database to this snapshot? Current data will be overwritten.')) return;
+    try {
+      await restoreSnapshot.mutateAsync({ databaseId: id!, snapshotId });
+      toast({ title: "Restored", description: "Database restored from snapshot" });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to restore snapshot", variant: "destructive" });
+    }
+  };
+
+  const handleRestorePITR = async (timestamp: Date) => {
+    if (!confirm(`Restore database to ${timestamp.toLocaleString()}? Current data will be overwritten.`)) return;
+    try {
+      await restorePITR.mutateAsync({ 
+        databaseId: id!, 
+        targetTimestamp: timestamp.toISOString() 
+      });
+      toast({ title: "Restored", description: `Database restored to ${timestamp.toLocaleString()}` });
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to restore to point in time", variant: "destructive" });
+    }
+  };
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 B';
@@ -105,7 +152,9 @@ export function DatabaseDetailsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="flex h-full overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -199,19 +248,31 @@ export function DatabaseDetailsPage() {
         </div>
       </div>
 
-      {/* Main Content - Schema */}
-      <div className="bg-white rounded-lg border">
-        <div className="border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
-            <Graph className="w-5 h-5 mr-2" />
-            Database Schema
-          </h2>
-        </div>
-        
-        <div className="p-6">
-          <SchemaViewer databaseId={database.id} />
+        {/* Main Content - Schema */}
+        <div className="bg-white rounded-lg border">
+          <div className="border-b border-gray-200 px-6 py-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+              <Graph className="w-5 h-5 mr-2" />
+              Database Schema
+            </h2>
+          </div>
+          
+          <div className="p-6">
+            <SchemaViewer databaseId={database.id} />
+          </div>
         </div>
       </div>
+
+      {/* Right Sidebar - Versions */}
+      <DatabaseVersionsSidebar
+        databaseId={id!}
+        snapshots={snapshots}
+        isLoading={snapshotsLoading}
+        onCreateSnapshot={handleCreateSnapshot}
+        onRestoreSnapshot={handleRestoreSnapshot}
+        onRestorePITR={handleRestorePITR}
+        className="w-80 flex-shrink-0"
+      />
     </div>
   );
 }

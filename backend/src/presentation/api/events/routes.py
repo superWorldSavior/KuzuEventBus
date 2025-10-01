@@ -17,10 +17,12 @@ from src.infrastructure.dependencies import redis_connection
 router = APIRouter(prefix="/events", tags=["events"])  # mounted at /api/v1/events
 
 async def _sse_stream(redis, stream_key: str, start_id: str) -> AsyncIterator[bytes]:
+    from src.infrastructure.logging.config import infra_logger
     last_id = start_id
-    # If start_id is empty, begin from '$' (only new messages)
+    # If start_id is empty, default to live-only ('$') to avoid replay duplicates on reconnect
     if not last_id:
         last_id = "$"
+    infra_logger.info(f"SSE stream started for {stream_key}, starting from {last_id}")
     while True:
         try:
             # BLOCK for up to 5s waiting for new entries
@@ -40,6 +42,7 @@ async def _sse_stream(redis, stream_key: str, start_id: str) -> AsyncIterator[by
                 last_id = entry_id
                 # fields are strings (decode_responses=True)
                 event = fields.get("event_type", "notification")
+                infra_logger.info(f"SSE sending event: {event}, tx_id={fields.get('transaction_id', 'N/A')}")
                 payload = json.dumps(fields, ensure_ascii=False).encode("utf-8")
                 yield b"id: " + entry_id.encode("utf-8") + b"\n"
                 yield b"event: " + event.encode("utf-8") + b"\n"

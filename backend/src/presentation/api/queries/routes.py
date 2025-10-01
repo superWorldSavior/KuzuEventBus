@@ -222,3 +222,43 @@ async def get_job_status(transaction_id: UUID):
         result_count=int(data.get("result_count", "0")),
         error_message=data.get("error_message") or None,
     )
+
+
+@jobs_router.get(
+    "/{transaction_id}/results",
+    summary="Récupérer les résultats d'un job completed",
+    description="Retourne les résultats (rows) d'une transaction terminée. Cache TTL: 1h.",
+    responses={
+        200: {"description": "Résultats du job"},
+        404: {"description": "Job introuvable ou résultats expirés"},
+        400: {"description": "Job pas encore terminé"},
+    },
+)
+async def get_job_results(
+    transaction_id: UUID,
+    ctx: RequestContext = Depends(get_request_context),
+):
+    """Récupère les résultats d'un job completed depuis le cache Redis."""
+    from src.application.usecases.get_query_results import (
+        GetQueryResultsUseCase,
+        GetQueryResultsRequest,
+    )
+    from src.infrastructure.dependencies import authorization_service, cache_service
+
+    uc = GetQueryResultsUseCase(
+        authz=authorization_service(),
+        cache=cache_service(),
+        transactions=transaction_repository(),
+    )
+    
+    try:
+        results = await uc.execute(
+            GetQueryResultsRequest(tenant_id=ctx.tenant_id, transaction_id=transaction_id)
+        )
+        return results or {"results": []}
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="Results not found or expired")

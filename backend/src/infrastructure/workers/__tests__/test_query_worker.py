@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 
 import pytest
+from pathlib import Path
 
 from src.domain.shared.ports.query_execution import (
     MessageQueueService,
@@ -13,6 +14,7 @@ from src.domain.shared.ports.query_execution import (
     TransactionStatus,
 )
 from src.infrastructure.workers.query_worker import QueryWorker
+from src.infrastructure.workers import query_worker as qw_mod
 
 
 class FakeQueue(MessageQueueService):
@@ -33,6 +35,26 @@ class FakeQueue(MessageQueueService):
 
     async def publish_notification(self, tenant_id: UUID, transaction_id: UUID, event_type: str, data: Dict[str, Any]) -> bool:  # type: ignore[override]
         return True
+
+
+# Fakes for infra dependencies used by QueryWorker's checkout path
+class FakeLocks:
+    async def acquire_lock(self, resource: str, timeout_seconds: int = 10):
+        return "token"
+
+    async def release_lock(self, resource: str, token: str) -> bool:
+        return True
+
+
+class FakeSnapshots:
+    async def list_by_database(self, database_id: UUID, tenant_id: UUID = None):  # type: ignore[override]
+        # No snapshots in unit tests
+        return []
+
+
+class FakeStorage:
+    async def download_database(self, file_path: str) -> bytes:  # type: ignore[override]
+        return b""
 
 
 class FakeExec(QueryExecutionService):
@@ -73,7 +95,7 @@ class FakeRepo(TransactionRepository):
 
 
 @pytest.mark.asyncio
-async def test_worker_completed_path():
+async def test_worker_completed_path(monkeypatch: pytest.MonkeyPatch):
     tenant_id = uuid4()
     db_id = uuid4()
     tx_id = uuid4()
@@ -95,7 +117,13 @@ async def test_worker_completed_path():
     )
     queue = FakeQueue(message)
     exec_adapter = FakeExec("ok")
-    worker = QueryWorker(queue=queue, transactions=repo, executor=exec_adapter)
+    # Ensure KUZU_DATA_DIR exists and avoid real dependencies
+    monkeypatch.setenv("KUZU_DATA_DIR", str(Path.cwd() / "tmp_kuzu"))
+    monkeypatch.setattr(qw_mod, "lock_service", lambda: FakeLocks())
+    monkeypatch.setattr(qw_mod, "file_storage_service", lambda: FakeStorage())
+    monkeypatch.setattr(qw_mod, "snapshot_repository", lambda: FakeSnapshots())
+    dummy_cache = object()
+    worker = QueryWorker(queue=queue, transactions=repo, executor=exec_adapter, cache=dummy_cache)
 
     await worker.run_once()
 
@@ -105,7 +133,7 @@ async def test_worker_completed_path():
 
 
 @pytest.mark.asyncio
-async def test_worker_failed_path():
+async def test_worker_failed_path(monkeypatch: pytest.MonkeyPatch):
     tenant_id = uuid4()
     db_id = uuid4()
     tx_id = uuid4()
@@ -113,7 +141,12 @@ async def test_worker_failed_path():
     repo = FakeRepo({"transaction_id": str(tx_id), "tenant_id": str(tenant_id), "database_id": str(db_id), "query": "X", "parameters": "{}", "timeout_seconds": "5"})
     queue = FakeQueue(message)
     exec_adapter = FakeExec("error")
-    worker = QueryWorker(queue=queue, transactions=repo, executor=exec_adapter)
+    monkeypatch.setenv("KUZU_DATA_DIR", str(Path.cwd() / "tmp_kuzu"))
+    monkeypatch.setattr(qw_mod, "lock_service", lambda: FakeLocks())
+    monkeypatch.setattr(qw_mod, "file_storage_service", lambda: FakeStorage())
+    monkeypatch.setattr(qw_mod, "snapshot_repository", lambda: FakeSnapshots())
+    dummy_cache = object()
+    worker = QueryWorker(queue=queue, transactions=repo, executor=exec_adapter, cache=dummy_cache)
 
     await worker.run_once()
 
@@ -122,7 +155,7 @@ async def test_worker_failed_path():
 
 
 @pytest.mark.asyncio
-async def test_worker_timeout_path():
+async def test_worker_timeout_path(monkeypatch: pytest.MonkeyPatch):
     tenant_id = uuid4()
     db_id = uuid4()
     tx_id = uuid4()
@@ -130,7 +163,12 @@ async def test_worker_timeout_path():
     repo = FakeRepo({"transaction_id": str(tx_id), "tenant_id": str(tenant_id), "database_id": str(db_id), "query": "X", "parameters": "{}", "timeout_seconds": "1"})
     queue = FakeQueue(message)
     exec_adapter = FakeExec("timeout")
-    worker = QueryWorker(queue=queue, transactions=repo, executor=exec_adapter)
+    monkeypatch.setenv("KUZU_DATA_DIR", str(Path.cwd() / "tmp_kuzu"))
+    monkeypatch.setattr(qw_mod, "lock_service", lambda: FakeLocks())
+    monkeypatch.setattr(qw_mod, "file_storage_service", lambda: FakeStorage())
+    monkeypatch.setattr(qw_mod, "snapshot_repository", lambda: FakeSnapshots())
+    dummy_cache = object()
+    worker = QueryWorker(queue=queue, transactions=repo, executor=exec_adapter, cache=dummy_cache)
 
     await worker.run_once()
 

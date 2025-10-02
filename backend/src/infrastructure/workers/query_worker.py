@@ -6,6 +6,11 @@ executes the query, then acknowledges the message.
 from __future__ import annotations
 
 import asyncio
+import io
+import os
+import tarfile
+import tempfile
+from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
@@ -17,7 +22,12 @@ from src.domain.shared.ports.query_execution import (
 )
 from src.domain.shared.ports import CacheService
 from src.infrastructure.logging.config import infra_logger
-from src.infrastructure.dependencies import redis_connection
+from src.infrastructure.dependencies import (
+    redis_connection,
+    lock_service,
+    file_storage_service,
+    snapshot_repository,
+)
 
 
 class QueryWorker:
@@ -39,6 +49,10 @@ class QueryWorker:
         self._stopped = asyncio.Event()
         # Redis connection for events stream (SSE catch-up)
         self._events_redis = redis_connection()
+        # Services for DB checkout (MinIO + Locks + Snapshots)
+        self._locks = lock_service()
+        self._storage = file_storage_service()
+        self._snapshots = snapshot_repository()
 
     def stop(self) -> None:
         self._stopped.set()
@@ -48,6 +62,73 @@ class QueryWorker:
         while not self._stopped.is_set():
             await self.run_once()
             await asyncio.sleep(1)  # Poll every second
+
+    async def _ensure_local_db(self, tenant_id: UUID, database_id: UUID) -> Path:
+        """Ensure the Kuzu DB files are present locally under KUZU_DATA_DIR.
+
+        If absent, try to download the latest snapshot from MinIO and materialize it.
+        Returns the expected path to the database file (data.kuzu).
+        """
+        base_dir = os.getenv("KUZU_DATA_DIR")
+        if not base_dir:
+            raise RuntimeError("KUZU_DATA_DIR must be set for query execution")
+
+        db_dir = Path(base_dir) / str(tenant_id) / str(database_id)
+        db_file = db_dir / "data.kuzu"
+
+        # Fast path: already present
+        if db_file.exists() or db_dir.exists():
+            return db_file
+
+        infra_logger.info(
+            "Local DB not found; attempting checkout from snapshot",
+            tenant_id=str(tenant_id),
+            database_id=str(database_id),
+        )
+
+        # Find latest snapshot (ordered DESC by created_at in repo)
+        snapshots = await self._snapshots.list_by_database(database_id, tenant_id)
+        if not snapshots:
+            infra_logger.warning(
+                "No snapshots found for database; proceeding without restore",
+                database_id=str(database_id),
+            )
+            # Ensure parent dir exists so Kuzu can initialize on first use
+            db_dir.mkdir(parents=True, exist_ok=True)
+            return db_file
+
+        latest = snapshots[0]
+        object_key = str(latest.get("object_key"))
+
+        # Acquire a short lock for checkout to avoid concurrent restore
+        lock_res = f"db:{database_id}:checkout"
+        token: Optional[str] = None
+        try:
+            token = await self._locks.acquire_lock(lock_res, timeout_seconds=30)
+            if not token:
+                raise TimeoutError("Could not acquire database checkout lock")
+
+            data = await self._storage.download_database(object_key)
+
+            db_dir.mkdir(parents=True, exist_ok=True)
+
+            # Heuristic by suffix; fall back to gzip signature check
+            if object_key.endswith(".tar.gz") or (len(data) > 2 and data[:2] == b"\x1f\x8b"):
+                # Extract tar.gz (directory snapshot)
+                with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tar:
+                    # Extract under the parent of db_dir, then move if needed
+                    # Most archives contain a single top-level directory
+                    tar.extractall(path=db_dir.parent)
+                infra_logger.info("Snapshot extracted", dest=str(db_dir.parent))
+            else:
+                # Single .kuzu file snapshot
+                db_file.write_bytes(data)
+                infra_logger.info("Snapshot materialized as file", path=str(db_file))
+
+            return db_file
+        finally:
+            if token:
+                await self._locks.release_lock(lock_res, token)
 
     async def run_once(self) -> None:
         try:
@@ -80,6 +161,8 @@ class QueryWorker:
             infra_logger.debug("Updating status to RUNNING")
             await self._tx.update_status(tx_id, TransactionStatus.RUNNING)
             infra_logger.info("Starting query execution")
+            # Ensure local DB exists (checkout from MinIO if needed)
+            await self._ensure_local_db(tenant_id, database_id)
             # Execute
             try:
                 infra_logger.debug("Query execution started")

@@ -11,6 +11,8 @@ import os
 import tarfile
 import tempfile
 from pathlib import Path
+from datetime import datetime, timezone
+import json
 from typing import Optional
 from uuid import UUID
 
@@ -130,11 +132,78 @@ class QueryWorker:
             if token:
                 await self._locks.release_lock(lock_res, token)
 
+    def _is_mutating(self, cypher: str) -> bool:
+        """Heuristic: detect if the Cypher query mutates state.
+
+        MVP approach based on leading verb; can be improved with parser later.
+        """
+        q = cypher.strip().upper()
+        mutators = (
+            "CREATE",
+            "MERGE",
+            "DELETE",
+            "SET ",
+            "DROP",
+            "ALTER",
+            "INSERT",
+            "UPDATE",
+        )
+        return q.startswith(mutators)
+
+    async def _append_wal_entry(
+        self,
+        tenant_id: UUID,
+        database_id: UUID,
+        cypher: str,
+        parameters: Optional[dict],
+    ) -> None:
+        """Append a JSON line to a WAL object grouped per second.
+
+        Object name: wal/wal-YYYYMMDDThhmmssZ.log under tenants/{tenant}/{db}/
+        """
+        ts = datetime.now(tz=timezone.utc)
+        ts_key = ts.strftime("%Y%m%dT%H%M%SZ")
+        filename = f"wal/wal-{ts_key}.log"
+        key = f"tenants/{tenant_id}/{database_id}/{filename}"
+
+        # Serialize one line
+        entry = {
+            "ts": ts.isoformat(),
+            "query": cypher,
+            "parameters": parameters or {},
+        }
+        line = (json.dumps(entry, default=str) + "\n").encode()
+
+        lock_res = f"db:{database_id}:wal_append"
+        token: Optional[str] = None
+        try:
+            token = await self._locks.acquire_lock(lock_res, timeout_seconds=10)
+            if not token:
+                infra_logger.warning("WAL append lock not acquired; skipping WAL write", database_id=str(database_id))
+                return
+
+            # Read existing content if any, then append
+            prior: bytes = b""
+            try:
+                if await self._storage.file_exists(key):
+                    prior = await self._storage.download_database(key)
+            except Exception as e:  # noqa: BLE001
+                infra_logger.warning("WAL read failed (proceeding with empty prior)", error=str(e))
+
+            content = prior + line
+            await self._storage.upload_database(tenant_id, database_id, content, filename)
+            infra_logger.info("WAL entry appended", key=key)
+        except Exception as e:  # noqa: BLE001
+            infra_logger.warning("WAL append failed", error=str(e))
+        finally:
+            if token:
+                await self._locks.release_lock(lock_res, token)
+
     async def run_once(self) -> None:
         try:
             msg = await self._queue.dequeue_transaction(self._group, self._name)
             if not msg:
-                infra_logger.debug("No message in queue", group=self._group, consumer=self._name)
+                # Silenced: too verbose when polling every second
                 return
             infra_logger.info("Dequeued message", message_id=msg.get("message_id"), tx_id=msg.get("transaction_id"))
             message_id = msg["message_id"]
@@ -201,6 +270,14 @@ class QueryWorker:
                     infra_logger.error("Failed to parse query rows", error=str(parse_err))
 
             infra_logger.info("Results extracted", row_count=len(rows), raw_preview=rows[:3] if rows else "empty")
+
+            # Write WAL entry for mutating queries (best-effort; errors are logged and ignored)
+            try:
+                params_dict = None if not parameters else json.loads(parameters)
+                if self._is_mutating(query):
+                    await self._append_wal_entry(tenant_id, database_id, query, params_dict)
+            except Exception as wal_err:  # noqa: BLE001
+                infra_logger.warning("WAL write failure (ignored)", error=str(wal_err))
             
             infra_logger.debug("Updating transaction status to COMPLETED")
             await self._tx.update_status(

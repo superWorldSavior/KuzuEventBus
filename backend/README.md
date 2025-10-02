@@ -181,9 +181,21 @@ make compose-down          # arrêter/supprimer les conteneurs
 - `GET  /api/v1/databases/{database_id}/snapshots` – lister les snapshots
 - `POST /api/v1/databases/{database_id}/restore` – restaurer (overwrite) un snapshot
 
+### PITR (Point-In-Time Recovery)
+- `GET  /api/v1/databases/{database_id}/pitr?start=&end=&window=&include_types=&target=` – timeline (snapshots + WAL) et plan (si `target`)
+- `POST /api/v1/databases/{database_id}/restore-pitr?target_timestamp=` – restaurer à un instant précis
+- `GET  /api/v1/databases/{database_id}/pitr/bookmarks` – lister les bookmarks
+- `POST /api/v1/databases/{database_id}/pitr/bookmarks` – créer/mettre à jour un bookmark `{ name, timestamp }`
+- `DELETE /api/v1/databases/{database_id}/pitr/bookmarks/{name}` – supprimer un bookmark
+
 ### Queries (asynchrones)
 - `POST /api/v1/databases/{database_id}/query` – soumettre une requête (202)
 - `GET  /api/v1/jobs/{transaction_id}` – statut du job
+- `GET  /api/v1/jobs/{transaction_id}/results` – récupérer les résultats d'un job terminé (TTL cache)
+- `GET  /api/v1/databases/{database_id}/queries/popular` – top requêtes (hors favoris)
+- `GET  /api/v1/databases/{database_id}/queries/favorites` – lister les favoris
+- `POST /api/v1/databases/{database_id}/queries/favorites` – ajouter un favori (max 10)
+- `DELETE /api/v1/databases/{database_id}/queries/favorites/{query_hash}` – supprimer un favori
 
 ### Events
 - `GET  /api/v1/events/stream?token=<jwt>` – flux SSE scoping tenant
@@ -191,6 +203,9 @@ make compose-down          # arrêter/supprimer les conteneurs
   - Les API keys en query string ne sont pas acceptées (sécurité)
 
 Docs interactives: http://localhost:8200/docs et http://localhost:8200/redoc
+
+Pour les détails des modèles et exemples de payloads, voir aussi:
+- `src/presentation/api/databases/README.md`
 
 
 ## 🤝 Pour Contribuer

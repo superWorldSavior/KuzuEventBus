@@ -62,6 +62,11 @@ from src.application.usecases.restore_database_pitr import (
     RestoreDatabasePITRUseCase,
     RestoreDatabasePITRRequest,
 )
+from src.application.usecases.list_database_pitr import (
+    ListDatabasePITRUseCase,
+    ListDatabasePITRRequest,
+)
+from pydantic import BaseModel
 
 router = APIRouter()
 db_logger = get_logger("database_operations")
@@ -117,7 +122,23 @@ def get_pitr_restore_uc() -> RestoreDatabasePITRUseCase:
         storage=file_storage_service(),
         locks=lock_service(),
         cache=cache_service(),
+        kuzu=kuzu_query_service(),
     )
+
+
+def get_list_pitr_uc() -> ListDatabasePITRUseCase:
+    return ListDatabasePITRUseCase(
+        authz=authorization_service(),
+        snapshots=snapshot_repository(),
+        storage=file_storage_service(),
+    )
+
+
+# Bookmarks DI
+def bookmark_repository():
+    from src.infrastructure.database.bookmark_repository import PostgresBookmarkRepository
+
+    return PostgresBookmarkRepository()
 
 
 def get_db_info_uc() -> GetKuzuDatabaseInfoUseCase:
@@ -237,7 +258,7 @@ class RestoreResponse(BaseModel):
     },
 )
 async def provision_tenant_database(
-    request: Request,
+    _request: Request,
     tenant_id: UUID,
     provision_request: ProvisionRequest,
     use_case: ProvisionTenantResourcesUseCase = Depends(get_provisioning_use_case),
@@ -258,6 +279,117 @@ async def provision_tenant_database(
             filesystem_path=response.filesystem_path,
             created_at=response.created_at,
         )
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+# --- PITR Bookmarks ---
+class BookmarkPayload(BaseModel):
+    name: str
+    timestamp: str  # ISO 8601
+
+
+@router.get(
+    "/{database_id}/pitr/bookmarks",
+    summary="Lister les bookmarks PITR",
+)
+async def list_pitr_bookmarks(
+    database_id: str,
+    ctx: RequestContext = Depends(get_request_context),
+) -> dict:
+    try:
+        dbid = UUID(database_id)
+        repo = bookmark_repository()
+        items = await repo.list_by_database(ctx.tenant_id, dbid)
+        return {"database_id": database_id, "bookmarks": items}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.post(
+    "/{database_id}/pitr/bookmarks",
+    summary="Créer ou mettre à jour un bookmark PITR",
+)
+async def create_pitr_bookmark(
+    database_id: str,
+    payload: BookmarkPayload,
+    ctx: RequestContext = Depends(get_request_context),
+) -> dict:
+    try:
+        dbid = UUID(database_id)
+        repo = bookmark_repository()
+        _ = await repo.add(
+            tenant_id=ctx.tenant_id,
+            database_id=dbid,
+            name=payload.name,
+            timestamp=payload.timestamp,
+        )
+        return {"ok": True}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.delete(
+    "/{database_id}/pitr/bookmarks/{name}",
+    summary="Supprimer un bookmark PITR",
+)
+async def delete_pitr_bookmark(
+    database_id: str,
+    name: str,
+    ctx: RequestContext = Depends(get_request_context),
+) -> dict:
+    try:
+        dbid = UUID(database_id)
+        repo = bookmark_repository()
+        ok = await repo.delete(ctx.tenant_id, dbid, name)
+        return {"deleted": ok}
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.get(
+    "/{database_id}/pitr",
+    summary="Lister la timeline PITR et/ou calculer un plan de restauration",
+    description=(
+        "Retourne la timeline (snapshots + WAL) sur une période donnée.\n\n"
+        "Si 'target' est fourni (ISO 8601), renvoie également le plan de restauration (snapshot choisi + WAL à rejouer)."
+    ),
+    responses={
+        200: {"description": "Timeline/plan retournés"},
+        400: {"description": "Requête invalide"},
+        401: {"description": "Non autorisé"},
+    },
+)
+async def get_database_pitr(
+    database_id: str,
+    start: str | None = None,
+    end: str | None = None,
+    target: str | None = None,
+    ctx: RequestContext = Depends(get_request_context),
+    uc: ListDatabasePITRUseCase = Depends(get_list_pitr_uc),
+) -> dict:
+    """Lister la timeline PITR et optionnellement calculer le plan pour 'target'."""
+    try:
+        from datetime import datetime
+
+        dbid = UUID(database_id)
+        start_dt = datetime.fromisoformat(start.replace("Z", "+00:00")) if start else None
+        end_dt = datetime.fromisoformat(end.replace("Z", "+00:00")) if end else None
+        target_dt = datetime.fromisoformat(target.replace("Z", "+00:00")) if target else None
+
+        req = ListDatabasePITRRequest(
+            tenant_id=ctx.tenant_id,
+            database_id=dbid,
+            start=start_dt,
+            end=end_dt,
+            target_timestamp=target_dt,
+        )
+        res = await uc.execute(req)
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid timestamp format: {e}") from e
+    except HTTPException:
+        raise
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=400, detail=str(e)) from e
 

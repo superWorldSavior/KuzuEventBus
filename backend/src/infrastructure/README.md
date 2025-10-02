@@ -82,3 +82,46 @@ La plupart des projets commencent par :
 ---
 
 **Principe clé** : YAGNI + Ports & Adapters = Start simple, **evolve confidently** based on **real needs** and **measured constraints**.
+
+---
+
+## ♻️ PITR (Point-In-Time Recovery)
+
+### Objectif
+Restaurer une base Kuzu à un timestamp précis en combinant:
+- un snapshot (base complète) antérieur au timestamp cible,
+- la relecture des WAL (mutations) jusqu’au timestamp cible.
+
+### Conventions de stockage
+- Snapshots MinIO:
+  - `tenants/{tenant_id}/{database_id}/snapshots/{snapshot_id}.tar.gz` (répertoire) ou `.kuzu` (fichier)
+- WAL MinIO:
+  - `tenants/{tenant_id}/{database_id}/wal/wal-YYYYMMDDThhmmssZ.log`
+  - Contenu: JSON lines `{"ts","query","parameters"}` (MVP: `parameters` facultatif)
+
+### Verrous
+- `db:{database_id}:pitr_restore` (exclusivité pendant PITR)
+- `db:{database_id}:wal_append` (appel court, sérialisation lors de l’append WAL côté worker)
+- `db:{database_id}:checkout` (worker: éviter restauration locale concurrente)
+
+### Implémentations
+- Use case restauration: `src/application/usecases/restore_database_pitr.py`
+  - Trouve snapshot ≤ cible, restaure, liste WAL en range, rejoue via `KuzuQueryService`, invalide cache.
+- Écriture WAL: `src/infrastructure/workers/query_worker.py`
+  - Heuristique mutation (`CREATE|MERGE|DELETE|SET|DROP|ALTER|INSERT|UPDATE`), append JSON-line, lock court.
+- Listing/plan UX: `src/application/usecases/list_database_pitr.py`
+  - `GET /api/v1/databases/{id}/pitr?start=&end=&window=&include_types=&target=`
+  - Retourne timeline (snapshots + `wal_windows`) et plan (snapshot choisi + WAL à rejouer) si `target` fourni.
+
+### Endpoints
+- `GET /api/v1/databases/{id}/pitr` → timeline et (optionnel) plan (si `target` fourni)
+- `POST /api/v1/databases/{id}/restore-pitr?target_timestamp=...` → exécute PITR
+
+### Exécution des tests d’intégration (optionnel)
+- Test d’intégration PITR: `src/application/usecases/__tests__/test_pitr_integration.py`
+- Pré-requis: MinIO accessible (`MINIO_*`), `KUZU_DATA_DIR` pour Kuzu.
+- Lancer (idéalement dans le conteneur API):
+```
+docker compose -f docker-compose.dev.yml up -d minio api
+docker compose -f docker-compose.dev.yml exec api pytest -q src/application/usecases/__tests__/test_pitr_integration.py
+```

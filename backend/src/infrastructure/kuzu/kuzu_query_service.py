@@ -35,11 +35,24 @@ class KuzuQueryServiceAdapter(KuzuQueryService):
         parameters: Dict[str, Any] | None = None,
         timeout_seconds: int = 300,
     ) -> AsyncGenerator[Dict[str, Any], None]:
-        # MVP: Provide a stubbed async generator (not used by current routes)
-        # Real implementation would open kuzu.Database(database_path) and stream results
-        if False:  # pragma: no cover - keep generator form
-            yield {}
-        return
+        # Execute the query against the specific database path.
+        # This ensures PITR can replay WAL without referencing tenant/database IDs.
+        def _run() -> None:
+            db = kuzu.Database(str(database_path))
+            conn = kuzu.Connection(db)
+            result = conn.execute(query)
+            # Exhaust results to ensure side-effects complete
+            while result.has_next():
+                _ = result.get_next()
+
+        await asyncio.to_thread(_run)
+
+        async def _empty() -> AsyncGenerator[Dict[str, Any], None]:
+            if False:  # pragma: no cover - shape-only empty generator
+                yield {}
+            return
+
+        return _empty()
 
     async def get_database_schema(self, database_path: str) -> Dict[str, Any]:
         # MVP placeholder – could introspect when adapter supports it

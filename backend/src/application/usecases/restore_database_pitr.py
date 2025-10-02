@@ -6,7 +6,6 @@ Restores database to specific timestamp using:
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -15,12 +14,15 @@ import io
 import os
 import tarfile
 import tempfile
+import json
+from dataclasses import dataclass
 
 from src.domain.shared.ports import AuthorizationService, CacheService
 from src.domain.shared.ports.database_management import (
     KuzuDatabaseRepository,
     SnapshotRepository,
     FileStorageService,
+    KuzuQueryService,
 )
 from src.domain.shared.ports.query_execution import DistributedLockService
 from src.infrastructure.logging.config import get_logger
@@ -56,6 +58,7 @@ class RestoreDatabasePITRUseCase:
         storage: FileStorageService,
         locks: DistributedLockService,
         cache: CacheService,
+        kuzu: KuzuQueryService,
     ) -> None:
         self._authz = authz
         self._dbs = db_repo
@@ -63,6 +66,7 @@ class RestoreDatabasePITRUseCase:
         self._storage = storage
         self._locks = locks
         self._cache = cache
+        self._kuzu = kuzu
 
     async def execute(self, req: RestoreDatabasePITRRequest) -> RestoreDatabasePITRResponse:
         """Execute PITR restore to specific timestamp."""
@@ -196,13 +200,14 @@ class RestoreDatabasePITRUseCase:
                 entries = [p for p in tmp_dir.iterdir()]
                 content_root: Path = entries[0] if len(entries) == 1 else tmp_dir
 
-                # Atomic replace
-                backup = target_path.with_name(
-                    target_path.name + f".pitr_bak_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}"
+                # Atomic replace of the DIRECTORY that holds the DB (parent of data.kuzu)
+                target_dir = parent
+                backup_dir = target_dir.with_name(
+                    target_dir.name + f".pitr_bak_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}"
                 )
-                if target_path.exists():
-                    os.replace(str(target_path), str(backup))
-                os.replace(str(content_root), str(target_path))
+                if target_dir.exists():
+                    os.replace(str(target_dir), str(backup_dir))
+                os.replace(str(content_root), str(target_dir))
             else:
                 # Raw file
                 tmp_file = target_path.with_suffix(target_path.suffix + ".tmp")
@@ -272,9 +277,9 @@ class RestoreDatabasePITRUseCase:
         target_timestamp: datetime,
     ) -> int:
         """Replay WAL files to restore database to target timestamp.
-        
-        Note: This is a simplified implementation. In production, you'd use
-        Kuzu's native WAL replay mechanism or transaction log replay.
+
+        WAL files contain JSON-lines entries: {"ts", "query", "parameters"}.
+        We execute queries sequentially until reaching target_timestamp.
         """
         logger.info(
             "Replaying WAL files",
@@ -285,27 +290,41 @@ class RestoreDatabasePITRUseCase:
         replayed_count = 0
         for wal_file in wal_files:
             try:
-                # Download WAL file
                 wal_data = await self._storage.download_database(wal_file["key"])
-                
-                # TODO: Implement actual Kuzu WAL replay
-                # For now, we just copy the WAL file to the database directory
-                # In production, you'd parse the WAL and replay transactions
-                
-                wal_path = target_path / "wal" / Path(wal_file["key"]).name
-                wal_path.parent.mkdir(parents=True, exist_ok=True)
-                wal_path.write_bytes(wal_data)
-                
-                replayed_count += 1
-                
-                # Stop if we've reached target timestamp
-                if wal_file["timestamp"] >= target_timestamp:
-                    break
-                    
-            except Exception as e:
-                logger.error(f"Failed to replay WAL {wal_file['key']}: {e}")
-                # Continue with next WAL file
+                text = wal_data.decode("utf-8", errors="ignore")
+
+                for line in text.splitlines():
+                    if not line.strip():
+                        continue
+                    try:
+                        entry = json.loads(line)
+                        ts = datetime.fromisoformat(entry.get("ts"))
+                        if ts > target_timestamp:
+                            logger.info("Reached target timestamp during WAL replay")
+                            return replayed_count
+
+                        query = entry.get("query", "")
+                        if not query:
+                            continue
+
+                        # Exécuter la mutation sur la base cible via KuzuQueryService
+                        async for _ in self._kuzu.execute_query(
+                            database_path=str(target_path),
+                            query=query,
+                        ):
+                            pass
+                        replayed_count += 1
+                    except Exception as per_entry_err:  # noqa: BLE001
+                        # Idempotence / conflits tolérés en replay
+                        logger.warning(
+                            "WAL entry failed during replay (ignored)",
+                            error=str(per_entry_err),
+                            wal_key=wal_file.get("key"),
+                        )
+                        continue
+            except Exception as e:  # noqa: BLE001
+                logger.error(f"Failed to process WAL {wal_file['key']}: {e}")
                 continue
 
-        logger.info(f"Successfully replayed {replayed_count} WAL files")
+        logger.info(f"Successfully replayed {replayed_count} WAL entries")
         return replayed_count

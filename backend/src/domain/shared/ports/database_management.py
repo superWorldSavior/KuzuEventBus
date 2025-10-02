@@ -170,3 +170,27 @@ class SnapshotRepository(Protocol):
 
     async def delete(self, snapshot_id: UUID) -> bool:
         ...
+
+
+@runtime_checkable
+class BookmarkRepository(Protocol):
+    """Port for managing PITR bookmarks (labels on timestamps)."""
+
+    async def add(
+        self,
+        *,
+        tenant_id: UUID,
+        database_id: UUID,
+        name: str,
+        timestamp: str,
+    ) -> UUID:
+        """Create a bookmark and return its ID."""
+        ...
+
+    async def list_by_database(self, tenant_id: UUID, database_id: UUID) -> List[Dict[str, Any]]:
+        """List bookmarks for a database."""
+        ...
+
+    async def delete(self, tenant_id: UUID, database_id: UUID, name: str) -> bool:
+        """Delete a bookmark by name (idempotent)."""
+        ...

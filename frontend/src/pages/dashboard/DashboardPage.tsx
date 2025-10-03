@@ -5,15 +5,18 @@ import { useDatabasePitr } from "@/shared/hooks/useApi";
 import { queryApi } from "@/features/query-execution/services/queryApi";
 import { cn } from "@/shared/lib";
 import { GraphView } from "@/features/graph/components/GraphView";
+import { PreviewTable } from "@/features/graph/components/PreviewTable";
 import { QueryEditor } from "@/features/graph/components/QueryEditor";
 import { useNavigationStore } from "@/app/stores/navigation";
 import { apiClient } from "@/shared/api/client";
 
 export function DashboardPage() {
   const { selectedDatabaseId, setSelectedDatabaseId, selectedPitrPoint, setSelectedPitrPoint, currentAnchorTimestamp, setCurrentAnchorTimestamp } = useNavigationStore();
-  const NOW_ANCHOR = 'NOW';
+  const LAST_ANCHOR = 'LAST';
   const [selectedSnapshotId] = useState<string | null>(null);
   const [isExecuting, setIsExecuting] = useState(false);
+  const [graphViewMode, setGraphViewMode] = useState<"graph" | "table">("graph");
+  const [aggregationMode, setAggregationMode] = useState<boolean>(false);
   const [pendingTxId, setPendingTxId] = useState<string | null>(null);
   const [graphKey, setGraphKey] = useState(0); // Force graph refresh
   // When a restore is applied, capture the original future windows (ordered) to display as a parallel rail
@@ -24,10 +27,11 @@ export function DashboardPage() {
   });
   const [pendingQuery, setPendingQuery] = useState<string | null>(null);
   const [externalQuery, setExternalQuery] = useState<string | null>(null);
-  const [lastQueryByDb, setLastQueryByDb] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem('lastQueryByDb') || '{}'); } catch { return {}; }
-  });
   const [isRestoring, setIsRestoring] = useState(false);
+  // Preview results to feed the graph viewer when using PITR preview
+  const [previewResults, setPreviewResults] = useState<any[] | null>(null);
+  // Minute-level mutating windows with queries (source of truth for timeline)
+  const [mutatingWins, setMutatingWins] = useState<Array<{ start: string; end: string; query: string; files?: number }>>([]);
 
   // Fetch databases
   const { data: databases = [] } = useDatabases();
@@ -41,9 +45,99 @@ export function DashboardPage() {
   // Initialize anchor to NOW so the green node is active at first render
   useEffect(() => {
     if (selectedDatabaseId && !currentAnchorTimestamp) {
-      setCurrentAnchorTimestamp(NOW_ANCHOR);
+      setCurrentAnchorTimestamp(LAST_ANCHOR);
     }
   }, [selectedDatabaseId, currentAnchorTimestamp, setCurrentAnchorTimestamp]);
+
+  // Reset editor and preview when switching database to avoid cross-DB leakage
+  useEffect(() => {
+    if (!selectedDatabaseId) return;
+    setExternalQuery(null);
+    setPreviewResults(null);
+    // keep anchor as-is; loadHeadQuery effect will run if NOW
+  }, [selectedDatabaseId]);
+
+  // Initialize persisted viewer preferences
+  useEffect(() => {
+    try {
+      const savedView = localStorage.getItem('graphViewMode');
+      if (savedView === 'graph' || savedView === 'table') setGraphViewMode(savedView);
+    } catch {}
+    try {
+      const savedAgg = localStorage.getItem('aggregationMode');
+      if (savedAgg === 'true' || savedAgg === 'false') setAggregationMode(savedAgg === 'true');
+    } catch {}
+  }, []);
+
+  // Persist viewer preferences
+  useEffect(() => {
+    try { localStorage.setItem('graphViewMode', graphViewMode); } catch {}
+  }, [graphViewMode]);
+  useEffect(() => {
+    try { localStorage.setItem('aggregationMode', String(aggregationMode)); } catch {}
+    // When aggregation mode changes, refresh preview for current selection
+    const endTs = currentAnchorTimestamp;
+    if (!selectedDatabaseId || !endTs) return;
+    if (endTs === LAST_ANCHOR) {
+      void backToLast();
+    } else {
+      void handleSelectNode(endTs);
+    }
+  }, [aggregationMode]);
+
+  // Fetch minute-level windows and derive mutating list when DB changes
+  useEffect(() => {
+    const loadMinuteWindows = async () => {
+      if (!selectedDatabaseId) return;
+      try {
+        const res = await apiClient.get(
+          `/api/v1/databases/${selectedDatabaseId}/pitr?window=minute&include_queries=true`
+        );
+        const wins: Array<any> = res.data?.wal_windows || [];
+        const muts = wins.filter((w: any) => {
+          const q = w?.query;
+          return q && typeof q === 'string' && q.trim() && isMutatingQuery(q);
+        }).map((w: any) => ({ start: w.start, end: w.end, query: w.query as string, files: w.files }));
+        setMutatingWins(muts);
+        // If head is LAST, preload the last mutation query in editor
+        if (muts.length > 0 && currentAnchorTimestamp === LAST_ANCHOR) {
+          setExternalQuery(muts[muts.length - 1].query);
+        }
+      } catch (e) {
+        setMutatingWins([]);
+      }
+    };
+    loadMinuteWindows();
+  }, [selectedDatabaseId]);
+
+  // When DB changes or we are on LAST, try to load the latest WAL query at HEAD (mutation-based)
+  useEffect(() => {
+    const loadHeadQuery = async () => {
+      if (!selectedDatabaseId) return;
+      if (currentAnchorTimestamp !== LAST_ANCHOR) return;
+      // If we already have mutating windows, prefer them
+      if (mutatingWins.length > 0) {
+        setExternalQuery(mutatingWins[mutatingWins.length - 1].query);
+        return;
+      }
+      // Fallback: fetch minute windows and pick last with query
+      try {
+        const res = await apiClient.get(
+          `/api/v1/databases/${selectedDatabaseId}/pitr?window=minute&include_queries=true`
+        );
+        const wins: Array<any> = res.data?.wal_windows || [];
+        for (let i = wins.length - 1; i >= 0; i--) {
+          const q = wins[i]?.query;
+          if (q && typeof q === 'string' && q.trim()) {
+            setExternalQuery(q);
+            return;
+          }
+        }
+        setExternalQuery(null);
+      } catch (e) { setExternalQuery(null); }
+    };
+    loadHeadQuery();
+  }, [selectedDatabaseId, currentAnchorTimestamp, mutatingWins]);
 
   const pitrQuery = useDatabasePitr(selectedDatabaseId || '', { window: 'hour' });
   const walWindows: Array<{ start: string; end: string; files?: number }> = pitrQuery.data?.wal_windows ?? [];
@@ -127,6 +221,42 @@ export function DashboardPage() {
     return mutating.test(q);
   };
 
+  // Derive a read-only preview query from a mutating query to visualize created/merged entities
+  const derivePreviewQuery = (q: string): string | null => {
+    try {
+      const text = q.trim().replace(/\s+/g, ' ');
+      // Pattern 1: CREATE/MERGE (n:Label { ... })
+      const nodePattern = /(CREATE|MERGE)\s*\((\w+):([A-Za-z_][A-Za-z0-9_]*)\s*\{([^}]*)\}\)/i;
+      const nodeMatch = text.match(nodePattern);
+      if (nodeMatch) {
+        const varName = nodeMatch[2];
+        const label = nodeMatch[3];
+        const props = nodeMatch[4]?.trim();
+        const propFilter = props ? `{ ${props} }` : '';
+        return `MATCH (${varName}:${label} ${propFilter}) RETURN ${varName} LIMIT 100`;
+      }
+
+      // Pattern 2: CREATE/MERGE (a:LA? {..})-[r:TYPE]->(b:LB? {..})
+      const relPattern = /(CREATE|MERGE)\s*\(\s*(\w+)(?::([A-Za-z_][A-Za-z0-9_]*))?\s*(\{[^}]*\})?\s*\)\s*-\s*\[\s*(\w+)?(?::([A-Za-z_][A-Za-z0-9_]*))?\s*\]\s*->\s*\(\s*(\w+)(?::([A-Za-z_][A-Za-z0-9_]*))?\s*(\{[^}]*\})?\s*\)/i;
+      const relMatch = text.match(relPattern);
+      if (relMatch) {
+        const aVar = relMatch[2];
+        const aLabel = relMatch[3] ? `:${relMatch[3]}` : '';
+        const aProps = relMatch[4] ? ` ${relMatch[4]} ` : '';
+        const rVar = relMatch[5] || 'r';
+        const rType = relMatch[6] ? `:${relMatch[6]}` : '';
+        const bVar = relMatch[7];
+        const bLabel = relMatch[8] ? `:${relMatch[8]}` : '';
+        const bProps = relMatch[9] ? ` ${relMatch[9]} ` : '';
+        return `MATCH (${aVar}${aLabel}${aProps})-[${rVar}${rType}]->(${bVar}${bLabel}${bProps}) RETURN ${aVar}, ${rVar}, ${bVar} LIMIT 100`;
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
   const applyRestore = async (ts: string) => {
     if (!selectedDatabaseId) return;
     // capture baseline (ordered): all future windows from the selected timestamp
@@ -143,45 +273,102 @@ export function DashboardPage() {
     try {
       // Normalize timestamp for API/logs
       const targetTs = ts.endsWith('+00:00') ? ts.replace('+00:00', 'Z') : ts;
-      console.log('[PITR] applyRestore', { databaseId: selectedDatabaseId, targetTs });
+      console.log('[PITR] Preview at timestamp', { databaseId: selectedDatabaseId, targetTs });
 
-      // Pre-validate restore plan (helps surface clear backend reasons early)
-      try {
-        const planRes = await apiClient.get(`/api/v1/databases/${selectedDatabaseId}/pitr?target=${encodeURIComponent(targetTs)}`);
-        console.log('[PITR] Plan reçu:', planRes.data?.plan || null);
-      } catch (planErr: any) {
-        console.warn('[PITR] GET /pitr?target a échoué (on tente quand même le POST):', planErr?.response?.data || planErr);
+      // Use PITR preview (non-destructive) instead of restore
+      const previewQueryStr = 'MATCH (n) RETURN n LIMIT 100';
+      const previewRes = await apiClient.get(
+        `/api/v1/databases/${selectedDatabaseId}/pitr/preview?target_timestamp=${encodeURIComponent(targetTs)}&preview_query=${encodeURIComponent(previewQueryStr)}`
+      );
+      
+      console.log('[PITR] Preview results:', previewRes.data);
+      
+      // Update graph with preview results
+      if (previewRes.data?.results) {
+        setPreviewResults(previewRes.data.results);
+        // Store preview results for graph rendering
+        // The graph will use these results instead of querying the DB
+        setGraphKey((k) => k + 1);
       }
-
-      await apiClient.post(`/api/v1/databases/${selectedDatabaseId}/restore-pitr?target_timestamp=${encodeURIComponent(targetTs)}`);
+      // Pas de fallback: si aucune requête WAL pour le nœud, l'éditeur reste vide
     } catch (error) {
       const detail = (error as any)?.response?.data || error;
-      console.warn('PITR restore failed (backend issue), but UI updated:', detail);
+      console.warn('PITR preview failed:', detail);
     }
     
     // small delay to let backend settle
     setTimeout(() => {
-      setGraphKey((k) => k + 1);
       pitrQuery.refetch?.();
       setIsRestoring(false);
     }, 300);
   };
 
-  const backToNow = async () => {
-    const now = new Date().toISOString();
+  const backToLast = async () => {
     setBaselineFuture([]);
     setSelectedPitrPoint(null);
-    await applyRestore(now);
-    setCurrentAnchorTimestamp(NOW_ANCHOR);
+    setCurrentAnchorTimestamp(LAST_ANCHOR);
+    // Charger la dernière mutation (si disponible)
+    const last = mutatingWins[mutatingWins.length - 1];
+    if (last) {
+      setExternalQuery(last.query);
+      // Optionally refresh preview at current timestamp
+      try {
+        const targetTs = last.end.endsWith('+00:00') ? last.end.replace('+00:00', 'Z') : last.end;
+        const derived = isMutatingQuery(last.query) ? derivePreviewQuery(last.query) : null;
+        // Aggregation mode = cumulative state; ignore derived and use base
+        const previewQueryStr = aggregationMode
+          ? 'MATCH (n) RETURN n LIMIT 100'
+          : (derived || 'MATCH (n) RETURN n LIMIT 100');
+        const previewRes = await apiClient.get(
+          `/api/v1/databases/${selectedDatabaseId}/pitr/preview?target_timestamp=${encodeURIComponent(targetTs)}&preview_query=${encodeURIComponent(previewQueryStr)}`
+        );
+        setPreviewResults(previewRes.data?.results || null);
+        setGraphKey((k) => k + 1);
+      } catch {}
+    }
   };
 
   const handleSelectNode = async (endTs: string) => {
-    await applyRestore(endTs);
-    // Load last query for this node if available
-    if (selectedDatabaseId) {
-      const key = `${selectedDatabaseId}|${endTs}`;
-      const q = queryByWalEnd[key] || lastQueryByDb[selectedDatabaseId] || null;
-      setExternalQuery(q);
+    if (!selectedDatabaseId) return;
+    
+    // Update UI state
+    setCurrentAnchorTimestamp(endTs);
+    setSelectedPitrPoint(null);
+    setIsRestoring(true);
+    
+    try {
+      const targetTs = endTs.endsWith('+00:00') ? endTs.replace('+00:00', 'Z') : endTs;
+      // Find the exact mutating window by end timestamp
+      const walWindow = mutatingWins.find(w => w.end === endTs) || null;
+      
+      if (walWindow?.query) {
+        // Charger uniquement la requête réellement associée au nœud
+        setExternalQuery(walWindow.query);
+      } else {
+        // Pas de fallback
+        setExternalQuery(null);
+      }
+      
+      // Preview the database state at this point
+      const basePreview = 'MATCH (n) RETURN n LIMIT 100';
+      const derived = walWindow?.query && isMutatingQuery(walWindow.query)
+        ? derivePreviewQuery(walWindow.query)
+        : null;
+      // Aggregation mode shows cumulative state at timestamp; otherwise show mutation-focused preview
+      const previewQueryStr = aggregationMode ? basePreview : (derived || basePreview);
+      const previewRes = await apiClient.get(
+        `/api/v1/databases/${selectedDatabaseId}/pitr/preview?target_timestamp=${encodeURIComponent(targetTs)}&preview_query=${encodeURIComponent(previewQueryStr)}`
+      );
+      
+      console.log('[PITR] Node selected:', { endTs, query: walWindow?.query, preview: previewRes.data });
+      
+      // Refresh graph with preview results
+      setPreviewResults(previewRes.data?.results || null);
+      setGraphKey((k) => k + 1);
+    } catch (error) {
+      console.error('[PITR] Failed to preview node:', error);
+    } finally {
+      setIsRestoring(false);
     }
   };
 
@@ -234,42 +421,55 @@ export function DashboardPage() {
         <div className="text-xs font-bold text-gray-600 mb-3 tracking-wider">HEAD</div>
         <div className="w-px h-2 bg-gray-300" />
 
+        {/* Branch controls: aggregation only (Graph/Table stays in viewer overlay) */}
+        <div className="mt-3 mb-2 flex flex-col items-center space-y-2">
+          <button
+            type="button"
+            className={`px-2 py-1 text-[10px] rounded border ${aggregationMode ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300'}`}
+            onClick={() => setAggregationMode(!aggregationMode)}
+            title="Afficher l'état cumulatif au timestamp (agrégé)"
+            data-testid="aggregate-toggle"
+          >
+            Agrégé
+          </button>
+        </div>
+
         {/* Timeline nodes (including "Now" as first node) */}
         <div className="flex flex-col items-center space-y-2 mt-2">
-          {/* NOW node (HEAD position) */}
+          {/* LAST node (head = last mutating query) */}
           <div className="relative flex items-center gap-3">
             <div className="flex flex-col items-center">
               <div
                 className={cn(
                   "w-4 h-4 rounded-full border-2 cursor-pointer transition-all duration-200",
-                  currentAnchorTimestamp === NOW_ANCHOR
+                  currentAnchorTimestamp === LAST_ANCHOR
                     ? "bg-blue-600 border-blue-400 shadow-lg shadow-blue-500/50 scale-125 ring-4 ring-blue-200" 
                     : "bg-gray-300 border-gray-400 hover:scale-110 hover:bg-gray-400"
                 )}
-                onClick={backToNow}
-                title="Current state (HEAD)"
+                onClick={backToLast}
+                title="Last mutating query (HEAD)"
                 data-testid="now-node"
               />
-              {walWindows.length > 0 && (
+              {(mutatingWins.length > 0 || walWindows.length > 0) && (
                 <div className={cn(
                   "w-0.5 h-8 my-1 rounded-full",
-                  currentAnchorTimestamp === NOW_ANCHOR ? "bg-blue-300" : "bg-gray-300"
+                  currentAnchorTimestamp === LAST_ANCHOR ? "bg-blue-300" : "bg-gray-300"
                 )} />
               )}
             </div>
             {/* Label on selection */}
-            {currentAnchorTimestamp === NOW_ANCHOR && (
+            {currentAnchorTimestamp === LAST_ANCHOR && (
               <div className="absolute left-8 text-[11px] font-medium bg-blue-600 text-white px-2 py-1 rounded shadow-lg whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-200">
-                Now
+                Last
               </div>
             )}
           </div>
 
-          {/* PITR nodes */}
-          {walWindows.map((w, idx) => {
+          {/* Mutation nodes (each node = one mutating query) */}
+          {mutatingWins.map((w, idx) => {
             const isSelected = currentAnchorTimestamp === w.end;
             // Find selected node index
-            const selectedIdx = walWindows.findIndex(x => currentAnchorTimestamp === x.end);
+            const selectedIdx = mutatingWins.findIndex(x => currentAnchorTimestamp === x.end);
             // If a node is selected, all nodes BEFORE it (more recent) should be gray
             const isFuture = selectedIdx >= 0 && idx < selectedIdx;
             
@@ -286,13 +486,13 @@ export function DashboardPage() {
                         ? "bg-gray-300 border-gray-400 hover:scale-110 hover:bg-gray-400"
                         : "bg-blue-500 border-blue-300 hover:scale-110 hover:shadow-md"
                     )}
-                    title={`PITR: ${formatDate(w.end)}${w.files ? ` • ${w.files} WAL files` : ''}`}
+                    title={`Mutation: ${formatDate(w.end)}`}
                     onClick={() => handleSelectNode(w.end)}
                     data-testid={`curr-node-${idx}`}
                   />
                   
                   {/* Connector to next */}
-                  {idx < walWindows.length - 1 && (
+                  {idx < mutatingWins.length - 1 && (
                     <div className={cn(
                       "w-0.5 h-8 my-1 rounded-full",
                       isFuture || (selectedIdx >= 0 && idx === selectedIdx - 1) ? "bg-gray-300" : "bg-blue-300"
@@ -317,7 +517,7 @@ export function DashboardPage() {
       {/* Main Content - Graph Viewer (Fixed height, no scroll) */}
       <div className="flex-1 min-h-0 flex flex-col bg-gray-50 overflow-hidden">
         {/* Query Editor - Fixed height */}
-        <div className="flex-shrink-0 px-4 pt-4">
+        <div className="flex-shrink-0 px-4 pt-4" data-testid="query-editor">
           <QueryEditor databaseId={selectedDatabaseId} onExecute={handleExecuteQuery} isExecuting={isExecuting || isRestoring} externalQuery={externalQuery} />
         </div>
 
@@ -328,7 +528,31 @@ export function DashboardPage() {
                 Restoring...
               </div>
             )}
-            <GraphView key={graphKey} databaseId={selectedDatabaseId} snapshotId={selectedSnapshotId} />
+
+            {/* Viewer overlay controls: Graph/Table toggle */}
+            <div className="absolute right-3 top-3 z-20 flex items-center space-x-1">
+              <button
+                type="button"
+                className={`px-2 py-1 text-xs rounded border ${graphViewMode === 'graph' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300'}`}
+                onClick={() => setGraphViewMode('graph')}
+              >
+                Graph
+              </button>
+              <button
+                type="button"
+                className={`px-2 py-1 text-xs rounded border ${graphViewMode === 'table' ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-700 border-gray-300'}`}
+                onClick={() => setGraphViewMode('table')}
+                data-testid="graph-table-toggle"
+              >
+                Table
+              </button>
+            </div>
+
+            {graphViewMode === 'table' ? (
+              <PreviewTable results={previewResults || []} />
+            ) : (
+              <GraphView key={graphKey} databaseId={selectedDatabaseId} snapshotId={selectedSnapshotId} previewResults={previewResults || undefined} />
+            )}
           </div>
         </div>
       </div>

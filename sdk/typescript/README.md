@@ -72,11 +72,11 @@ const job = await client.submitQuery(databaseId, {
   query: 'MATCH (n:Person) RETURN n LIMIT 10'
 });
 
-// Vérifier le statut plus tard
+// Vérifier le statut puis récupérer les résultats
 const status = await client.getQueryStatus(job.transaction_id);
-
 if (status.status === 'completed') {
-  console.log('Résultats:', status.result);
+  const results = await client.getJobResults(job.transaction_id);
+  console.log('Résultats (rows):', results.results);
 }
 ```
 
@@ -93,9 +93,7 @@ const result = await client.executeQuery(
     timeout: 30000      // Timeout après 30s
   }
 );
-
-console.log('Colonnes:', result.result.columns);
-console.log('Lignes:', result.result.rows);
+console.log('Résultats (rows):', result.results);
 ```
 
 ### Snapshots
@@ -108,7 +106,7 @@ const snapshot = await client.createSnapshot(databaseId);
 const snapshots = await client.listSnapshots(databaseId);
 
 // Restaurer depuis un snapshot
-await client.restoreSnapshot(databaseId, snapshot.snapshot_id);
+await client.restoreSnapshot(databaseId, snapshot.id);
 ```
 
 ### Événements temps réel (SSE)
@@ -164,11 +162,11 @@ async function main() {
     MATCH (p:Person) RETURN p.name, p.age
   `);
 
-  console.log('Résultats:', result.result?.rows);
+  console.log('Résultats:', result.results);
 
   // 6. Créer un snapshot
   const snapshot = await client.createSnapshot(db.id);
-  console.log('Snapshot créé:', snapshot.snapshot_id);
+  console.log('Snapshot créé:', snapshot.id);
 }
 
 main().catch(console.error);
@@ -273,12 +271,13 @@ describe('Kuzu SDK', () => {
 - `createDatabase(name)` → `Promise<Database>`
 - `getDatabase(id)` → `Promise<Database>`
 - `deleteDatabase(id)` → `Promise<void>`
-- `submitQuery(dbId, request)` → `Promise<QueryJob>`
-- `getQueryStatus(txId)` → `Promise<QueryResult>`
-- `executeQuery(dbId, query, options)` → `Promise<QueryResult>`
-- `createSnapshot(dbId)` → `Promise<{ snapshot_id: string }>`
-- `listSnapshots(dbId)` → `Promise<unknown[]>`
-- `restoreSnapshot(dbId, snapshotId)` → `Promise<void>`
+- **submitQuery(dbId, request)** → `Promise<QuerySubmitResponse>`
+- **getQueryStatus(txId)** → `Promise<QueryStatusResponse>`
+- **getJobResults(txId)** → `Promise<QueryResultsResponse>`
+- **executeQuery(dbId, query, options)** → `Promise<QueryResultsResponse>`
+- **createSnapshot(dbId)** → `Promise<Snapshot>`
+- **listSnapshots(dbId)** → `Promise<Snapshot[]>`
+- **restoreSnapshot(dbId, snapshotId)** → `Promise<RestoreResponse>`
 - `connectEventStream(onEvent, onError)` → `Promise<EventSource>`
 
 ## 🔑 Obtenir une API Key

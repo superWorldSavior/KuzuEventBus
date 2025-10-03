@@ -214,35 +214,21 @@ class RestoreDatabasePITRUseCase:
                         f"Invalid snapshot root directory: expected '{expected_root_name}', got '{content_root.name}'"
                     )
 
-                # Detect source directory to promote:
-                # - case A: kuzu file(s) directly under content_root
-                # - case B: single nested directory that contains kuzu file(s)
-                def has_kuzu_file(path: Path) -> bool:
-                    try:
-                        for p in path.iterdir():
-                            if p.is_file() and p.suffix == ".kuzu":
-                                return True
-                        return False
-                    except Exception:
-                        return False
-
+                # Validate snapshot contains data.kuzu
+                data_kuzu = content_root / "data.kuzu"
+                if not data_kuzu.exists():
+                    raise ValueError(
+                        f"Invalid snapshot: 'data.kuzu' not found in {content_root}"
+                    )
+                
                 source_dir = content_root
-                if not has_kuzu_file(content_root):
-                    # try single nested directory
-                    subdirs = [p for p in content_root.iterdir() if p.is_dir()]
-                    if len(subdirs) == 1 and has_kuzu_file(subdirs[0]):
-                        source_dir = subdirs[0]
-                    else:
-                        raise ValueError(
-                            "Invalid snapshot content: expected '*.kuzu' file at root or in single subdirectory"
-                        )
 
                 # Atomic replace of the DATABASE DIRECTORY containing data.kuzu
                 backup_dir = target_dir.with_name(
-                    target_dir.name + f".pitr_bak_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}"
+                    target_dir.name + f".pitr_bak_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
                 )
                 staged_dir = target_dir.with_name(
-                    target_dir.name + f".pitr_stage_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}"
+                    target_dir.name + f".pitr_stage_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
                 )
                 # Ensure parent exists
                 target_dir.parent.mkdir(parents=True, exist_ok=True)

@@ -161,6 +161,22 @@ export const apiService = {
   },
 
   // Customer management
+  async getMe() {
+    const endpoint = "GET /api/v1/auth/me";
+    try {
+      const response = await apiClient.get("/api/v1/auth/me");
+      markEndpointWorking(endpoint);
+      return response.data as {
+        customer_id: string;
+        tenant_name: string;
+        organization_name?: string | null;
+        admin_email: string;
+        api_key: string;
+      };
+    } catch (error) {
+      throw error;
+    }
+  },
   async registerCustomer(data: {
     tenant_name: string;
     organization_name: string;

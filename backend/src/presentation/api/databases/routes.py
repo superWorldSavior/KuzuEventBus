@@ -66,6 +66,10 @@ from src.application.usecases.list_database_pitr import (
     ListDatabasePITRUseCase,
     ListDatabasePITRRequest,
 )
+from src.application.usecases.preview_database_pitr import (
+    PreviewDatabasePITRUseCase,
+    PreviewDatabasePITRRequest,
+)
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -140,6 +144,15 @@ def get_pitr_restore_uc() -> RestoreDatabasePITRUseCase:
 def get_list_pitr_uc() -> ListDatabasePITRUseCase:
     return ListDatabasePITRUseCase(
         authz=authorization_service(),
+        snapshots=snapshot_repository(),
+        storage=file_storage_service(),
+    )
+
+
+def get_preview_pitr_uc() -> PreviewDatabasePITRUseCase:
+    return PreviewDatabasePITRUseCase(
+        authz=authorization_service(),
+        db_repo=kuzu_database_repository(),
         snapshots=snapshot_repository(),
         storage=file_storage_service(),
     )
@@ -376,6 +389,9 @@ async def get_database_pitr(
     start: str | None = None,
     end: str | None = None,
     target: str | None = None,
+    window: str | None = None,
+    include_queries: bool = False,
+    include_types: bool = False,
     ctx: RequestContext = Depends(get_request_context),
     uc: ListDatabasePITRUseCase = Depends(get_list_pitr_uc),
 ) -> dict:
@@ -394,6 +410,9 @@ async def get_database_pitr(
             start=start_dt,
             end=end_dt,
             target_timestamp=target_dt,
+            window=window,
+            include_queries=include_queries,
+            include_types=include_types,
         )
         res = await uc.execute(req)
         return res
@@ -725,6 +744,71 @@ async def delete_database(
         if not ok:
             raise HTTPException(status_code=404, detail="Database not found")
         return {"deleted": True, "database_id": database_id}
+    except HTTPException:
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.get(
+    "/{database_id}/pitr/preview",
+    summary="Prévisualiser l'état de la base à un timestamp (PITR non-destructif)",
+    description=(
+        "Prévisualise l'état de la base au timestamp spécifié SANS modifier la base principale.\n\n"
+        "- Restaure dans un espace temporaire\n"
+        "- Exécute une query de lecture pour voir l'état (défaut: MATCH (n) RETURN n LIMIT 100)\n"
+        "- Retourne les résultats sans toucher à la base principale"
+    ),
+    responses={
+        200: {"description": "Preview réussie"},
+        400: {"description": "Timestamp invalide / Aucun snapshot disponible"},
+        401: {"description": "Non autorisé"},
+        404: {"description": "Base introuvable"},
+    },
+)
+async def preview_database_pitr(
+    database_id: str,
+    target_timestamp: str,  # ISO 8601 format
+    preview_query: str | None = None,
+    ctx: RequestContext = Depends(get_request_context),
+    uc: PreviewDatabasePITRUseCase = Depends(get_preview_pitr_uc),
+) -> dict:
+    """Preview database state at a specific point in time."""
+    db_logger.info(
+        "PITR preview requested",
+        database_id=database_id,
+        tenant_id=str(ctx.tenant_id),
+        target_timestamp=target_timestamp,
+    )
+    
+    try:
+        from datetime import datetime
+        dbid = UUID(database_id)
+        target_dt = datetime.fromisoformat(target_timestamp.replace("Z", "+00:00"))
+        
+        res = await uc.execute(
+            PreviewDatabasePITRRequest(
+                tenant_id=ctx.tenant_id,
+                database_id=dbid,
+                target_timestamp=target_dt,
+                preview_query=preview_query,
+            )
+        )
+        
+        return {
+            "database_id": str(res.database_id),
+            "target_timestamp": res.target_timestamp,
+            "snapshot_used": res.snapshot_used,
+            "wal_files_replayed": res.wal_files_replayed,
+            "preview_query": res.preview_query,
+            "results": res.results,
+            "rows_returned": res.rows_returned,
+            "previewed_at": res.previewed_at,
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid timestamp format: {e}") from e
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001

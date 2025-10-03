@@ -29,8 +29,11 @@ export default defineConfig(({ mode }) => {
       host: true, // Enable access from Docker containers
       // HMR served on server port (3000). Browser connects via host port 3100
       hmr: {
-        host: 'localhost',
-        clientPort: 3100,
+        host: process.env.VITE_HMR_HOST || 'localhost',
+        // Browser connects to this host:port (from docker-compose env VITE_HMR_PORT=3101)
+        clientPort: Number(process.env.VITE_HMR_PORT) || 3101,
+        // HMR server port inside the container (mapped to host 3101)
+        port: 3001,
         protocol: 'ws',
       },
       // Watch for changes with polling (important for Docker)

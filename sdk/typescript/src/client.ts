@@ -8,55 +8,93 @@ export interface KuzuClientConfig {
   apiKey: string;
 }
 
+// ==================== Database DTOs ====================
 export interface Database {
   id: string;
   name: string;
-  tenant_id: string;
+  description?: string | null;
+  status: string;
   created_at: string;
+  size_bytes: number;
+  tenant_id: string;
 }
 
+export interface DatabaseListResponse {
+  tenant: string;
+  databases: Database[];
+  total_count: number;
+  total_size_bytes: number;
+}
+
+// ==================== Query DTOs ====================
 export interface QueryRequest {
   query: string;
   parameters?: Record<string, unknown>;
+  timeoutSeconds?: number; // maps to backend timeout_seconds (optional)
 }
 
-export interface QueryJob {
-  transaction_id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  database_id: string;
-}
-
-export interface QueryResult {
+export interface QuerySubmitResponse {
   transaction_id: string;
   status: string;
-  result?: {
-    columns: string[];
-    rows: unknown[][];
-  };
-  error?: string;
-  started_at?: string;
-  completed_at?: string;
+  submitted_at: string;
+  estimated_completion: string;
 }
+
+export interface QueryStatusResponse {
+  transaction_id: string;
+  database_id: string;
+  status: string;
+  query: string;
+  submitted_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+  execution_time_ms?: number | null;
+  result_count?: number | null;
+  error_message?: string | null;
+}
+
+export interface QueryResultsResponse {
+  transaction_id: string;
+  status: string;
+  results: Array<Record<string, unknown>>;
+  metadata: Record<string, unknown>;
+  execution_stats: Record<string, unknown>;
+  retrieved_at: string;
+}
+
+export interface Snapshot {
+  id: string;
+  object_key: string;
+  checksum: string;
+  size_bytes: number;
+  created_at: string;
+}
+
+export interface SnapshotListResponse {
+  database_id: string;
+  snapshots: Snapshot[];
+  count: number;
+}
+export interface RestoreResponse {
+  restored: boolean;
+  database_id: string;
+  mode: string;
+  restored_at: string;
+}
+
+export interface SseTokenResponse {
+  token: string;
+  expires_in: number;
+}
+
+// Backward-compat alias
+export type QueryJob = QuerySubmitResponse;
 
 /**
  * Main client for interacting with Kuzu Event Bus API
- * 
+ *
  * Provides type-safe methods for database management, query execution,
  * snapshots, and real-time event streaming.
- * 
- * @example
- * ```typescript
- * import { createKuzuClient } from '@kuzu-eventbus/sdk';
- * 
- * const client = createKuzuClient({
- *   baseUrl: 'http://localhost:8200',
- *   apiKey: 'kb_YOUR_API_KEY'
- * });
- * 
- * // Create database and query
- * const db = await client.createDatabase('my-graph');
- * const result = await client.executeQuery(db.id, 'MATCH (n) RETURN n LIMIT 10');
- * ```
  */
 export class KuzuEventBusClient {
   private config: KuzuClientConfig;
@@ -64,7 +102,6 @@ export class KuzuEventBusClient {
   constructor(config: KuzuClientConfig) {
     this.config = config;
   }
-
   private async request<T>(
     path: string,
     options: RequestInit = {}
@@ -90,18 +127,11 @@ export class KuzuEventBusClient {
 
   /**
    * List all databases for the authenticated tenant
-   * 
-   * @returns Array of databases owned by the authenticated tenant
-   * @throws {Error} If authentication fails or API is unavailable
-   * 
-   * @example
-   * ```typescript
-   * const databases = await client.listDatabases();
-   * console.log('Found', databases.length, 'databases');
-   * ```
+   * Maps the API response wrapper to an array of databases.
    */
   async listDatabases(): Promise<Database[]> {
-    return this.request<Database[]>('/api/v1/databases/');
+    const res = await this.request<DatabaseListResponse>('/api/v1/databases/');
+    return res.databases;
   }
 
   /**
@@ -162,144 +192,74 @@ export class KuzuEventBusClient {
 
   // ==================== Queries ====================
 
-  /**
-   * Submit a Cypher query for async execution
-   * 
-   * Returns immediately with a transaction ID. Use `getQueryStatus()` to poll for results.
-   * 
-   * @param databaseId - Target database ID
-   * @param request - Query with optional parameters
-   * @returns Job metadata with transaction ID for polling
-   * @throws {Error} If query syntax is invalid or database not found
-   * 
-   * @example
-   * ```typescript
-   * const job = await client.submitQuery('db-123', {
-   *   query: 'MATCH (n:User WHERE n.age > $minAge) RETURN n',
-   *   parameters: { minAge: 18 }
-   * });
-   * console.log('Job ID:', job.transaction_id);
-   * ```
-   */
+  /** Submit a Cypher query for async execution (queued job). */
   async submitQuery(
     databaseId: string,
     request: QueryRequest
-  ): Promise<QueryJob> {
-    return this.request<QueryJob>(
+  ): Promise<QuerySubmitResponse> {
+    // Map SDK naming to backend (timeout_seconds)
+    const body = {
+      query: request.query,
+      parameters: request.parameters,
+      timeout_seconds: request.timeoutSeconds,
+    };
+    return this.request<QuerySubmitResponse>(
       `/api/v1/databases/${databaseId}/query`,
       {
         method: 'POST',
-        body: JSON.stringify(request),
+        body: JSON.stringify(body),
       }
     );
   }
 
-  /**
-   * Check status and retrieve results of a submitted query
-   * 
-   * @param transactionId - Transaction ID from `submitQuery()`
-   * @returns Query status and results (if completed)
-   * @throws {Error} If transaction not found
-   * 
-   * @example
-   * ```typescript
-   * const status = await client.getQueryStatus('tx-abc123');
-   * 
-   * if (status.status === 'completed') {
-   *   console.log('Columns:', status.result.columns);
-   *   console.log('Rows:', status.result.rows);
-   * } else if (status.status === 'failed') {
-   *   console.error('Error:', status.error);
-   * }
-   * ```
-   */
-  async getQueryStatus(transactionId: string): Promise<QueryResult> {
-    return this.request<QueryResult>(`/api/v1/jobs/${transactionId}`);
+  /** Get status of a submitted query job. */
+  async getQueryStatus(transactionId: string): Promise<QueryStatusResponse> {
+    return this.request<QueryStatusResponse>(`/api/v1/jobs/${transactionId}`);
   }
 
-  /**
-   * Execute a Cypher query and automatically wait for results
-   * 
-   * Combines `submitQuery()` + automatic polling. Blocks until query completes.
-   * 
-   * @param databaseId - Target database ID
-   * @param query - Cypher query string
-   * @param options - Query execution options
-   * @param options.parameters - Query parameters (for parameterized queries)
-   * @param options.pollInterval - How often to check status in ms (default: 1000)
-   * @param options.timeout - Max wait time in ms (default: 30000)
-   * @returns Query results with columns and rows
-   * @throws {Error} If query times out or fails
-   * 
-   * @example
-   * ```typescript
-   * // Simple query
-   * const result = await client.executeQuery('db-123', 'MATCH (n) RETURN n LIMIT 10');
-   * 
-   * // Parameterized query with custom timeout
-   * const result = await client.executeQuery(
-   *   'db-123',
-   *   'MATCH (u:User WHERE u.name = $name) RETURN u',
-   *   {
-   *     parameters: { name: 'Alice' },
-   *     timeout: 60000  // 1 minute
-   *   }
-   * );
-   * 
-   * console.log('Found', result.result.rows.length, 'results');
-   * ```
-   */
+  /** Fetch final results of a completed job. */
+  async getJobResults(transactionId: string): Promise<QueryResultsResponse> {
+    return this.request<QueryResultsResponse>(`/api/v1/jobs/${transactionId}/results`);
+  }
+
+  /** Execute a query: submit, poll status, then fetch results when completed. */
   async executeQuery(
     databaseId: string,
     query: string,
     options: {
       parameters?: Record<string, unknown>;
       pollInterval?: number;
-      timeout?: number;
+      timeout?: number; // total client-side timeout in ms
+      submitTimeoutSeconds?: number; // backend timeout_seconds override
     } = {}
-  ): Promise<QueryResult> {
-    const { parameters, pollInterval = 1000, timeout = 30000 } = options;
+  ): Promise<QueryResultsResponse> {
+    const { parameters, pollInterval = 1000, timeout = 30000, submitTimeoutSeconds } = options;
 
-    // Submit query
-    const job = await this.submitQuery(databaseId, { query, parameters });
+    // Submit job
+    const job = await this.submitQuery(databaseId, { query, parameters, timeoutSeconds: submitTimeoutSeconds });
 
-    // Poll for results
+    // Poll status
     const startTime = Date.now();
+    // eslint-disable-next-line no-constant-condition
     while (true) {
-      const result = await this.getQueryStatus(job.transaction_id);
-
-      if (result.status === 'completed' || result.status === 'failed') {
-        return result;
+      const status = await this.getQueryStatus(job.transaction_id);
+      if (status.status === 'completed') {
+        // Fetch final results
+        return this.getJobResults(job.transaction_id);
       }
-
+      if (status.status === 'failed') {
+        throw new Error(status.error_message || 'Query failed');
+      }
       if (Date.now() - startTime > timeout) {
         throw new Error('Query timeout exceeded');
       }
-
       await this.sleep(pollInterval);
     }
   }
 
-  // ==================== Snapshots ====================
-
-  /**
-   * Create a point-in-time snapshot backup of a database
-   * 
-   * @param databaseId - Database to backup
-   * @returns Snapshot metadata with ID for restoration
-   * @throws {Error} If backup fails or database locked
-   * 
-   * @example
-   * ```typescript
-   * const snapshot = await client.createSnapshot('db-123');
-   * console.log('Backup created:', snapshot.snapshot_id);
-   * 
-   * // Later: restore from this snapshot
-   * await client.restoreSnapshot('db-123', snapshot.snapshot_id);
-   * ```
-   */
-  async createSnapshot(databaseId: string): Promise<{ snapshot_id: string }> {
-    return this.request<{ snapshot_id: string }>(
+  /** Create a snapshot. */
+  async createSnapshot(databaseId: string): Promise<Snapshot> {
+    return this.request<Snapshot>(
       `/api/v1/databases/${databaseId}/snapshots`,
       { method: 'POST' }
     );
@@ -320,10 +280,12 @@ export class KuzuEventBusClient {
    * });
    * ```
    */
-  async listSnapshots(databaseId: string): Promise<unknown[]> {
-    return this.request<unknown[]>(
+  /** List snapshots (maps wrapper to array). */
+  async listSnapshots(databaseId: string): Promise<Snapshot[]> {
+    const res = await this.request<SnapshotListResponse>(
       `/api/v1/databases/${databaseId}/snapshots`
     );
+    return res.snapshots;
   }
 
   /**
@@ -346,8 +308,8 @@ export class KuzuEventBusClient {
   async restoreSnapshot(
     databaseId: string,
     snapshotId: string
-  ): Promise<void> {
-    await this.request<void>(`/api/v1/databases/${databaseId}/restore`, {
+  ): Promise<RestoreResponse> {
+    return this.request<RestoreResponse>(`/api/v1/databases/${databaseId}/restore`, {
       method: 'POST',
       body: JSON.stringify({ snapshot_id: snapshotId }),
     });
@@ -355,23 +317,9 @@ export class KuzuEventBusClient {
 
   // ==================== Server-Sent Events ====================
 
-  /**
-   * Generate a short-lived JWT token for Server-Sent Events (SSE)
-   * 
-   * Required for connecting to the real-time event stream.
-   * Token expires after 5 minutes (300s) by default.
-   * 
-   * @returns JWT token for SSE authentication
-   * @throws {Error} If API key is invalid
-   * 
-   * @example
-   * ```typescript
-   * const { token } = await client.getSseToken();
-   * // Use token to connect to event stream
-   * ```
-   */
-  async getSseToken(): Promise<{ token: string }> {
-    return this.request<{ token: string }>('/api/v1/auth/sse-token', {
+  /** Generate a short-lived JWT for SSE. */
+  async getSseToken(): Promise<SseTokenResponse> {
+    return this.request<SseTokenResponse>('/api/v1/auth/sse-token', {
       method: 'POST',
     });
   }

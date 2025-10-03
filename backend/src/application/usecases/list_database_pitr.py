@@ -31,6 +31,7 @@ class ListDatabasePITRRequest:
     target_timestamp: Optional[datetime] = None
     window: Optional[str] = "minute"  # 'minute' | 'hour'
     include_types: bool = False
+    include_queries: bool = False
 
 
 class ListDatabasePITRUseCase:
@@ -128,6 +129,45 @@ class ListDatabasePITRUseCase:
             else:
                 wend = ts.replace(second=59, microsecond=0)
             slot["end"] = wend.isoformat()
+
+        # Optional: extract queries from WAL files
+        if req.include_queries and wal_files:
+            # For each window, extract the last query executed
+            files_by_window: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+            for wf in wal_files:
+                ts = datetime.fromisoformat(wf["timestamp"])  # type: ignore[arg-type]
+                wstart = window_start(ts).isoformat()
+                files_by_window[wstart].append(wf)
+
+            async def get_last_query_and_results(key: str) -> Optional[Dict[str, Any]]:
+                """Extract the last query and its results from a WAL file."""
+                try:
+                    data = await self._storage.download_database(key)
+                    text = data.decode("utf-8", errors="ignore")
+                    lines = [line.strip() for line in text.splitlines() if line.strip()]
+                    if not lines:
+                        return None
+                    # Get last line
+                    last_line = lines[-1]
+                    entry = json.loads(last_line)
+                    return {
+                        "query": str(entry.get("query", "")),
+                        "results": entry.get("results", []),
+                        "rows_returned": entry.get("rows_returned", 0),
+                    }
+                except Exception:
+                    return None
+
+            # For each window, get query and results from the latest file
+            for wstart, files in files_by_window.items():
+                if files:
+                    # Sort by timestamp, get last
+                    latest_file = max(files, key=lambda f: f["timestamp"])
+                    data = await get_last_query_and_results(latest_file["key"])  # type: ignore[arg-type]
+                    if data and wstart in windows:
+                        windows[wstart]["query"] = data["query"]
+                        windows[wstart]["results"] = data["results"]
+                        windows[wstart]["rows_returned"] = data["rows_returned"]
 
         # Optional deeper breakdown: count by query type scanning WAL content
         if req.include_types and wal_files:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from src.presentation.api.context.request_context import (
@@ -56,6 +56,33 @@ async def issue_sse_token(ctx: RequestContext = Depends(get_request_context)) ->
     )
     # We don't compute exp here again; client can treat TTL as configured default
     return SseTokenResponse(token=token, expires_in=300)
+
+
+class MeResponse(BaseModel):
+    customer_id: str
+    tenant_name: str
+    organization_name: str | None = None
+    admin_email: str
+    api_key: str
+
+
+@router.get("/me", response_model=MeResponse, summary="Get current authenticated customer profile")
+async def get_me(request: Request) -> MeResponse:
+    """Return current customer info including API key.
+
+    Authentication is enforced by the AuthenticationMiddleware. We read the customer
+    from request.state and return minimal profile info.
+    """
+    from src.presentation.api.middleware.authentication import get_current_customer
+
+    customer = get_current_customer(request)
+    return MeResponse(
+        customer_id=str(customer.id.value),
+        tenant_name=customer.name.value,
+        organization_name=getattr(customer, "organization_name", None),
+        admin_email=customer.email.value,
+        api_key=customer.api_key.value,
+    )
 
 
 # Simple dependency injection for register use case

@@ -28,12 +28,12 @@ async function example() {
       'MATCH (n) RETURN n LIMIT 5',
       { timeout: 10000 }
     );
-    console.log('Results:', result);
+    console.log('Results (rows):', result.results);
 
     // 5. Create a snapshot
     console.log('\n📸 Creating snapshot...');
     const snapshot = await client.createSnapshot(db.id);
-    console.log('Snapshot:', snapshot);
+    console.log('Snapshot:', snapshot.id, snapshot.created_at);
 
     // 6. Clean up (optional)
     console.log('\n🧹 Cleaning up...');

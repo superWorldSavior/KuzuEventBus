@@ -156,21 +156,23 @@ class QueryWorker:
         database_id: UUID,
         cypher: str,
         parameters: Optional[dict],
+        results: Optional[list] = None,
     ) -> None:
-        """Append a JSON line to a WAL object grouped per second.
+        """Best-effort WAL append (MinIO log for PITR).
 
-        Object name: wal/wal-YYYYMMDDThhmmssZ.log under tenants/{tenant}/{db}/
+        Appends a single line to the WAL file for this minute.
         """
-        ts = datetime.now(tz=timezone.utc)
-        ts_key = ts.strftime("%Y%m%dT%H%M%SZ")
-        filename = f"wal/wal-{ts_key}.log"
+        ts = datetime.now(timezone.utc)
+        ts_str = ts.strftime("%Y%m%dT%H%M%SZ")
+        filename = f"wal/wal-{ts_str}.log"
         key = f"tenants/{tenant_id}/{database_id}/{filename}"
 
-        # Serialize one line
         entry = {
             "ts": ts.isoformat(),
             "query": cypher,
             "parameters": parameters or {},
+            "results": results or [],
+            "rows_returned": len(results) if results else 0,
         }
         line = (json.dumps(entry, default=str) + "\n").encode()
 
@@ -275,7 +277,7 @@ class QueryWorker:
             try:
                 params_dict = None if not parameters else json.loads(parameters)
                 if self._is_mutating(query):
-                    await self._append_wal_entry(tenant_id, database_id, query, params_dict)
+                    await self._append_wal_entry(tenant_id, database_id, query, params_dict, rows)
             except Exception as wal_err:  # noqa: BLE001
                 infra_logger.warning("WAL write failure (ignored)", error=str(wal_err))
             

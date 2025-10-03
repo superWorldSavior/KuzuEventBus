@@ -18,3 +18,14 @@ export type {
   RestoreResponse,
   SseTokenResponse,
 } from './client';
+
+// Time Travel API
+export { TimeTravelAPI } from './timeTravel';
+export type {
+  TimelineHistory,
+  TimelineEvent,
+  PreviewSnapshot,
+  RestoreResult,
+  ViewHistoryOptions,
+  PreviewOptions,
+} from './timeTravel';

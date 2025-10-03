@@ -3,6 +3,8 @@
  * Simple HTTP client for interacting with the API
  */
 
+import { TimeTravelAPI } from './timeTravel';
+
 export interface KuzuClientConfig {
   baseUrl: string;
   apiKey: string;
@@ -98,9 +100,44 @@ export type QueryJob = QuerySubmitResponse;
  */
 export class KuzuEventBusClient {
   private config: KuzuClientConfig;
+  
+  /**
+   * Time Travel API - Explore history, preview past states, and restore databases
+   * 
+   * Automatic PITR (Point-In-Time Recovery) without manual checkpoints.
+   * The system automatically tracks all changes via snapshots + WAL.
+   * 
+   * @example
+   * ```typescript
+   * // View complete history
+   * const history = await client.timeTravel.viewHistory('my-db', { 
+   *   from: 'yesterday',
+   *   includeQueries: true 
+   * });
+   * 
+   * // Preview before restoring (non-destructive!)
+   * const preview = await client.timeTravel.preview('my-db', { 
+   *   at: '2 hours ago',
+   *   query: 'MATCH (n) RETURN count(n)'
+   * });
+   * 
+   * // Restore to any point in time
+   * await client.timeTravel.goBackTo('my-db', '2 hours ago');
+   * ```
+   */
+  public readonly timeTravel: TimeTravelAPI;
 
   constructor(config: KuzuClientConfig) {
     this.config = config;
+    
+    // Initialize Time Travel API
+    this.timeTravel = new TimeTravelAPI(
+      config.baseUrl,
+      () => ({
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+      })
+    );
   }
   private async request<T>(
     path: string,
@@ -157,44 +194,52 @@ export class KuzuEventBusClient {
   /**
    * Get detailed information about a specific database
    * 
-   * @param databaseId - The database ID
+   * @param database - Database ID (UUID) or name
    * @returns Database metadata including creation date
    * @throws {Error} If database not found or unauthorized
    * 
    * @example
    * ```typescript
-   * const db = await client.getDatabase('db-123');
-   * console.log('Created at:', db.created_at);
+   * // By name
+   * const db = await client.getDatabase('my-social-network');
+   * 
+   * // Or by UUID
+   * const db = await client.getDatabase('550e8400-...');
    * ```
    */
-  async getDatabase(databaseId: string): Promise<Database> {
-    return this.request<Database>(`/api/v1/databases/${databaseId}`);
+  async getDatabase(database: string): Promise<Database> {
+    return this.request<Database>(`/api/v1/databases/${database}`);
   }
 
   /**
    * Permanently delete a database and all its data
    * 
-   * @param databaseId - The database ID to delete
+   * @param database - Database ID (UUID) or name
    * @returns Promise that resolves when deletion is complete
    * @throws {Error} If database not found or deletion fails
    * 
    * @example
    * ```typescript
-   * await client.deleteDatabase('db-123');
-   * console.log('Database deleted');
+   * await client.deleteDatabase('my-social-network');
    * ```
    */
-  async deleteDatabase(databaseId: string): Promise<void> {
-    await this.request<void>(`/api/v1/databases/${databaseId}`, {
+  async deleteDatabase(database: string): Promise<void> {
+    await this.request<void>(`/api/v1/databases/${database}`, {
       method: 'DELETE',
     });
   }
 
   // ==================== Queries ====================
 
-  /** Submit a Cypher query for async execution (queued job). */
+  /**
+   * Submit a Cypher query for async execution (queued job).
+   * 
+   * @param database - Database ID (UUID) or name
+   * @param request - Query request with query text, parameters, and timeout
+   * @returns Job submission response with transaction ID
+   */
   async submitQuery(
-    databaseId: string,
+    database: string,
     request: QueryRequest
   ): Promise<QuerySubmitResponse> {
     // Map SDK naming to backend (timeout_seconds)
@@ -204,7 +249,7 @@ export class KuzuEventBusClient {
       timeout_seconds: request.timeoutSeconds,
     };
     return this.request<QuerySubmitResponse>(
-      `/api/v1/databases/${databaseId}/query`,
+      `/api/v1/databases/${database}/query`,
       {
         method: 'POST',
         body: JSON.stringify(body),
@@ -222,9 +267,27 @@ export class KuzuEventBusClient {
     return this.request<QueryResultsResponse>(`/api/v1/jobs/${transactionId}/results`);
   }
 
-  /** Execute a query: submit, poll status, then fetch results when completed. */
+  /**
+   * Execute a query and wait for results (convenience method).
+   * 
+   * Automatically submits, polls status, and fetches results.
+   * 
+   * @param database - Database ID (UUID) or name
+   * @param query - Cypher query string
+   * @param options - Execution options (parameters, timeouts, poll interval)
+   * @returns Query results
+   * 
+   * @example
+   * ```typescript
+   * const result = await client.executeQuery('my-db', 
+   *   'MATCH (n:User) WHERE n.age > $minAge RETURN n',
+   *   { parameters: { minAge: 18 } }
+   * );
+   * console.log('Results:', result.results);
+   * ```
+   */
   async executeQuery(
-    databaseId: string,
+    database: string,
     query: string,
     options: {
       parameters?: Record<string, unknown>;
@@ -236,7 +299,7 @@ export class KuzuEventBusClient {
     const { parameters, pollInterval = 1000, timeout = 30000, submitTimeoutSeconds } = options;
 
     // Submit job
-    const job = await this.submitQuery(databaseId, { query, parameters, timeoutSeconds: submitTimeoutSeconds });
+    const job = await this.submitQuery(database, { query, parameters, timeoutSeconds: submitTimeoutSeconds });
 
     // Poll status
     const startTime = Date.now();
@@ -257,10 +320,15 @@ export class KuzuEventBusClient {
     }
   }
 
-  /** Create a snapshot. */
-  async createSnapshot(databaseId: string): Promise<Snapshot> {
+  /**
+   * Create a manual snapshot (full backup) of the database.
+   * 
+   * @param database - Database ID (UUID) or name
+   * @returns Snapshot metadata
+   */
+  async createSnapshot(database: string): Promise<Snapshot> {
     return this.request<Snapshot>(
-      `/api/v1/databases/${databaseId}/snapshots`,
+      `/api/v1/databases/${database}/snapshots`,
       { method: 'POST' }
     );
   }
@@ -268,22 +336,18 @@ export class KuzuEventBusClient {
   /**
    * List all available snapshots for a database
    * 
-   * @param databaseId - Database ID
+   * @param database - Database ID (UUID) or name
    * @returns Array of snapshot metadata (ID, creation date, size)
    * @throws {Error} If database not found
    * 
    * @example
    * ```typescript
-   * const snapshots = await client.listSnapshots('db-123');
-   * snapshots.forEach(s => {
-   *   console.log('Snapshot:', s.snapshot_id, 'created at', s.created_at);
-   * });
+   * const snapshots = await client.listSnapshots('my-db');
    * ```
    */
-  /** List snapshots (maps wrapper to array). */
-  async listSnapshots(databaseId: string): Promise<Snapshot[]> {
+  async listSnapshots(database: string): Promise<Snapshot[]> {
     const res = await this.request<SnapshotListResponse>(
-      `/api/v1/databases/${databaseId}/snapshots`
+      `/api/v1/databases/${database}/snapshots`
     );
     return res.snapshots;
   }
@@ -293,23 +357,21 @@ export class KuzuEventBusClient {
    * 
    * **WARNING**: This overwrites current database content!
    * 
-   * @param databaseId - Database to restore
+   * @param database - Database ID (UUID) or name
    * @param snapshotId - Snapshot ID to restore from
-   * @returns Promise that resolves when restoration completes
+   * @returns Restore confirmation
    * @throws {Error} If snapshot not found or restoration fails
    * 
    * @example
    * ```typescript
-   * // Restore to previous state
-   * await client.restoreSnapshot('db-123', 'snap-abc456');
-   * console.log('Database restored successfully');
+   * await client.restoreSnapshot('my-db', 'snap-abc456');
    * ```
    */
   async restoreSnapshot(
-    databaseId: string,
+    database: string,
     snapshotId: string
   ): Promise<RestoreResponse> {
-    return this.request<RestoreResponse>(`/api/v1/databases/${databaseId}/restore`, {
+    return this.request<RestoreResponse>(`/api/v1/databases/${database}/restore`, {
       method: 'POST',
       body: JSON.stringify({ snapshot_id: snapshotId }),
     });

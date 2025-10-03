@@ -48,6 +48,8 @@ const client = createKuzuClient({
 
 ### Gestion des bases de données
 
+**Note**: Toutes les opérations acceptent le **nom de la base** ou son **UUID**.
+
 ```typescript
 // Lister toutes les bases
 const databases = await client.listDatabases();
@@ -55,11 +57,14 @@ const databases = await client.listDatabases();
 // Créer une base
 const db = await client.createDatabase('my-graph-db');
 
-// Obtenir les détails
-const dbInfo = await client.getDatabase(db.id);
+// Obtenir les détails (par nom)
+const dbInfo = await client.getDatabase('my-graph-db');
 
-// Supprimer une base
-await client.deleteDatabase(db.id);
+// Ou par UUID
+const dbInfo2 = await client.getDatabase('550e8400-e29b-41d4-a716-446655440000');
+
+// Supprimer une base (par nom)
+await client.deleteDatabase('my-graph-db');
 ```
 
 ### Exécution de requêtes
@@ -68,7 +73,7 @@ await client.deleteDatabase(db.id);
 
 ```typescript
 // Soumettre une requête (retourne immédiatement)
-const job = await client.submitQuery(databaseId, {
+const job = await client.submitQuery('my-graph-db', {
   query: 'MATCH (n:Person) RETURN n LIMIT 10'
 });
 
@@ -76,38 +81,75 @@ const job = await client.submitQuery(databaseId, {
 const status = await client.getQueryStatus(job.transaction_id);
 if (status.status === 'completed') {
   const results = await client.getJobResults(job.transaction_id);
-  console.log('Résultats (rows):', results.results);
+  console.log('Résultats:', results.results);
 }
 ```
 
-#### Méthode 2: Attendre les résultats (avec polling)
+#### Méthode 2: Attendre les résultats (recommandé)
 
 ```typescript
 // Exécute et attend automatiquement (polling interne)
 const result = await client.executeQuery(
-  databaseId,
-  'MATCH (n:Person) RETURN n.name, n.age',
+  'my-graph-db',
+  'MATCH (n:Person) WHERE n.age > $minAge RETURN n.name, n.age',
   {
     parameters: { minAge: 18 },
     pollInterval: 500,  // Vérifier toutes les 500ms
     timeout: 30000      // Timeout après 30s
   }
 );
-console.log('Résultats (rows):', result.results);
+console.log('Résultats:', result.results);
 ```
 
 ### Snapshots
 
 ```typescript
-// Créer un snapshot
-const snapshot = await client.createSnapshot(databaseId);
+// Créer un snapshot (backup complet)
+const snapshot = await client.createSnapshot('my-graph-db');
 
 // Lister les snapshots
-const snapshots = await client.listSnapshots(databaseId);
+const snapshots = await client.listSnapshots('my-graph-db');
 
 // Restaurer depuis un snapshot
-await client.restoreSnapshot(databaseId, snapshot.id);
+await client.restoreSnapshot('my-graph-db', snapshot.id);
 ```
+
+### ⏰ Time Travel (Point-in-Time Recovery)
+
+Le SDK offre une API simple pour voyager dans le temps. Le système **PITR automatique** suit toutes les modifications via snapshots + WAL, sans configuration manuelle.
+
+```typescript
+// 1. Explorer l'historique complet (auto-généré)
+const history = await client.timeTravel.viewHistory('my-db', {
+  from: 'yesterday',
+  includeQueries: true  // Voir les queries jouées
+});
+
+console.log('Timeline:', history.events);
+// → Snapshots automatiques, transactions, modifications...
+
+// 2. Prévisualiser AVANT de restaurer (non-destructif !)
+const preview = await client.timeTravel.preview('my-db', {
+  at: '2 hours ago',
+  query: 'MATCH (u:User) RETURN count(u)'
+});
+
+console.log('État à ce moment:', preview.queryResult);
+console.log('Transactions rejouées:', preview.metadata.transactionsReplayed);
+
+// 3. Voyager dans le temps (destructif - use preview first!)
+await client.timeTravel.goBackTo('my-db', '2 hours ago');
+```
+
+**Formats de temps supportés** :
+- ISO: `'2024-01-15T10:30:00Z'`
+- Relatif: `'yesterday'`, `'2 hours ago'`, `'3 days ago'`
+- Naturel: `'last week'`
+
+**Avantages** :
+- ✅ **Automatique** : Pas besoin de créer manuellement des points de restore
+- ✅ **Précis** : Restaurez à n'importe quel timestamp (à la seconde près)
+- ✅ **Preview** : Testez avant de restaurer (non-destructif)
 
 ### Événements temps réel (SSE)
 

@@ -76,6 +76,37 @@ router = APIRouter()
 db_logger = get_logger("database_operations")
 
 
+async def resolve_database_id(database_identifier: str, tenant_id: UUID) -> UUID:
+    """Resolve database identifier (UUID or name) to UUID.
+    
+    Accepts either a UUID string or a database name and returns the UUID.
+    This makes the API more user-friendly by allowing natural database names.
+    
+    Args:
+        database_identifier: Either a UUID string or database name
+        tenant_id: Tenant UUID for scoped name lookup
+        
+    Returns:
+        UUID of the database
+        
+    Raises:
+        HTTPException: 404 if database not found by name
+    """
+    # Try parsing as UUID first (fast path)
+    try:
+        return UUID(database_identifier)
+    except ValueError:
+        # Not a UUID, lookup by name within tenant scope
+        repo = PostgresDatabaseMetadataRepository()
+        db_meta = await repo.find_by_name(tenant_id=tenant_id, name=database_identifier)
+        if not db_meta:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Database '{database_identifier}' not found for this tenant"
+            )
+        return db_meta.id
+
+
 def get_provisioning_use_case() -> ProvisionTenantResourcesUseCase:
     """Provide provisioning use case with configured dependencies."""
     bucket_service: BucketProvisioningService = MinioBucketProvisioningAdapter()
@@ -322,7 +353,9 @@ async def list_pitr_bookmarks(
     ctx: RequestContext = Depends(get_request_context),
 ) -> dict:
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         repo = bookmark_repository()
         items = await repo.list_by_database(ctx.tenant_id, dbid)
         return {"database_id": database_id, "bookmarks": items}
@@ -340,7 +373,9 @@ async def create_pitr_bookmark(
     ctx: RequestContext = Depends(get_request_context),
 ) -> dict:
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         repo = bookmark_repository()
         _ = await repo.add(
             tenant_id=ctx.tenant_id,
@@ -363,7 +398,9 @@ async def delete_pitr_bookmark(
     ctx: RequestContext = Depends(get_request_context),
 ) -> dict:
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         repo = bookmark_repository()
         ok = await repo.delete(ctx.tenant_id, dbid, name)
         return {"deleted": ok}
@@ -399,7 +436,10 @@ async def get_database_pitr(
     try:
         from datetime import datetime
 
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         start_dt = datetime.fromisoformat(start.replace("Z", "+00:00")) if start else None
         end_dt = datetime.fromisoformat(end.replace("Z", "+00:00")) if end else None
         target_dt = datetime.fromisoformat(target.replace("Z", "+00:00")) if target else None
@@ -448,7 +488,9 @@ async def create_database_snapshot(
 ) -> SnapshotResponse:
     db_logger.info("Create snapshot requested", database_id=database_id, tenant_id=str(ctx.tenant_id))
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         res = await uc.execute(CreateDatabaseSnapshotRequest(tenant_id=ctx.tenant_id, database_id=dbid))
         return SnapshotResponse(
             id=str(res.snapshot_id),
@@ -479,7 +521,9 @@ async def list_database_snapshots(
 ) -> SnapshotListResponse:
     db_logger.info("List snapshots requested", database_id=database_id, tenant_id=str(ctx.tenant_id))
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         items = await uc.execute(ListDatabaseSnapshotsRequest(tenant_id=ctx.tenant_id, database_id=dbid))
         snapshots = [
             SnapshotResponse(
@@ -525,7 +569,9 @@ async def restore_database_from_snapshot(
         snapshot_id=payload.snapshot_id,
     )
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         res = await uc.execute(
             RestoreDatabaseFromSnapshotRequest(
                 tenant_id=ctx.tenant_id,
@@ -571,7 +617,9 @@ async def upload_database_file(
         file_name=payload.file_name,
     )
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         try:
             content_bytes = base64.b64decode(payload.file_content_base64)
         except Exception as e:  # noqa: BLE001
@@ -664,6 +712,15 @@ async def create_database(
 ) -> DatabaseResponse:
     db_logger.info("Database creation requested", tenant_id=str(ctx.tenant_id), name=create_request.name)
     try:
+        # Validate: ensure database name is unique within tenant
+        repo = PostgresDatabaseMetadataRepository()
+        existing = await repo.find_by_name(tenant_id=ctx.tenant_id, name=create_request.name)
+        if existing:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Database '{create_request.name}' already exists for this tenant"
+            )
+        
         req = ProvisionTenantResourcesRequest(tenant_id=ctx.tenant_id, database_name=create_request.name)
         res = await use_case.execute(req)
         return DatabaseResponse(
@@ -701,7 +758,9 @@ async def get_database(
 ) -> DatabaseResponse:
     db_logger.info("Database lookup requested", database_id=database_id, tenant_id=str(ctx.tenant_id))
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         info = await uc.execute(GetKuzuDatabaseInfoRequest(tenant_id=ctx.tenant_id, database_id=dbid))
         if not info:
             raise HTTPException(status_code=404, detail="Database not found")
@@ -739,7 +798,9 @@ async def delete_database(
 ) -> dict:
     db_logger.info("Database deletion requested", database_id=database_id, tenant_id=str(ctx.tenant_id))
     try:
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         ok = await uc.execute(DeleteKuzuDatabaseRequest(tenant_id=ctx.tenant_id, database_id=dbid))
         if not ok:
             raise HTTPException(status_code=404, detail="Database not found")
@@ -783,7 +844,9 @@ async def preview_database_pitr(
     
     try:
         from datetime import datetime
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         target_dt = datetime.fromisoformat(target_timestamp.replace("Z", "+00:00"))
         
         res = await uc.execute(
@@ -847,7 +910,10 @@ async def restore_database_pitr(
     try:
         from datetime import datetime, timezone
         
-        dbid = UUID(database_id)
+        # Accept UUID or database name
+
+        
+        dbid = await resolve_database_id(database_id, ctx.tenant_id)
         target_dt = datetime.fromisoformat(target_timestamp.replace("Z", "+00:00"))
         
         res = await uc.execute(

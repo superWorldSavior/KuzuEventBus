@@ -1,82 +1,111 @@
-# Publishing the SDK to npm
+# Publishing the SDK
 
-## Prerequisites
+## 🎯 Options de Publication
 
-1. Create an npm account at https://npmjs.com
-2. Login locally: `npm login`
+Le SDK `@kuzu-eventbus/sdk` v0.2.0 peut être publié de 3 façons :
 
-## Steps to Publish
+### 1. 🆓 GitHub Packages (Recommandé - Privé Gratuit)
+### 2. 📦 npm Registry Public (Gratuit - Tout public)
+### 3. 💰 npm Registry Privé (Payant - ~$7/mois)
+
+---
+
+## ✅ Option 1: GitHub Packages (Privé Gratuit)
+
+**Avantages**: Privé par défaut, gratuit, intégré GitHub
+
+### Étapes
 
 ```bash
 cd sdk/typescript
 
-# 1. Install dependencies
-npm install
+# 1. Créer un GitHub Personal Access Token
+# Aller sur: https://github.com/settings/tokens/new
+# Permissions requises: write:packages, read:packages
 
-# 2. Build the SDK
+# 2. Configurer .npmrc (copier depuis .npmrc.example)
+cp .npmrc.example .npmrc
+# Éditer .npmrc et remplacer YOUR_GITHUB_TOKEN par ton token
+
+# 3. Build
+npm install
 npm run build
 
-# 3. Test the build
-npm pack  # Creates a .tgz file to verify content
+# 4. Publier
+npm publish
 
-# 4. Publish to npm (first time)
-npm publish --access public
-
-# 5. For updates, increment version first
-npm version patch  # 0.1.0 -> 0.1.1
+# 5. Pour les mises à jour
+npm version patch  # 0.2.0 -> 0.2.1
 npm publish
 ```
 
-## Usage After Publishing
+### Installation (Utilisateurs)
 
-Users can install via:
+Les utilisateurs doivent configurer npm pour lire depuis GitHub Packages :
 
 ```bash
+# Dans le projet qui veut installer le SDK
+echo "@kuzu-eventbus:registry=https://npm.pkg.github.com" >> .npmrc
+
+# Puis installer
 npm install @kuzu-eventbus/sdk
 ```
 
-## Alternative: Install from Git
+---
 
-If you don't want to publish to npm, users can install directly from GitHub:
+## 📦 Option 2: npm Public (Gratuit)
+
+**Avantages**: Simple, accessible partout
+**Inconvénient**: Tout le monde peut voir et installer
 
 ```bash
-# Install from main branch
-npm install github:YOUR_USERNAME/KuzuEventBus#main:sdk/typescript
+cd sdk/typescript
 
-# Or specific tag
-npm install github:YOUR_USERNAME/KuzuEventBus#v0.1.0:sdk/typescript
+# 1. Login npm
+npm login
+
+# 2. Build
+npm install
+npm run build
+
+# 3. Publier en public
+npm publish --access public
+
+# Installation (tout le monde)
+npm install @kuzu-eventbus/sdk
 ```
 
-## Alternative: Private npm Registry
+---
 
-For private projects, use a private registry like:
-- Verdaccio (self-hosted)
-- GitHub Packages
-- npm private packages
+## 💰 Option 3: npm Privé
 
-### GitHub Packages Example
+**Coût**: ~$7/mois pour organisation npm privée
 
-1. Update package.json:
-```json
-{
-  "name": "@YOUR_USERNAME/kuzu-eventbus-sdk",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  }
-}
-```
-
-2. Authenticate with GitHub token:
 ```bash
-echo "//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN" >> ~/.npmrc
+# 1. Créer org npm privée sur npmjs.com
+# 2. Login
+npm login
+
+# 3. Publier (privé par défaut pour scoped packages)
+npm publish --access restricted
 ```
 
-3. Publish:
+---
+
+## 🔗 Option 4: Installation depuis Git (Sans Registry)
+
+**Le plus simple pour démarrer** - pas besoin de publier :
+
 ```bash
-npm publish
+# Dans ton projet
+npm install git+https://github.com/YOUR_ORG/KuzuEventBus.git#main:sdk/typescript
+
+# Ou avec un tag spécifique
+npm install git+https://github.com/YOUR_ORG/KuzuEventBus.git#sdk-v0.2.0:sdk/typescript
 ```
 
-4. Install in projects:
+**Pour créer un tag de release** :
 ```bash
-npm install @YOUR_USERNAME/kuzu-eventbus-sdk
+git tag sdk-v0.2.0
+git push origin sdk-v0.2.0
 ```

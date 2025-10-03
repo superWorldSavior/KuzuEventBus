@@ -1,6 +1,6 @@
 {
   "name": "@kuzu-eventbus/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "TypeScript SDK for Kuzu Event Bus API",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -19,6 +19,9 @@
     "type": "git",
     "url": "https://github.com/YOUR_USERNAME/KuzuEventBus.git",
     "directory": "sdk/typescript"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   },
   "keywords": ["kuzu", "graph-database", "sdk", "typescript", "cypher"],
   "author": "",

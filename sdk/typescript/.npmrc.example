@@ -1,0 +1,5 @@
+# Configuration pour GitHub Packages
+# Copier vers .npmrc et remplacer YOUR_GITHUB_TOKEN
+
+//npm.pkg.github.com/:_authToken=YOUR_GITHUB_TOKEN
+@kuzu-eventbus:registry=https://npm.pkg.github.com

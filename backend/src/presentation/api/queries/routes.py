@@ -18,6 +18,7 @@ from src.infrastructure.dependencies import (
     transaction_repository,
     query_catalog_repository,
 )
+from src.infrastructure.database.database_metadata_repository import PostgresDatabaseMetadataRepository
 from src.application.usecases.submit_async_query import (
     SubmitAsyncQueryUseCase,
     SubmitAsyncQueryRequest,
@@ -33,6 +34,32 @@ from datetime import datetime, timedelta, timezone
 
 router = APIRouter(prefix="/databases", tags=["queries"])
 jobs_router = APIRouter(prefix="/jobs", tags=["jobs"])  # mounted at /api/v1/jobs
+
+
+async def resolve_database_id(database_identifier: str, tenant_id: UUID) -> UUID:
+    """Resolve database identifier (UUID or name) to UUID.
+    
+    Args:
+        database_identifier: Either a UUID string or database name
+        tenant_id: Tenant UUID for scoped name lookup
+        
+    Returns:
+        UUID of the database
+        
+    Raises:
+        HTTPException: 404 if database not found by name
+    """
+    try:
+        return UUID(database_identifier)
+    except ValueError:
+        repo = PostgresDatabaseMetadataRepository()
+        db_meta = await repo.find_by_name(tenant_id=tenant_id, name=database_identifier)
+        if not db_meta:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Database '{database_identifier}' not found for this tenant"
+            )
+        return db_meta.id
 
 # Route unique: on envoie dans la queue et on répond 202 avec transaction_id
 @router.post(
@@ -51,14 +78,17 @@ jobs_router = APIRouter(prefix="/jobs", tags=["jobs"])  # mounted at /api/v1/job
     },
 )
 async def execute_query(
-    database_id: UUID,
+    database_id: str,  # Accept UUID or database name
     request_model: QueryRequest,
     ctx: RequestContext = Depends(get_request_context),
 ) -> QuerySubmitResponse:
+    # Resolve database identifier to UUID
+    dbid = await resolve_database_id(database_id, ctx.tenant_id)
+    
     logger.bind(
         event="query_submit",
         tenant_id=str(ctx.tenant_id),
-        database_id=str(database_id),
+        database_id=str(dbid),
         timeout_s=request_model.timeout_seconds,
     ).info("Submitting async query")
     usecase = SubmitAsyncQueryUseCase(
@@ -68,7 +98,7 @@ async def execute_query(
     )
     req = SubmitAsyncQueryRequest(
         tenant_id=ctx.tenant_id,
-        database_id=database_id,
+        database_id=dbid,
         query=request_model.query,
         parameters=request_model.parameters,
         timeout_seconds=request_model.timeout_seconds,
@@ -90,14 +120,17 @@ async def execute_query(
     summary="Lister les requêtes les plus utilisées (hors favoris)",
 )
 async def list_popular_queries(
-    database_id: UUID,
+    database_id: str,  # Accept UUID or database name
     limit: int = 10,
     ctx: RequestContext = Depends(get_request_context),
 ) -> list[PopularQueryItem]:
+    # Resolve database identifier to UUID
+    dbid = await resolve_database_id(database_id, ctx.tenant_id)
+    
     repo = query_catalog_repository()
     items = await repo.list_most_used(
         tenant_id=ctx.tenant_id,
-        database_id=database_id,
+        database_id=dbid,
         limit=min(max(1, limit), 50),
     )
     return [
@@ -117,13 +150,16 @@ async def list_popular_queries(
     summary="Lister les requêtes favorites",
 )
 async def list_favorites(
-    database_id: UUID,
+    database_id: str,  # Accept UUID or database name
     ctx: RequestContext = Depends(get_request_context),
 ) -> list[FavoriteQueryItem]:
+    # Resolve database identifier to UUID
+    dbid = await resolve_database_id(database_id, ctx.tenant_id)
+    
     repo = query_catalog_repository()
     items = await repo.list_favorites(
         tenant_id=ctx.tenant_id,
-        database_id=database_id,
+        database_id=dbid,
     )
     return [
         FavoriteQueryItem(
@@ -141,10 +177,12 @@ async def list_favorites(
     summary="Ajouter une requête aux favoris (max 10)",
 )
 async def add_favorite(
-    database_id: UUID,
+    database_id: str,  # Accept UUID or database name
     body: AddFavoriteRequest,
     ctx: RequestContext = Depends(get_request_context),
 ) -> FavoriteQueryItem:
+    # Resolve database identifier to UUID
+    dbid = await resolve_database_id(database_id, ctx.tenant_id)
     repo = query_catalog_repository()
     try:
         qt = QueryText(body.query)
@@ -155,7 +193,7 @@ async def add_favorite(
     try:
         await repo.add_favorite(
             tenant_id=ctx.tenant_id,
-            database_id=database_id,
+            database_id=dbid,
             query_text=qt.value,
             query_hash=qh.value,
         )
@@ -176,10 +214,12 @@ async def add_favorite(
     summary="Supprimer une requête des favoris",
 )
 async def remove_favorite(
-    database_id: UUID,
+    database_id: str,  # Accept UUID or database name
     query_hash: str,
     ctx: RequestContext = Depends(get_request_context),
 ) -> RemoveFavoriteResponse:
+    # Resolve database identifier to UUID
+    dbid = await resolve_database_id(database_id, ctx.tenant_id)
     # Normalize + basic validation via VO
     try:
         qh = QueryHash(query_hash.strip().lower())
@@ -189,7 +229,7 @@ async def remove_favorite(
     repo = query_catalog_repository()
     removed = await repo.remove_favorite(
         tenant_id=ctx.tenant_id,
-        database_id=database_id,
+        database_id=dbid,
         query_hash=qh.value,
     )
     return RemoveFavoriteResponse(removed=removed)

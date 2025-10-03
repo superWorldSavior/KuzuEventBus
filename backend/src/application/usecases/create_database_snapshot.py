@@ -75,17 +75,48 @@ class CreateDatabaseSnapshotUseCase:
             p = Path(file_path)
             ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 
-            # If Kuzu database path is a directory, create a tar.gz snapshot
-            if p.is_dir():
+            # Local helper: find the actual .kuzu DB path
+            def find_kuzu_db_path(path: Path) -> Path:
+                # Case 1: direct file *.kuzu
+                if path.is_file() and path.suffix == ".kuzu":
+                    return path
+                # Case 2: directory named *.kuzu (Kuzu DB folder)
+                if path.is_dir() and path.suffix == ".kuzu":
+                    return path
+                # Case 3: search recursively
+                if path.is_dir():
+                    for sub in path.rglob("*.kuzu"):
+                        if sub.is_file() or sub.is_dir():
+                            return sub
+                raise FileNotFoundError("No .kuzu file or directory found for snapshot")
+
+            # Construire un tar.gz NORMALISÉ:
+            # <database_id>/data.kuzu
+            from tempfile import mkdtemp
+            import shutil
+
+            db_path = find_kuzu_db_path(p)
+            tmp_parent = Path(mkdtemp(prefix="snapshot_stage_"))
+            try:
+                root_dir = tmp_parent / str(req.database_id)
+                root_dir.mkdir(parents=True, exist_ok=True)
+                # Copy DB: if it's a dir, copytree; if file, copy2
+                if db_path.is_dir():
+                    shutil.copytree(str(db_path), str(root_dir / "data.kuzu"))
+                else:
+                    shutil.copy2(str(db_path), str(root_dir / "data.kuzu"))
+
                 buf = io.BytesIO()
                 with tarfile.open(fileobj=buf, mode="w:gz") as tar:
-                    # On met le répertoire racine sous son nom pour restauration simple
-                    tar.add(str(p), arcname=p.name)
+                    tar.add(str(root_dir), arcname=str(req.database_id))
                 data = buf.getvalue()
-                filename = f"snapshot-{ts}.tar.gz"
-            else:
-                data = p.read_bytes()
-                filename = f"snapshot-{ts}.kuzu"
+                filename = f"snapshots/snapshot-{ts}.tar.gz"
+            finally:
+                # Cleanup temporaire
+                try:
+                    shutil.rmtree(str(tmp_parent))
+                except Exception:
+                    pass
 
             size = len(data)
             checksum = sha256(data).hexdigest()

@@ -11,6 +11,9 @@ interface NavigationState {
   mobileMenuOpen: boolean;
   currentPath: string;
   breadcrumbs: Breadcrumb[];
+  selectedDatabaseId: string | null;
+  selectedPitrPoint: string | null;
+  currentAnchorTimestamp: string | null;
 }
 
 interface NavigationActions {
@@ -20,6 +23,9 @@ interface NavigationActions {
   toggleMobileMenu: () => void;
   setCurrentPath: (path: string) => void;
   setBreadcrumbs: (breadcrumbs: Breadcrumb[]) => void;
+  setSelectedDatabaseId: (id: string | null) => void;
+  setSelectedPitrPoint: (ts: string | null) => void;
+  setCurrentAnchorTimestamp: (ts: string | null) => void;
   reset: () => void;
 }
 
@@ -30,6 +36,9 @@ const initialState: NavigationState = {
   mobileMenuOpen: false,
   currentPath: "/",
   breadcrumbs: [],
+  selectedDatabaseId: null,
+  selectedPitrPoint: null,
+  currentAnchorTimestamp: null,
 };
 
 export const useNavigationStore = create<NavigationStore>()(
@@ -54,6 +63,12 @@ export const useNavigationStore = create<NavigationStore>()(
       setCurrentPath: (currentPath) => set({ currentPath }),
 
       setBreadcrumbs: (breadcrumbs) => set({ breadcrumbs }),
+
+      setSelectedDatabaseId: (selectedDatabaseId) => set({ selectedDatabaseId }),
+
+      setSelectedPitrPoint: (selectedPitrPoint) => set({ selectedPitrPoint }),
+
+      setCurrentAnchorTimestamp: (currentAnchorTimestamp) => set({ currentAnchorTimestamp }),
 
       reset: () => set(initialState),
     }),

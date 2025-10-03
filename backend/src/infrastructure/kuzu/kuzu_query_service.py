@@ -46,13 +46,11 @@ class KuzuQueryServiceAdapter(KuzuQueryService):
                 _ = result.get_next()
 
         await asyncio.to_thread(_run)
-
-        async def _empty() -> AsyncGenerator[Dict[str, Any], None]:
-            if False:  # pragma: no cover - shape-only empty generator
-                yield {}
-            return
-
-        return _empty()
+        # This function is an async generator by design to satisfy the port.
+        # It intentionally yields nothing (fire-and-forget semantics).
+        if False:  # pragma: no cover - maintain async generator shape
+            yield {}
+        return
 
     async def get_database_schema(self, database_path: str) -> Dict[str, Any]:
         # MVP placeholder – could introspect when adapter supports it

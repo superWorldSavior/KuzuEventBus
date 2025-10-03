@@ -476,6 +476,29 @@ export function useRestorePITR() {
     onSuccess: (_, { databaseId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.database(databaseId) });
       queryClient.invalidateQueries({ queryKey: ['database-snapshots', databaseId] });
+      queryClient.invalidateQueries({ queryKey: ['database-pitr', databaseId] });
     },
+  });
+}
+
+// PITR timeline hook
+export function useDatabasePitr(
+  databaseId: string,
+  params?: { start?: string; end?: string; window?: 'minute' | 'hour'; include_types?: boolean }
+) {
+  return useQuery({
+    queryKey: ['database-pitr', databaseId, params],
+    queryFn: async () => {
+      const qs = new URLSearchParams();
+      if (params?.start) qs.set('start', params.start);
+      if (params?.end) qs.set('end', params.end);
+      if (params?.window) qs.set('window', params.window);
+      if (params?.include_types !== undefined) qs.set('include_types', String(params.include_types));
+      const url = `/api/v1/databases/${databaseId}/pitr${qs.toString() ? `?${qs.toString()}` : ''}`;
+      const response = await apiClient.get(url);
+      return response.data;
+    },
+    enabled: !!databaseId,
+    staleTime: 30000,
   });
 }

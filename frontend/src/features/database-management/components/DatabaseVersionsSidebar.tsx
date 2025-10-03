@@ -5,10 +5,12 @@ import {
   CircleDashed,
   Play,
   Calendar,
+  Clock,
 } from "@phosphor-icons/react";
 import { Button } from "@/shared/ui/button";
 import { Badge } from "@/shared/ui/badge";
 import { cn } from "@/shared/lib";
+import { useDatabasePitr } from "@/shared/hooks/useApi";
 
 interface Snapshot {
   id: string;
@@ -28,6 +30,7 @@ interface DatabaseVersionsSidebarProps {
 }
 
 export function DatabaseVersionsSidebar({
+  databaseId,
   snapshots,
   isLoading,
   onCreateSnapshot,
@@ -36,6 +39,15 @@ export function DatabaseVersionsSidebar({
   className,
 }: DatabaseVersionsSidebarProps) {
   const [showPITRPicker, setShowPITRPicker] = useState(false);
+  const { data: pitrData, isLoading: isPitrLoading } = useDatabasePitr(databaseId, { window: 'hour' });
+  
+  // PITR points = WAL windows only (snapshots are used internally for restore)
+  const pitrPoints = (pitrData?.wal_windows || []).map((w: any) => ({ 
+    id: w.start,
+    timestamp: w.end, 
+    type: 'wal',
+    info: `${w.files} WAL files`
+  })).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -100,7 +112,7 @@ export function DatabaseVersionsSidebar({
 
       {/* Timeline */}
       <div className="p-4">
-        {isLoading ? (
+        {(isLoading || isPitrLoading) ? (
           <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
               <div key={i} className="animate-pulse">
@@ -133,40 +145,40 @@ export function DatabaseVersionsSidebar({
             </div>
 
             {/* Timeline Line */}
-            {snapshots.length > 0 && (
+            {pitrPoints.length > 0 && (
               <div className="absolute left-4 top-12 bottom-0 w-px bg-gray-200" />
             )}
 
-            {/* Snapshots */}
+            {/* PITR Points (snapshots + WAL windows) */}
             <div className="space-y-6">
-              {snapshots.map((snapshot, index) => (
-                <div key={snapshot.id} className="relative flex items-start space-x-3 group">
+              {pitrPoints.map((point, index) => (
+                <div key={point.id} className="relative flex items-start space-x-3 group">
                   {/* Timeline Dot */}
                   <div className="relative flex-shrink-0 z-10">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <Camera className="w-4 h-4 text-blue-600" />
+                      <Clock className="w-4 h-4 text-blue-600" />
                     </div>
                   </div>
 
-                  {/* Snapshot Info */}
+                  {/* Point Info */}
                   <div className="flex-1 min-w-0 bg-gray-50 rounded-lg p-3 group-hover:bg-gray-100 transition-colors">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2 mb-1">
                           <span className="text-sm font-medium text-gray-900">
-                            {formatDate(snapshot.created_at)}
+                            {formatDate(point.timestamp)}
                           </span>
                           {index === 0 && (
                             <Badge className="bg-blue-50 text-blue-700 text-xs">Latest</Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600">{formatTime(snapshot.created_at)}</p>
+                        <p className="text-xs text-gray-600">{formatTime(point.timestamp)}</p>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         className="opacity-0 group-hover:opacity-100 transition-opacity -mr-2 -mt-1"
-                        onClick={() => onRestoreSnapshot(snapshot.id)}
+                        onClick={() => onRestorePITR(new Date(point.timestamp))}
                       >
                         <Play className="w-3 h-3 mr-1" />
                         Restore
@@ -174,10 +186,7 @@ export function DatabaseVersionsSidebar({
                     </div>
                     
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>{formatSize(snapshot.size_bytes)}</span>
-                      <span className="font-mono text-[10px]" title={snapshot.checksum}>
-                        {snapshot.checksum.substring(0, 8)}
-                      </span>
+                      <span>{point.info}</span>
                     </div>
                   </div>
                 </div>
@@ -185,12 +194,12 @@ export function DatabaseVersionsSidebar({
             </div>
 
             {/* Empty State */}
-            {snapshots.length === 0 && (
+            {pitrPoints.length === 0 && (
               <div className="text-center py-8">
-                <Camera className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-600 mb-2">No snapshots yet</p>
+                <Clock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-600 mb-2">No restore points yet</p>
                 <p className="text-xs text-gray-500 mb-4">
-                  Create your first snapshot to enable version history
+                  Create a snapshot or execute queries to enable time travel
                 </p>
                 <Button size="sm" onClick={onCreateSnapshot}>
                   <Camera className="w-4 h-4 mr-1" />

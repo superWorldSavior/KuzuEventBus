@@ -218,6 +218,61 @@ InfrastructureException (Services) → 500 Internal Error (HTTP)
     (normalisation + hash). Opération non bloquante (fail-fast) qui n'empêche pas la
     création du job en cas d'échec d'écriture catalogue.
 
+- **GetQueryStatusUseCase** (`get_query_status.py`)
+  - Entrée: `{ tenant_id, transaction_id }`
+  - Sortie: `{ status, submitted_at, started_at, completed_at, result_count, error_message }`
+  - Ports: `TransactionRepository`
+
+- **GetQueryResultsUseCase** (`get_query_results.py`)
+  - Entrée: `{ tenant_id, transaction_id }`
+  - Sortie: `{ results: [...] }` (depuis cache, TTL 1h)
+  - Ports: `AuthorizationService`, `CacheService`, `TransactionRepository`
+
+- **GetQueryStatisticsUseCase** (`get_query_statistics.py`)
+  - Entrée: `{ tenant_id, transaction_id }`
+  - Sortie: `{ execution_time_ms?, rows? }`
+  - Ports: `TransactionRepository`
+
+- **ListQueryTransactionsUseCase** (`list_query_transactions.py`)
+  - Entrée: `{ tenant_id, database_id, limit?, status? }`
+  - Sortie: `[{ transaction_id, status, created_at, completed_at }]`
+  - Ports: `TransactionRepository`
+
+- **CancelQueryUseCase** (`cancel_query.py`)
+  - Entrée: `{ tenant_id, transaction_id }`
+  - Sortie: `{ cancelled: bool }`
+  - Ports: `MessageQueueService`, `TransactionRepository`
+
+- **ListKuzuDatabasesUseCase** (`list_kuzu_databases.py`)
+  - Entrée: `{ tenant_id }`
+  - Sortie: `[{ database_id, name, filesystem_path, created_at }]`
+  - Ports: `AuthorizationService`, `KuzuDatabaseRepository`
+
+- **CreateKuzuDatabaseUseCase** (`create_kuzu_database.py`)
+  - Entrée: `{ tenant_id, database_name }`
+  - Sortie: `{ database_id, filesystem_path, created_at }`
+  - Ports: `AuthorizationService`, `KuzuQueryService`, `KuzuDatabaseRepository`
+
+- **ListDatabasePITRUseCase** (`list_database_pitr.py`)
+  - Entrée: `{ tenant_id, database_id, start?, end?, window?, include_types?, target? }`
+  - Sortie: `{ snapshots, wal_files, wal_windows, plan? }`
+  - Ports: `SnapshotRepository`, `FileStorageService`
+
+- **RestoreDatabasePITRUseCase** (`restore_database_pitr.py`)
+  - Entrée: `{ tenant_id, database_id, target_timestamp }`
+  - Sortie: `{ restored, database_id, target_timestamp, snapshot_used?, wal_files_replayed, restored_at }`
+  - Ports: `AuthorizationService`, `KuzuDatabaseRepository`, `SnapshotRepository`, `FileStorageService`, `DistributedLockService`, `CacheService`
+
+- **CreateCustomerApiKeyUseCase** (`create_customer_api_key.py`)
+  - Entrée: `{ customer_id, key_name, permissions }`
+  - Sortie: `{ api_key }`
+  - Ports: `AuthenticationService`, `CustomerAccountRepository`
+
+- **UpdateCustomerSubscriptionStatusUseCase** (`update_customer_subscription_status.py`)
+  - Entrée: `{ customer_id, subscription_plan, status }`
+  - Sortie: `{ customer_id, status }`
+  - Ports: `CustomerAccountRepository`
+
 ### Query Catalog – Popular & Favorites
 
 - **ListPopularQueriesUseCase** (orchestration simple via routes)

@@ -21,7 +21,7 @@ from src.domain.shared.ports.database_management import (
     DatabaseMetadataRepository,
 )
 from src.infrastructure.database.minio_bucket_provisioning import MinioBucketProvisioningAdapter
-from src.infrastructure.database.kuzu_database_provisioning import KuzuDatabaseProvisioningAdapter
+from src.infrastructure.kuzu.kuzu_database_provisioning import KuzuDatabaseProvisioningAdapter
 from src.infrastructure.database.database_metadata_repository import PostgresDatabaseMetadataRepository
 from src.presentation.api.context.request_context import RequestContext, get_request_context
 from src.infrastructure.dependencies import (
@@ -78,10 +78,21 @@ def get_provisioning_use_case() -> ProvisionTenantResourcesUseCase:
     db_service: DatabaseProvisioningService = KuzuDatabaseProvisioningAdapter()
     metadata_repo: DatabaseMetadataRepository = PostgresDatabaseMetadataRepository()
     
+    # Create snapshot use case for initial snapshot
+    snapshot_uc = CreateDatabaseSnapshotUseCase(
+        authz=authorization_service(),
+        db_repo=kuzu_database_repository(),
+        storage=file_storage_service(),
+        snapshots=snapshot_repository(),
+        locks=lock_service(),
+        cache=cache_service(),
+    )
+    
     return ProvisionTenantResourcesUseCase(
         bucket_service=bucket_service,
         database_service=db_service,
         metadata_repository=metadata_repo,
+        snapshot_usecase=snapshot_uc,
     )
 
 

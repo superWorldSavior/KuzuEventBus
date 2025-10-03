@@ -181,6 +181,8 @@ make compose-down          # arrêter/supprimer les conteneurs
 - `GET  /api/v1/databases/{database_id}/snapshots` – lister les snapshots
 - `POST /api/v1/databases/{database_id}/restore` – restaurer (overwrite) un snapshot
 
+**⚡ Snapshot automatique** : Un snapshot initial est créé automatiquement lors du provisioning d'une nouvelle base de données. Cela garantit que la fonctionnalité PITR est disponible dès le départ sans intervention manuelle.
+
 ### PITR (Point-In-Time Recovery)
 - `GET  /api/v1/databases/{database_id}/pitr?start=&end=&window=&include_types=&target=` – timeline (snapshots + WAL) et plan (si `target`)
 - `POST /api/v1/databases/{database_id}/restore-pitr?target_timestamp=` – restaurer à un instant précis

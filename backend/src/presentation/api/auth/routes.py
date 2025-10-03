@@ -61,7 +61,7 @@ async def issue_sse_token(ctx: RequestContext = Depends(get_request_context)) ->
 # Simple dependency injection for register use case
 def get_register_uc() -> RegisterCustomerUseCase:
     from src.infrastructure.database.minio_bucket_provisioning import MinioBucketProvisioningAdapter
-    from src.infrastructure.database.kuzu_database_provisioning import KuzuDatabaseProvisioningAdapter
+    from src.infrastructure.kuzu.kuzu_database_provisioning import KuzuDatabaseProvisioningAdapter
     from src.infrastructure.database.database_metadata_repository import PostgresDatabaseMetadataRepository
     
     return RegisterCustomerUseCase(

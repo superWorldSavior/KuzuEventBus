@@ -29,11 +29,19 @@ def mock_authz():
 
 @pytest.fixture
 def mock_db_repo(tenant_id, tmp_path):
+    # Create the database directory structure
+    db_dir = tmp_path / "tenant" / "database"
+    db_dir.mkdir(parents=True, exist_ok=True)
+    db_path = db_dir / "data.kuzu"
+    # Create a dummy database file
+    db_path.write_text("dummy kuzu db")
+    
     repo = AsyncMock()
     repo.find_by_id = AsyncMock(return_value={
         "id": "db-123",
         "tenant_id": str(tenant_id),  # Use the actual tenant_id from fixture
-        "file_path": str(tmp_path / "test.kuzu"),  # Use pytest tmp_path
+        "file_path": str(db_path),  # Full path to data.kuzu
+        "path": str(db_path),  # Alternative field name
         "name": "test-db",
     })
     return repo
@@ -81,15 +89,31 @@ def mock_cache():
 
 
 @pytest.fixture
-def use_case(mock_authz, mock_db_repo, mock_snapshots_repo, mock_storage, mock_locks, mock_cache):
-    return RestoreDatabasePITRUseCase(
+def mock_kuzu():
+    """Mock KuzuQueryService for WAL replay."""
+    kuzu = AsyncMock()
+    # execute_query returns an async generator
+    async def mock_execute():
+        yield {}
+    kuzu.execute_query = AsyncMock(return_value=mock_execute())
+    return kuzu
+
+
+@pytest.fixture
+def use_case(mock_authz, mock_db_repo, mock_snapshots_repo, mock_storage, mock_locks, mock_cache, mock_kuzu):
+    uc = RestoreDatabasePITRUseCase(
         authz=mock_authz,
         db_repo=mock_db_repo,
         snapshots=mock_snapshots_repo,
         storage=mock_storage,
         locks=mock_locks,
         cache=mock_cache,
+        kuzu=mock_kuzu,
     )
+    # Mock the internal _restore_snapshot method to avoid filesystem complexity in tests
+    uc._restore_snapshot = AsyncMock(return_value=None)
+    uc._replay_wal_files = AsyncMock(return_value=0)
+    return uc
 
 
 class TestRestoreDatabasePITR:
@@ -192,7 +216,8 @@ class TestRestoreDatabasePITR:
             "created_at": snapshot_time.isoformat(),
             "object_key": "snapshot.tar.gz",
         }]
-        mock_storage.download_database.side_effect = Exception("Download failed")
+        # Configure the mocked _restore_snapshot to raise an exception for this test
+        use_case._restore_snapshot.side_effect = Exception("Restore failed")
         
         request = RestoreDatabasePITRRequest(
             tenant_id=tenant_id,

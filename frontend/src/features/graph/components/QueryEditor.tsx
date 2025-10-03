@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Editor from "@monaco-editor/react";
 import { Play, CircleNotch } from "@phosphor-icons/react";
 import { Button } from "@/shared/ui/button";
@@ -7,6 +7,7 @@ type Props = {
   databaseId: string | null;
   onExecute?: (query: string) => void;
   isExecuting?: boolean;
+  externalQuery?: string | null;
 };
 
 const DEFAULT_QUERY = `// Write your Cypher query here
@@ -14,8 +15,15 @@ MATCH (n)
 RETURN n
 LIMIT 10`;
 
-export function QueryEditor({ databaseId, onExecute, isExecuting = false }: Props) {
+export function QueryEditor({ databaseId, onExecute, isExecuting = false, externalQuery = null }: Props) {
   const [query, setQuery] = useState(DEFAULT_QUERY);
+
+  // Sync with external query (e.g., when selecting a node on the timeline)
+  useEffect(() => {
+    if (typeof externalQuery === 'string') {
+      setQuery(externalQuery);
+    }
+  }, [externalQuery]);
 
   const handleExecute = () => {
     if (onExecute && query.trim()) {

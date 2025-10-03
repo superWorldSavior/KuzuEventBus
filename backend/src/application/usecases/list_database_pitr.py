@@ -49,8 +49,10 @@ class ListDatabasePITRUseCase:
         if not allowed:
             raise PermissionError("Not authorized to read database PITR timeline")
 
-        start = req.start or datetime.min.replace(tzinfo=timezone.utc)
-        end = req.end or datetime.max.replace(tzinfo=timezone.utc)
+        # Use reasonable defaults instead of datetime.min/max which have timezone issues
+        now = datetime.now(tz=timezone.utc)
+        start = req.start or (now.replace(year=now.year - 1))  # Default: 1 year ago
+        end = req.end or now  # Default: now
 
         # 1) Snapshots
         snaps = await self._snapshots.list_by_database(req.database_id)

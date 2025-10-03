@@ -94,10 +94,13 @@ Restaurer une base Kuzu à un timestamp précis en combinant:
 
 ### Conventions de stockage
 - Snapshots MinIO:
-  - `tenants/{tenant_id}/{database_id}/snapshots/{snapshot_id}.tar.gz` (répertoire) ou `.kuzu` (fichier)
+  - `tenants/{tenant_id}/{database_id}/snapshot-YYYYMMDDThhmmssZ.tar.gz`
+  - Format: tar.gz contenant `{database_id}/data.kuzu/` (répertoire complet)
+  - **⚡ Snapshot automatique**: Un snapshot initial vide est créé automatiquement lors du provisioning d'une nouvelle base (depuis 2025-10-02). Cela garantit que PITR fonctionne dès le départ sans nécessiter de snapshot manuel.
 - WAL MinIO:
   - `tenants/{tenant_id}/{database_id}/wal/wal-YYYYMMDDThhmmssZ.log`
   - Contenu: JSON lines `{"ts","query","parameters"}` (MVP: `parameters` facultatif)
+  - Création automatique par le worker pour toutes les requêtes mutantes (CREATE, MERGE, DELETE, etc.)
 
 ### Verrous
 - `db:{database_id}:pitr_restore` (exclusivité pendant PITR)

@@ -1,8 +1,13 @@
 """SQLAlchemy models for persisted customer accounts."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from uuid import uuid4
+
+
+def utc_now():
+    """Return current UTC timestamp (timezone-aware)."""
+    return datetime.now(timezone.utc)
 
 from sqlalchemy import (
     Boolean,
@@ -32,8 +37,8 @@ class CustomerAccountModel(Base):
     tenant_name = Column(String(50), unique=True, nullable=False, index=True)
     admin_email = Column(String(255), nullable=False, index=True)
     api_key = Column(String(255), unique=True, nullable=False, index=True)
-    api_key_created_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
-    api_key_last_used = Column(DateTime(timezone=False), nullable=True)
+    api_key_created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+    api_key_last_used = Column(DateTime(timezone=True), nullable=True)
     api_key_active = Column(Boolean, nullable=False, default=True)
     password_hash = Column(String(255), nullable=False)
     status = Column(String(20), nullable=False, default="trial")
@@ -41,13 +46,13 @@ class CustomerAccountModel(Base):
     storage_quota_mb = Column(Float, nullable=False, default=100.0)
     max_databases = Column(Integer, nullable=False, default=3)
     max_concurrent_queries = Column(Integer, nullable=False, default=5)
-    subscription_started_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
-    subscription_expires_at = Column(DateTime(timezone=False), nullable=True)
+    subscription_started_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+    subscription_expires_at = Column(DateTime(timezone=True), nullable=True)
     current_storage_usage_mb = Column(Float, nullable=False, default=0.0)
     database_count = Column(Integer, nullable=False, default=0)
-    created_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
-    last_login = Column(DateTime(timezone=False), nullable=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+    updated_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
+    last_login = Column(DateTime(timezone=True), nullable=True)
     organization_name = Column(String(100), nullable=True, default="default")
 
     __table_args__ = (
@@ -67,7 +72,7 @@ class KuzuDatabaseModel(Base):
     tenant_id = Column(PG_UUID(as_uuid=True), nullable=False)
     name = Column(Text, nullable=False)
     filesystem_path = Column(Text, nullable=False)
-    created_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
 
     __table_args__ = (
         UniqueConstraint("tenant_id", "name", name="uq_kuzu_databases_tenant_name"),
@@ -84,7 +89,7 @@ class QueryUsageModel(Base):
     query_hash = Column(Text, nullable=False)
     query_text = Column(Text, nullable=False)
     usage_count = Column(Integer, nullable=False, default=0)
-    last_used_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
+    last_used_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
 
     __table_args__ = (
         PrimaryKeyConstraint("tenant_id", "database_id", "query_hash", name="pk_query_usage"),
@@ -107,7 +112,7 @@ class QueryFavoriteModel(Base):
     database_id = Column(PG_UUID(as_uuid=True), nullable=False)
     query_hash = Column(Text, nullable=False)
     query_text = Column(Text, nullable=False)
-    created_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
 
     __table_args__ = (
         PrimaryKeyConstraint("tenant_id", "database_id", "query_hash", name="pk_query_favorites"),
@@ -126,7 +131,7 @@ class KuzuDbSnapshotModel(Base):
     object_key = Column(Text, nullable=False)
     checksum = Column(Text, nullable=False)
     size_bytes = Column(BigInteger, nullable=False)
-    created_at = Column(DateTime(timezone=False), nullable=False, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=utc_now)
 
     __table_args__ = (
         UniqueConstraint("database_id", "object_key", name="uq_snapshots_db_key"),

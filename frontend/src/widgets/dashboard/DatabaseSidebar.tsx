@@ -1,40 +1,20 @@
-import { useState } from "react";
-import { Database, ClockCounterClockwise } from "@phosphor-icons/react";
-import { Button } from "@/shared/ui/button";
-import { useToast } from "@/shared/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { Database } from "@phosphor-icons/react";
 import { useDatabases } from "@/shared/hooks/useApi";
-import { apiClient } from "@/shared/api/client";
 import { cn } from "@/shared/lib";
 
 export function DatabaseSidebar() {
   const [selectedDb, setSelectedDb] = useState<string>("");
-  const [targetTimestamp, setTargetTimestamp] = useState<string>("");
-  const [isRestoring, setIsRestoring] = useState(false);
   const { data: databases = [], isLoading } = useDatabases();
-  const { toast } = useToast();
+  
+  // Auto-select first database on mount
+  useEffect(() => {
+    if (!selectedDb && databases.length > 0) {
+      setSelectedDb(databases[0].id);
+    }
+  }, [databases, selectedDb]);
 
   const selectedDatabase = databases.find((db: any) => db.id === selectedDb);
-
-  const handleRestore = async () => {
-    if (!selectedDb || !targetTimestamp) {
-      toast.error("Select a timestamp to restore");
-      return;
-    }
-
-    setIsRestoring(true);
-    try {
-      await apiClient.post(
-        `/api/v1/databases/${selectedDb}/restore-pitr?target_timestamp=${encodeURIComponent(targetTimestamp)}`
-      );
-      
-      toast.success(`✅ Database restored to ${targetTimestamp}`);
-      setTargetTimestamp("");
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || err.message);
-    } finally {
-      setIsRestoring(false);
-    }
-  };
 
   return (
     <div className="w-64 border-r border-gray-200 bg-white flex flex-col h-screen sticky top-0">
@@ -90,43 +70,7 @@ export function DatabaseSidebar() {
         )}
       </div>
 
-      {/* PITR Section */}
-      {selectedDb && selectedDatabase && (
-        <div className="border-t border-gray-200 p-4 space-y-3 bg-gray-50">
-          <div className="flex items-center gap-2">
-            <ClockCounterClockwise className="w-4 h-4 text-blue-600" />
-            <h4 className="font-semibold text-xs uppercase text-gray-600">Time Travel</h4>
-          </div>
-
-          {/* Timeline */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs">
-              <div className="w-2 h-2 rounded-full bg-green-500"></div>
-              <span className="text-gray-600">Now</span>
-            </div>
-            
-            <input
-              type="datetime-local"
-              value={targetTimestamp.replace(":00Z", "")}
-              onChange={(e) => setTargetTimestamp(e.target.value + ":00Z")}
-              className="w-full text-xs px-2 py-1.5 border rounded"
-              placeholder="Select restore point"
-            />
-          </div>
-
-          {targetTimestamp && (
-            <Button
-              onClick={handleRestore}
-              disabled={isRestoring}
-              className="w-full"
-              size="sm"
-            >
-              <ClockCounterClockwise className="w-3 h-3 mr-1" />
-              {isRestoring ? "Restoring..." : "Restore"}
-            </Button>
-          )}
-        </div>
-      )}
+      {/* PITR Section removed intentionally – handled in vertical timeline on Dashboard */}
     </div>
   );
 }

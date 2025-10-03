@@ -1,4 +1,4 @@
-import { useState } from "react";
+ 
 import { NavLink, useLocation } from "react-router-dom";
 import {
   House,
@@ -8,14 +8,10 @@ import {
   Gear,
   CaretLeft,
   X,
-  ClockCounterClockwise,
 } from "@phosphor-icons/react";
 import { cn } from "@/shared/lib";
 import { useNavigationStore, navigationItems } from "@/app/stores/navigation";
 import { useDatabases } from "@/shared/hooks/useApi";
-import { useToast } from "@/shared/hooks/use-toast";
-import { apiClient } from "@/shared/api/client";
-import { Button } from "@/shared/ui/button";
 
 const iconMap = {
   Home: House,
@@ -31,38 +27,11 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
-  const { sidebarCollapsed, mobileMenuOpen, toggleSidebar, setMobileMenuOpen } =
+  const { sidebarCollapsed, mobileMenuOpen, toggleSidebar, setMobileMenuOpen, selectedDatabaseId, setSelectedDatabaseId } =
     useNavigationStore();
   const { data: databases = [], isLoading } = useDatabases();
-  const { toast } = useToast();
-  const [selectedDb, setSelectedDb] = useState<string>("");
-  const [targetTimestamp, setTargetTimestamp] = useState<string>("");
-  const [isRestoring, setIsRestoring] = useState(false);
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
-  
-  const selectedDatabase = databases.find((db: any) => db.id === selectedDb);
-
-  const handleRestore = async () => {
-    if (!selectedDb || !targetTimestamp) {
-      toast.error("Select a timestamp to restore");
-      return;
-    }
-
-    setIsRestoring(true);
-    try {
-      await apiClient.post(
-        `/api/v1/databases/${selectedDb}/restore-pitr?target_timestamp=${encodeURIComponent(targetTimestamp)}`
-      );
-      
-      toast.success(`✅ Database restored to ${targetTimestamp}`);
-      setTargetTimestamp("");
-    } catch (err: any) {
-      toast.error(err.response?.data?.detail || err.message);
-    } finally {
-      setIsRestoring(false);
-    }
-  };
 
   return (
     <>
@@ -148,10 +117,10 @@ export function Sidebar({ className }: SidebarProps) {
               databases.map((db: any) => (
                 <button
                   key={db.id}
-                  onClick={() => setSelectedDb(db.id)}
+                  onClick={() => setSelectedDatabaseId(db.id)}
                   className={cn(
                     "w-full text-left px-3 py-2 rounded-md transition-all text-sm",
-                    selectedDb === db.id
+                    selectedDatabaseId === db.id
                       ? "bg-blue-50 border border-blue-200 text-blue-900"
                       : "border border-transparent hover:bg-gray-50"
                   )}
@@ -163,7 +132,7 @@ export function Sidebar({ className }: SidebarProps) {
                         {db.sizeBytes ? `${(db.sizeBytes / 1024 / 1024).toFixed(1)} MB` : '0 MB'}
                       </p>
                     </div>
-                    {selectedDb === db.id && (
+                    {selectedDatabaseId === db.id && (
                       <div className="w-2 h-2 rounded-full bg-blue-600"></div>
                     )}
                   </div>
@@ -173,57 +142,21 @@ export function Sidebar({ className }: SidebarProps) {
           </div>
         </div>
 
-        {/* PITR Section */}
-        {selectedDb && selectedDatabase && !sidebarCollapsed && (
-          <div className="border-t border-gray-200 p-3 bg-gray-50 space-y-3">
-            <div className="flex items-center gap-2">
-              <ClockCounterClockwise className="w-4 h-4 text-blue-600" />
-              <h4 className="font-semibold text-xs uppercase text-gray-600">Time Travel</h4>
-            </div>
-            
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-xs">
-                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                <span className="text-gray-600">Now</span>
-              </div>
-              
-              <input
-                type="datetime-local"
-                value={targetTimestamp.replace(":00Z", "")}
-                onChange={(e) => setTargetTimestamp(e.target.value + ":00Z")}
-                className="w-full text-xs px-2 py-1.5 border rounded"
-              />
-            </div>
-
-            {targetTimestamp && (
-              <Button
-                onClick={handleRestore}
-                disabled={isRestoring}
-                className="w-full"
-                size="sm"
-              >
-                <ClockCounterClockwise className="w-3 h-3 mr-1" />
-                {isRestoring ? "Restoring..." : "Restore"}
-              </Button>
-            )}
-          </div>
-        )}
+        {/* PITR Section removed - handled in Dashboard vertical timeline */}
         
         {/* Bottom section */}
-        {!selectedDb && (
-          <div className="p-4 border-t border-gray-200">
-            {!sidebarCollapsed ? (
-              <div className="text-xs text-gray-500 space-y-1">
-                <div>Version 0.1.0</div>
-                <div className="text-blue-600">© 2025 Kuzu EventBus</div>
-              </div>
-            ) : (
+        <div className="p-4 border-t border-gray-200">
+          {!sidebarCollapsed ? (
+            <div className="text-xs text-gray-500 space-y-1">
+              <div>Version 0.1.0</div>
+              <div className="text-blue-600">© 2025 Kuzu EventBus</div>
+            </div>
+          ) : (
               <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
                 <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
               </div>
             )}
           </div>
-        )}
       </aside>
     </>
   );

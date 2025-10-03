@@ -92,3 +92,33 @@ Base path: `/api/v1/databases`
 - Authentication and tenant scoping handled by middleware; `tenant_id` is resolved from request context.
 - WAL storage convention: `tenants/{tenant_id}/{database_id}/wal/wal-YYYYMMDDThhmmssZ.log` with JSON-lines payloads.
 - Snapshots stored under `tenants/{tenant_id}/{database_id}/snapshots/` as `.tar.gz` (directory snapshots) or `.kuzu` (single file).
+
+## MinIO Storage Layout (référence)
+
+Arborescence attendue dans le bucket MinIO `kuzu-databases`:
+
+```text
+kuzu-databases/
+└── tenants/
+    └── {tenant_id}/
+        └── {database_id}/
+            ├── snapshots/
+            │   ├── snapshot-YYYYMMDDTHHMMSSZ.tar.gz    # si la base est un répertoire
+            │   └── snapshot-YYYYMMDDTHHMMSSZ.kuzu      # si la base est un fichier unique
+            └── wal/
+                ├── wal-YYYYMMDDTHHMMSSZ.log
+                └── ...
+```
+
+Contenu requis d’un snapshot `.tar.gz` (pour restauration PITR):
+
+```text
+snapshot-YYYYMMDDTHHMMSSZ.tar.gz
+└── {database_id}/                 # IMPORTANT: racine du tar = database_id
+    └── data.kuzu                  # présent à la racine de ce dossier
+    # autres fichiers éventuels dépendant du moteur
+```
+
+Pourquoi cette contrainte ? Le use case `RestoreDatabasePITRUseCase` valide strictement la racine du tar afin de faire un remplacement atomique du dossier de base. Si la racine ne correspond pas à `{database_id}`, la restauration est refusée avec: `Invalid snapshot root directory`.
+
+Depuis le correctif (Option A), la création de snapshot (`CreateDatabaseSnapshotUseCase`) force la racine du tar à `{database_id}`.

@@ -13,8 +13,16 @@ from src.domain.shared.ports.database_management import (
     BucketProvisioningService,
     DatabaseProvisioningService,
     DatabaseMetadataRepository,
+    SnapshotRepository,
+    FileStorageService,
 )
+from src.domain.shared.ports import CacheService
+from src.domain.shared.ports.query_execution import DistributedLockService
 from src.domain.database_management.value_objects import DatabaseName
+from src.application.usecases.create_database_snapshot import (
+    CreateDatabaseSnapshotUseCase,
+    CreateDatabaseSnapshotRequest,
+)
 
 
 @dataclass
@@ -41,11 +49,13 @@ class ProvisionTenantResourcesUseCase:
         bucket_service: BucketProvisioningService,
         database_service: DatabaseProvisioningService,
         metadata_repository: DatabaseMetadataRepository,
+        snapshot_usecase: Optional[CreateDatabaseSnapshotUseCase] = None,
         default_database_name: str = "main",
     ) -> None:
         self._bucket_service = bucket_service
         self._database_service = database_service
         self._metadata_repository = metadata_repository
+        self._snapshot_usecase = snapshot_usecase
         self._default_name = default_database_name
 
     async def execute(self, request: ProvisionTenantResourcesRequest) -> ProvisionTenantResourcesResponse:
@@ -65,6 +75,22 @@ class ProvisionTenantResourcesUseCase:
         
         # Persist metadata
         await self._metadata_repository.save(meta)
+        
+        # Create initial snapshot for PITR functionality (best-effort)
+        if self._snapshot_usecase:
+            try:
+                await self._snapshot_usecase.execute(
+                    CreateDatabaseSnapshotRequest(
+                        tenant_id=request.tenant_id,
+                        database_id=meta.id,
+                    )
+                )
+            except Exception as e:
+                # Log warning but don't fail provisioning if snapshot fails
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"Failed to create initial snapshot for database {meta.id}: {e}"
+                )
         
         return ProvisionTenantResourcesResponse(
             tenant_id=request.tenant_id,

@@ -6,6 +6,7 @@ from src.infrastructure.database.session import SessionFactory, DATABASE_URL
 
 
 @pytest.mark.integration
+@pytest.mark.slow
 def test_postgres_connectivity():
     # Allow override via env
     url = os.getenv("DATABASE_URL", DATABASE_URL)

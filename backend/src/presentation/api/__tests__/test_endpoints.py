@@ -45,7 +45,7 @@ def test_customer_registration():
     registration_data = {
         "tenant_name": f"test-company-inc-{uuid.uuid4().hex[:6]}",
         "organization_name": "Test Company Inc",
-        "admin_email": "admin@testcompany.com",
+        "admin_email": f"admin-{uuid.uuid4().hex[:8]}@testcompany.com",
         # Remove subscription_plan for YAGNI simplicity
         "password": "test-password-123",
     }

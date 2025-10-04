@@ -11,7 +11,7 @@ from functools import lru_cache
 
 from src.domain.shared.ports.tenant_management import CustomerAccountRepository
 from src.domain.shared.ports.authentication import AuthenticationService
-from src.domain.shared.ports.notifications import NotificationService
+from src.domain.shared.ports.notifications import EventService
 from src.domain.shared.ports.query_catalog import QueryCatalogRepository
 
 from src.infrastructure.logging.config import infra_logger
@@ -104,14 +104,12 @@ def auth_service() -> AuthenticationService:
 
 
 @lru_cache
-def notification_service() -> NotificationService:
-    """Provide notification delivery service (logging + memory)."""
-    from src.infrastructure.notifications.logging_notification_service import (
-        LoggingNotificationService,
-    )
+def event_service() -> EventService:
+    """Provide event emission service (SSE via Redis Streams)."""
+    from src.infrastructure.events.sse_event_service import SSEEventService
 
-    infra_logger.info("Using LoggingNotificationService (in-memory MVP)")
-    return LoggingNotificationService()
+    infra_logger.info("Using SSEEventService for real-time events")
+    return SSEEventService(redis_connection())
 
 
 @lru_cache

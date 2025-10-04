@@ -14,7 +14,7 @@ from src.infrastructure.dependencies import (
     customer_repository,
     cache_service,
     auth_service,
-    notification_service,
+    event_service,
 )
 from src.application.usecases.register_customer import (
     RegisterCustomerUseCase,
@@ -40,7 +40,7 @@ def get_register_uc() -> RegisterCustomerUseCase:
     return RegisterCustomerUseCase(
         account_repository=customer_repository(),
         auth_service=auth_service(),
-        notification_service=notification_service(),
+        event_service=event_service(),
         cache_service=cache_service(),
     )
 

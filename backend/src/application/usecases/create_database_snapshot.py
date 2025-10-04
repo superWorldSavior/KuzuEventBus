@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 from uuid import UUID
@@ -11,6 +11,7 @@ import tarfile
 from src.domain.shared.ports import (
     AuthorizationService,
     CacheService,
+    EventService,
 )
 from src.domain.shared.ports.database_management import (
     KuzuDatabaseRepository,
@@ -18,12 +19,15 @@ from src.domain.shared.ports.database_management import (
     FileStorageService,
 )
 from src.domain.shared.ports.query_execution import DistributedLockService
+from src.infrastructure.settings import settings
 
 
 @dataclass(frozen=True)
 class CreateDatabaseSnapshotRequest:
+    """Request to create a database snapshot."""
     tenant_id: UUID
     database_id: UUID
+    archive: bool = True  # when True, store under snapshots/archive/
 
 
 @dataclass(frozen=True)
@@ -44,6 +48,7 @@ class CreateDatabaseSnapshotUseCase:
         snapshots: SnapshotRepository,
         locks: DistributedLockService,
         cache: CacheService,
+        events: EventService | None = None,
     ) -> None:
         self._authz = authz
         self._dbs = db_repo
@@ -51,6 +56,7 @@ class CreateDatabaseSnapshotUseCase:
         self._snapshots = snapshots
         self._locks = locks
         self._cache = cache
+        self._events = events
 
     async def execute(self, req: CreateDatabaseSnapshotRequest) -> CreateDatabaseSnapshotResponse:
         allowed = await self._authz.check_permission(req.tenant_id, "database", "backup")
@@ -73,34 +79,35 @@ class CreateDatabaseSnapshotUseCase:
 
         try:
             p = Path(file_path)
-            ts = datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+            # Normalize: if a directory path was stored, prefer '<dir>/data.kuzu' when present
+            if p.is_dir() and (p / "data.kuzu").exists():
+                p = p / "data.kuzu"
 
-            # Local helper: find the actual .kuzu DB path
-            def find_kuzu_db_path(path: Path) -> Path:
-                # Case 1: direct file *.kuzu
-                if path.is_file() and path.suffix == ".kuzu":
-                    return path
-                # Case 2: directory named *.kuzu (Kuzu DB folder)
-                if path.is_dir() and path.suffix == ".kuzu":
-                    return path
-                # Case 3: search recursively
-                if path.is_dir():
-                    for sub in path.rglob("*.kuzu"):
-                        if sub.is_file() or sub.is_dir():
-                            return sub
-                raise FileNotFoundError("No .kuzu file or directory found for snapshot")
+            # If path doesn't exist, try to initialize (first-touch). Kuzu may create a file or a directory at 'p'.
+            if not p.exists():
+                try:
+                    import kuzu  # type: ignore
+                    p.parent.mkdir(parents=True, exist_ok=True)
+                    _ = kuzu.Database(str(p))
+                except Exception as e:  # noqa: BLE001
+                    raise RuntimeError("Failed to initialize Kuzu database for snapshot") from e
+            # After init, 'p' may be a file or a directory named 'data.kuzu'
 
             # Construire un tar.gz NORMALISÉ:
             # <database_id>/data.kuzu
             from tempfile import mkdtemp
             import shutil
-
-            db_path = find_kuzu_db_path(p)
-            tmp_parent = Path(mkdtemp(prefix="snapshot_stage_"))
+            import io
+            import uuid
+            # Add UUID suffix to avoid collisions when creating multiple snapshots in the same second
+            ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{uuid.uuid4().hex[:8]}"
             try:
+                tmp_parent = Path(mkdtemp(prefix="kuzu-snap-"))
+                # Kuzu DB is normally a directory (data.kuzu/), but support file fallback for tests
+                db_path = p
                 root_dir = tmp_parent / str(req.database_id)
                 root_dir.mkdir(parents=True, exist_ok=True)
-                # Copy DB: if it's a dir, copytree; if file, copy2
+                # Copy DB content into normalized location inside archive
                 if db_path.is_dir():
                     shutil.copytree(str(db_path), str(root_dir / "data.kuzu"))
                 else:
@@ -110,7 +117,8 @@ class CreateDatabaseSnapshotUseCase:
                 with tarfile.open(fileobj=buf, mode="w:gz") as tar:
                     tar.add(str(root_dir), arcname=str(req.database_id))
                 data = buf.getvalue()
-                filename = f"snapshots/snapshot-{ts}.tar.gz"
+                prefix = "snapshots/archive" if req.archive else "snapshots"
+                filename = f"{prefix}/snapshot-{ts}.tar.gz"
             finally:
                 # Cleanup temporaire
                 try:
@@ -129,7 +137,16 @@ class CreateDatabaseSnapshotUseCase:
                 filename=filename,
             )
 
-            created_at = datetime.utcnow().isoformat()
+            # Tag object with retention hint for lifecycle
+            try:
+                cfg = settings()
+                days = cfg.retention.snapshots_archive_days if req.archive else cfg.retention.wal_days
+                await self._storage.set_object_tags(object_key, {"retention_days": str(days), "category": "snapshot-archive" if req.archive else "snapshot"})
+            except Exception:
+                # Tagging is best-effort; ignore failures
+                pass
+
+            created_at = datetime.now(timezone.utc).isoformat()
             snap_id = await self._snapshots.save(
                 tenant_id=req.tenant_id,
                 database_id=req.database_id,
@@ -141,6 +158,25 @@ class CreateDatabaseSnapshotUseCase:
 
             # Invalidate any cached DB info if relevant
             await self._cache.delete(f"db_info:{req.database_id}")
+
+            # Emit snapshot created event
+            if self._events:
+                try:
+                    db_info = await self._dbs.find_by_id(req.database_id)
+                    await self._events.emit_event(
+                        tenant_id=req.tenant_id,
+                        event_type="snapshot_created",
+                        title="Snapshot Created",
+                        message=f"Snapshot for database '{db_info.get('name', 'unknown')}' created successfully",
+                        metadata={
+                            "snapshot_id": str(snap_id),
+                            "database_id": str(req.database_id),
+                            "object_key": object_key,
+                            "size_bytes": str(size),
+                        },
+                    )
+                except Exception:
+                    pass  # Best-effort
 
             return CreateDatabaseSnapshotResponse(
                 snapshot_id=snap_id,

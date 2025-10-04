@@ -17,36 +17,18 @@ from uuid import UUID
 
 
 @runtime_checkable
-class NotificationService(Protocol):
-    """Protocol for notification delivery."""
+class EventService(Protocol):
+    """Protocol for emitting real-time events to frontend via SSE."""
 
-    async def send_notification(
+    async def emit_event(
         self,
         tenant_id: UUID,
-        notification_type: str,
+        event_type: str,
         title: str,
         message: str,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> UUID:
-        """Send notification and return notification ID."""
-        ...
-
-    async def get_notifications(
-        self,
-        tenant_id: UUID,
-        limit: int = 50,
-        offset: int = 0,
-        unread_only: bool = False,
-    ) -> List[Dict[str, Any]]:
-        """Get notifications for tenant."""
-        ...
-
-    async def mark_as_read(self, tenant_id: UUID, notification_id: UUID) -> bool:
-        """Mark notification as read."""
-        ...
-
-    async def get_unread_count(self, tenant_id: UUID) -> int:
-        """Get count of unread notifications."""
+        """Emit event to Redis Streams for SSE consumption. Returns dummy event ID."""
         ...
 
 

@@ -40,7 +40,7 @@ class TestAPIAuthentication:
         registration_data = {
             "tenant_name": f"new-tenant-{uuid.uuid4().hex[:6]}",
             "organization_name": "New Org",
-            "admin_email": "admin@neworg.com",
+            "admin_email": f"admin-{uuid.uuid4().hex[:8]}@neworg.com",
             "password": "test-password-123",
         }
 

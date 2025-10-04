@@ -158,3 +158,25 @@ class MinioFileStorageService(FileStorageService):
 
         return await asyncio.to_thread(_list)
 
+    async def set_object_tags(self, file_path: str, tags: dict[str, str]) -> bool:
+        # Accept s3://bucket/key or just key
+        if file_path.startswith("s3://"):
+            _, _, rest = file_path.partition("s3://")
+            bucket, _, key = rest.partition("/")
+        else:
+            bucket, key = self._bucket, file_path
+
+        def _set() -> bool:
+            from minio.commonconfig import Tags
+            t = Tags.new_object_tags()
+            for k, v in tags.items():
+                t[k] = v
+            self._client.set_object_tagging(bucket, key, t)
+            return True
+
+        try:
+            return await asyncio.to_thread(_set)
+        except S3Error as exc:  # noqa: BLE001
+            infra_logger.warning("MinIO set tags failed", error=str(exc), key=key)
+            return False
+

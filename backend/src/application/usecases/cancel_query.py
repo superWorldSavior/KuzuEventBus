@@ -7,7 +7,7 @@ from src.domain.shared.ports import (
     AuthorizationService,
     CacheService,
     DistributedLockService,
-    NotificationService,
+    EventService,
     TransactionRepository,
     TransactionStatus,
 )
@@ -26,13 +26,13 @@ class CancelQueryUseCase:
         locks: DistributedLockService,
         transactions: TransactionRepository,
         cache: CacheService,
-        notifications: NotificationService,
+        notifications: EventService,
     ) -> None:
         self._authz = authz
         self._locks = locks
         self._tx = transactions
         self._cache = cache
-        self._notify = notifications
+        self._events = notifications
 
     async def execute(self, req: CancelQueryRequest) -> bool:
         allowed = await self._authz.check_permission(
@@ -63,7 +63,7 @@ class CancelQueryUseCase:
             )
             await self._cache.delete(f"tx_status:{req.transaction_id}")
             await self._cache.delete(f"tx_results:{req.transaction_id}")
-            await self._notify.send_notification(
+            await self._events.emit_event(
                 tenant_id=req.tenant_id,
                 notification_type="query_cancelled",
                 title="Query Cancelled",

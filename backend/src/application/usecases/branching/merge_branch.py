@@ -13,6 +13,7 @@ from src.application.usecases.restore_database_from_snapshot import (
     RestoreDatabaseFromSnapshotRequest,
 )
 from src.infrastructure.logging.config import get_logger
+from src.domain.shared.ports import EventService
 
 logger = get_logger("merge_branch_uc")
 
@@ -32,9 +33,11 @@ class MergeBranchUseCase:
         self,
         snapshot_uc: CreateDatabaseSnapshotUseCase,
         restore_uc: RestoreDatabaseFromSnapshotUseCase,
+        events: EventService | None = None,
     ):
         self._snapshot_uc = snapshot_uc
         self._restore_uc = restore_uc
+        self._events = events
     
     async def execute(self, request: MergeBranchRequest) -> MergeBranchResponse:
         """Merge branch into target database."""
@@ -67,6 +70,23 @@ class MergeBranchUseCase:
         logger.info("Branch merged successfully")
         
         merged_at = datetime.utcnow().isoformat() + "Z"
+        
+        # Emit branch merged event
+        if self._events:
+            try:
+                await self._events.emit_event(
+                    tenant_id=request.tenant_id,
+                    event_type="branch_merged",
+                    title="Branch Merged",
+                    message=f"Branch '{request.branch_database_name}' merged into '{request.target_database_name}'",
+                    metadata={
+                        "branch_name": request.branch_database_name,
+                        "target_database": request.target_database_name,
+                        "snapshot_id": str(snap_result.snapshot_id),
+                    },
+                )
+            except Exception:
+                pass  # Best-effort
         
         return MergeBranchResponse(
             merged=True,

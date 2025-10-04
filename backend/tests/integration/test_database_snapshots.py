@@ -17,7 +17,7 @@ def _set_env(tmp_path, monkeypatch):
 async def _register(async_client: httpx.AsyncClient) -> str:
     payload = {
         "tenant_name": f"tenant-{uuid4().hex[:6]}",
-        "admin_email": "flow@example.com",
+        "admin_email": f"flow-{uuid4().hex[:8]}@example.com",
         "organization_name": "Flow Corp",
         "password": "test-password-123",
     }

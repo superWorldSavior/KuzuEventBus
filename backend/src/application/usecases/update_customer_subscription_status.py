@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from uuid import UUID
 
-from src.domain.shared.ports import CustomerAccountRepository, CacheService, NotificationService
+from src.domain.shared.ports import CustomerAccountRepository, CacheService, EventService
 from src.domain.shared.value_objects import EntityId
 
 
@@ -18,11 +18,11 @@ class UpdateCustomerSubscriptionStatusUseCase:
         self,
         account_repository: CustomerAccountRepository,
         cache_service: CacheService,
-        notification_service: NotificationService,
+        notification_service: EventService,
     ) -> None:
         self._accounts = account_repository
         self._cache = cache_service
-        self._notify = notification_service
+        self._events = notification_service
 
     async def execute(self, req: UpdateCustomerSubscriptionStatusRequest) -> bool:
         account = await self._accounts.find_by_id(EntityId(req.customer_id))
@@ -42,7 +42,7 @@ class UpdateCustomerSubscriptionStatusUseCase:
 
         await self._accounts.save(account)
         await self._cache.delete(f"account:{req.customer_id}")
-        await self._notify.send_notification(
+        await self._events.emit_event(
             tenant_id=req.customer_id,
             notification_type="subscription_updated",
             title="Subscription Status Updated",

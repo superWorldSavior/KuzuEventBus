@@ -12,8 +12,8 @@ from .database_management import (
     KuzuQueryService,
 )
 from .notifications import (
+    EventService,
     EventStoreService,
-    NotificationService,
     ServerSentEventService,
 )
 from .query_execution import (
@@ -45,8 +45,8 @@ __all__ = [
     "AuthenticationService",
     "AuthorizationService",
     "SessionService",
-    # Notifications
-    "NotificationService",
+    # Events & Notifications
+    "EventService",
     "ServerSentEventService",
     "EventStoreService",
     # Query Catalog

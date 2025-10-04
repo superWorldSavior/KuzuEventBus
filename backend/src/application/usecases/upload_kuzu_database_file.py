@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Dict
 from uuid import UUID
 
-from src.domain.shared.ports import AuthorizationService, CacheService, FileStorageService, KuzuDatabaseRepository, NotificationService
+from src.domain.shared.ports import AuthorizationService, CacheService, FileStorageService, KuzuDatabaseRepository, EventService
 
 
 @dataclass(frozen=True)
@@ -30,13 +30,13 @@ class UploadKuzuDatabaseFileUseCase:
         database_repository: KuzuDatabaseRepository,
         storage: FileStorageService,
         cache_service: CacheService,
-        notification_service: NotificationService,
+        event_service: EventService,
     ) -> None:
         self._authz = authz_service
         self._dbs = database_repository
         self._storage = storage
         self._cache = cache_service
-        self._notify = notification_service
+        self._events = event_service
 
     async def execute(self, req: UploadKuzuDatabaseFileRequest) -> UploadKuzuDatabaseFileResponse:
         allowed = await self._authz.check_permission(
@@ -63,7 +63,7 @@ class UploadKuzuDatabaseFileUseCase:
         # Update size if repo supports it; otherwise, invalidate cache
         await self._cache.delete(f"db_info:{req.database_id}")
 
-        await self._notify.send_notification(
+        await self._events.emit_event(
             tenant_id=req.tenant_id,
             notification_type="file_uploaded",
             title="File Uploaded",

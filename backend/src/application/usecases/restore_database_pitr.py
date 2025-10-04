@@ -17,7 +17,7 @@ import tempfile
 import json
 from dataclasses import dataclass
 
-from src.domain.shared.ports import AuthorizationService, CacheService
+from src.domain.shared.ports import AuthorizationService, CacheService, EventService
 from src.domain.shared.ports.database_management import (
     KuzuDatabaseRepository,
     SnapshotRepository,
@@ -26,6 +26,11 @@ from src.domain.shared.ports.database_management import (
 )
 from src.domain.shared.ports.query_execution import DistributedLockService
 from src.infrastructure.logging.config import get_logger
+from src.application.usecases.create_database_snapshot import (
+    CreateDatabaseSnapshotUseCase,
+    CreateDatabaseSnapshotRequest,
+)
+from src.infrastructure.settings import settings
 
 logger = get_logger(__name__)
 
@@ -45,6 +50,7 @@ class RestoreDatabasePITRResponse:
     snapshot_used: str
     wal_files_replayed: int
     restored_at: str
+    snapshot_created: Optional[str] = None
 
 
 class RestoreDatabasePITRUseCase:
@@ -59,6 +65,8 @@ class RestoreDatabasePITRUseCase:
         locks: DistributedLockService,
         cache: CacheService,
         kuzu: KuzuQueryService,
+        snapshot_uc: Optional[CreateDatabaseSnapshotUseCase] = None,
+        events: Optional[EventService] = None,
     ) -> None:
         self._authz = authz
         self._dbs = db_repo
@@ -66,7 +74,9 @@ class RestoreDatabasePITRUseCase:
         self._storage = storage
         self._locks = locks
         self._cache = cache
+        self._events = events
         self._kuzu = kuzu
+        self._snapshot_uc = snapshot_uc
 
     async def execute(self, req: RestoreDatabasePITRRequest) -> RestoreDatabasePITRResponse:
         """Execute PITR restore to specific timestamp."""
@@ -144,6 +154,55 @@ class RestoreDatabasePITRUseCase:
                 wal_replayed=wal_count,
             )
 
+            # Optionally create a snapshot of the restored state so it becomes the new HEAD archive
+            snapshot_created_id: Optional[str] = None
+            cfg = settings()
+            if self._snapshot_uc is not None and cfg.create_archive_after_restore:
+                try:
+                    snap_res = await self._snapshot_uc.execute(
+                        CreateDatabaseSnapshotRequest(
+                            tenant_id=req.tenant_id,
+                            database_id=req.database_id,
+                            archive=True,
+                        )
+                    )
+                    snapshot_created_id = str(snap_res.snapshot_id)
+                except Exception as e:  # noqa: BLE001
+                    # Non-fatal: log and continue
+                    logger.warning("Failed to create snapshot after PITR restore", error=str(e))
+
+            # If we successfully archived a snapshot of the restored state,
+            # we can delete the WAL files that were used for the replay up to target_ts
+            if snapshot_created_id and wal_files and cfg.delete_replayed_wal:
+                deleted = 0
+                for wal in wal_files:
+                    try:
+                        ok = await self._storage.delete_database(wal["key"])  # delete object by key
+                        if ok:
+                            deleted += 1
+                    except Exception as e:  # noqa: BLE001
+                        logger.warning("Failed to delete WAL after PITR", wal_key=wal.get("key"), error=str(e))
+                logger.info("Deleted WAL files after PITR restore", count=deleted)
+
+            # Emit database restored event
+            if self._events:
+                try:
+                    db_info = await self._dbs.find_by_id(req.database_id)
+                    await self._events.emit_event(
+                        tenant_id=req.tenant_id,
+                        event_type="database_restored",
+                        title="Database Restored",
+                        message=f"Database '{db_info.get('name', 'unknown')}' restored to {req.target_timestamp.strftime('%Y-%m-%d %H:%M:%S UTC')}",
+                        metadata={
+                            "database_id": str(req.database_id),
+                            "target_timestamp": req.target_timestamp.isoformat(),
+                            "snapshot_used": str(snapshot.get('id')),
+                            "wal_files_replayed": str(wal_count),
+                        },
+                    )
+                except Exception:
+                    pass  # Best-effort
+
             return RestoreDatabasePITRResponse(
                 restored=True,
                 database_id=req.database_id,
@@ -151,6 +210,7 @@ class RestoreDatabasePITRUseCase:
                 snapshot_used=str(snapshot.get("id")),
                 wal_files_replayed=wal_count,
                 restored_at=datetime.now(tz=timezone.utc).isoformat(),
+                snapshot_created=snapshot_created_id,
             )
         finally:
             await self._locks.release_lock(lock_res, token)

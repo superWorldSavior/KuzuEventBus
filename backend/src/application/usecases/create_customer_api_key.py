@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import List
 from uuid import UUID
 
-from src.domain.shared.ports import AuthenticationService, CustomerAccountRepository, NotificationService
+from src.domain.shared.ports import AuthenticationService, CustomerAccountRepository, EventService
 from src.domain.shared.value_objects import EntityId
 from src.domain.tenant_management.customer_account import CustomerAccountStatus
 
@@ -21,11 +21,11 @@ class CreateCustomerApiKeyUseCase:
         self,
         account_repository: CustomerAccountRepository,
         auth_service: AuthenticationService,
-        notification_service: NotificationService,
+        event_service: EventService,
     ) -> None:
         self._accounts = account_repository
         self._auth = auth_service
-        self._notify = notification_service
+        self._events = event_service
 
     async def execute(self, req: CreateCustomerApiKeyRequest) -> str:
         account = await self._accounts.find_by_id(EntityId(req.customer_id))
@@ -40,7 +40,7 @@ class CreateCustomerApiKeyUseCase:
             permissions=req.permissions,
         )
 
-        await self._notify.send_notification(
+        await self._events.emit_event(
             tenant_id=req.customer_id,
             notification_type="api_key_created",
             title="New API Key Created",

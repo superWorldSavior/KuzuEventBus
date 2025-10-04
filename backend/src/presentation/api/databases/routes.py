@@ -30,7 +30,7 @@ from src.infrastructure.dependencies import (
     kuzu_query_service,
     cache_service,
     file_storage_service,
-    notification_service,
+    event_service,
     snapshot_repository,
     lock_service,
 )
@@ -169,6 +169,7 @@ def get_pitr_restore_uc() -> RestoreDatabasePITRUseCase:
         locks=lock_service(),
         cache=cache_service(),
         kuzu=kuzu_query_service(),
+        snapshot_uc=get_create_snapshot_uc(),
     )
 
 
@@ -211,7 +212,7 @@ def get_delete_db_uc() -> DeleteKuzuDatabaseUseCase:
         database_repository=kuzu_database_repository(),
         storage=file_storage_service(),
         cache_service=cache_service(),
-        notification_service=notification_service(),
+        event_service=event_service(),
     )
 
 
@@ -221,7 +222,7 @@ def get_upload_db_uc() -> UploadKuzuDatabaseFileUseCase:
         database_repository=kuzu_database_repository(),
         storage=file_storage_service(),
         cache_service=cache_service(),
-        notification_service=notification_service(),
+        event_service=event_service(),
     )
 
 
@@ -931,6 +932,7 @@ async def restore_database_pitr(
             "snapshot_used": res.snapshot_used,
             "wal_files_replayed": res.wal_files_replayed,
             "restored_at": res.restored_at,
+            "snapshot_created": res.snapshot_created,
         }
     except ValueError as e:
         raise HTTPException(status_code=400, detail=f"Invalid timestamp format: {e}") from e

@@ -97,7 +97,7 @@ testpaths = ["tests", "src"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-addopts = "--cov=src --cov-report=term-missing --cov-report=html --strict-markers"
+addopts = "--strict-markers -p no:warnings"
 markers = [
     "unit: Unit tests",
     "integration: Integration tests", 
@@ -124,4 +124,4 @@ exclude_lines = [
 
 [tool.coverage.html]
 # Force a single consistent HTML coverage output directory regardless of where pytest is launched from.
-directory = "coverage_html"
+directory = "backend/coverage_html"

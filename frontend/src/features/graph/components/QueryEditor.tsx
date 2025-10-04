@@ -8,6 +8,10 @@ type Props = {
   onExecute?: (query: string) => void;
   isExecuting?: boolean;
   externalQuery?: string | null;
+  canRun?: boolean; // controls visibility/enabled state of Run
+  readOnly?: boolean; // editor read-only (preview)
+  accent?: 'prod' | 'branch' | 'prod-armed'; // run button styling
+  onBlur?: () => void; // notify parent when editor loses focus
 };
 
 const DEFAULT_QUERY = `// Write your Cypher query here
@@ -15,7 +19,7 @@ MATCH (n)
 RETURN n
 LIMIT 10`;
 
-export function QueryEditor({ databaseId, onExecute, isExecuting = false, externalQuery = null }: Props) {
+export function QueryEditor({ databaseId, onExecute, isExecuting = false, externalQuery = null, canRun = true, readOnly = false, accent = 'prod', onBlur }: Props) {
   const [query, setQuery] = useState(DEFAULT_QUERY);
 
   // Sync with external query (e.g., when selecting a node on the timeline)
@@ -40,7 +44,7 @@ export function QueryEditor({ databaseId, onExecute, isExecuting = false, extern
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden" onBlur={onBlur}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 bg-gray-50">
         <div className="flex items-center space-x-2">
@@ -48,25 +52,32 @@ export function QueryEditor({ databaseId, onExecute, isExecuting = false, extern
           <span className="text-xs text-gray-500">(Cypher)</span>
         </div>
         <div className="flex items-center space-x-2">
-          <span className="text-xs text-gray-500">Ctrl+Enter to run</span>
-          <Button
-            size="sm"
-            onClick={handleExecute}
-            disabled={!databaseId || !query.trim() || isExecuting}
-            className="flex items-center space-x-1"
-          >
-            {isExecuting ? (
-              <>
-                <CircleNotch size={16} className="animate-spin" weight="bold" />
-                <span>Running...</span>
-              </>
-            ) : (
-              <>
-                <Play size={16} weight="fill" />
-                <span>Run Query</span>
-              </>
-            )}
-          </Button>
+          {canRun && (
+            <span className="text-xs text-gray-500">Ctrl+Enter to run</span>
+          )}
+          {canRun && (
+            <Button
+              size="sm"
+              onClick={handleExecute}
+              disabled={!databaseId || !query.trim() || isExecuting}
+              className={`flex items-center space-x-1 ${
+                accent === 'branch' ? 'bg-violet-600 text-white hover:bg-violet-700' : 
+                accent === 'prod-armed' ? 'bg-red-600 text-white hover:bg-red-700' : ''
+              }`}
+            >
+              {isExecuting ? (
+                <>
+                  <CircleNotch size={16} className="animate-spin" weight="bold" />
+                  <span>Running...</span>
+                </>
+              ) : (
+                <>
+                  <Play size={16} weight="fill" />
+                  <span>Run Query</span>
+                </>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -98,6 +109,7 @@ export function QueryEditor({ databaseId, onExecute, isExecuting = false, extern
             suggest: {
               showKeywords: true,
             },
+            readOnly,
           }}
         />
       </div>

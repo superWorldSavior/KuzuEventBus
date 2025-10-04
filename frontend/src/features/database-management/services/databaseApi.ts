@@ -31,6 +31,20 @@ export const databaseApi = {
     }
   },
 
+  // Restore database to a specific timestamp (PITR destructive restore)
+  async restorePitr(database: string, targetTimestamp: string): Promise<{ restored: boolean; database_id: string; mode: string; restored_at: string }> {
+    const endpoint = `POST /api/v1/databases/${database}/restore-pitr?target_timestamp=...`;
+    try {
+      const response = await apiClient.post(`/api/v1/databases/${database}/restore-pitr`, null, {
+        params: { target_timestamp: targetTimestamp },
+      });
+      markEndpointWorking(endpoint);
+      return response.data;
+    } catch (error) {
+      throw handleApiError(endpoint, error);
+    }
+  },
+
   // Create a new database
   async createDatabase(data: DatabaseCreate): Promise<Database> {
     const endpoint = "POST /api/v1/databases";

@@ -44,7 +44,10 @@ async def test_submit_then_worker_processes_and_emits_event():
     )
     await queue.enqueue_transaction(tx_id, tenant_id, priority=0)
 
-    worker = QueryWorker(queue=queue, transactions=repo, executor=KuzuQueryExecutionAdapter())
+    from src.infrastructure.cache.redis_cache_service import RedisCacheService
+    from src.infrastructure.redis.client import redis_connection
+    cache = RedisCacheService(redis=redis_connection())
+    worker = QueryWorker(queue=queue, transactions=repo, executor=KuzuQueryExecutionAdapter(), cache=cache)
     await worker.run_once()
 
     # assert status completed

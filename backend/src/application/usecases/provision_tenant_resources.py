@@ -16,7 +16,7 @@ from src.domain.shared.ports.database_management import (
     SnapshotRepository,
     FileStorageService,
 )
-from src.domain.shared.ports import CacheService
+from src.domain.shared.ports import CacheService, EventService
 from src.domain.shared.ports.query_execution import DistributedLockService
 from src.domain.database_management.value_objects import DatabaseName
 from src.application.usecases.create_database_snapshot import (
@@ -49,12 +49,14 @@ class ProvisionTenantResourcesUseCase:
         bucket_service: BucketProvisioningService,
         database_service: DatabaseProvisioningService,
         metadata_repository: DatabaseMetadataRepository,
+        event_service: Optional[EventService] = None,
         snapshot_usecase: Optional[CreateDatabaseSnapshotUseCase] = None,
         default_database_name: str = "main",
     ) -> None:
         self._bucket_service = bucket_service
         self._database_service = database_service
         self._metadata_repository = metadata_repository
+        self._events = event_service
         self._snapshot_usecase = snapshot_usecase
         self._default_name = default_database_name
 
@@ -75,6 +77,23 @@ class ProvisionTenantResourcesUseCase:
         
         # Persist metadata
         await self._metadata_repository.save(meta)
+        
+        # Emit database created event
+        if self._events:
+            try:
+                await self._events.emit_event(
+                    tenant_id=request.tenant_id,
+                    event_type="database_created",
+                    title="Database Created",
+                    message=f"Database '{name.value}' has been created successfully",
+                    metadata={
+                        "database_id": str(meta.id),
+                        "database_name": name.value,
+                        "filesystem_path": meta.filesystem_path,
+                    },
+                )
+            except Exception:
+                pass  # Best-effort event emission
         
         # Create initial snapshot for PITR functionality (best-effort)
         if self._snapshot_usecase:

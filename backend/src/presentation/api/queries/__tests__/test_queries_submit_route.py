@@ -82,7 +82,6 @@ def _override_deps(monkeypatch):
     # override infra deps
     monkeypatch.setattr(deps, "message_queue_service", lambda: _FakeQueue())
     monkeypatch.setattr(deps, "transaction_repository", lambda: _FakeRepo())
-    monkeypatch.setattr(deps, "query_catalog_repository", lambda: _FakeQueryCatalogRepo())
     # ensure auth middleware doesn't try to init real DB repo on startup
     monkeypatch.setattr(deps, "customer_repository", lambda: _FakeCustomerRepo())
     # bypass auth middleware for unit scope
@@ -91,7 +90,9 @@ def _override_deps(monkeypatch):
     app.dependency_overrides.clear()
 
 
-def test_submit_query_returns_202(monkeypatch):
+@pytest.mark.asyncio
+@pytest.mark.integration
+async def test_submit_query_returns_202(monkeypatch):
     client = TestClient(app)
     db_id = uuid4()
     body = {"query": "RETURN 1 AS ok", "parameters": {}, "timeout_seconds": 5}

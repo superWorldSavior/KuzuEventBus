@@ -38,6 +38,8 @@ from src.infrastructure.dependencies import (
     lock_service,
     authorization_service,
     cache_service,
+    event_service,
+    kuzu_query_service,
 )
 from src.infrastructure.database.database_metadata_repository import PostgresDatabaseMetadataRepository
 from src.domain.shared.ports.database_management import (
@@ -100,25 +102,26 @@ def get_restore_snapshot_uc() -> RestoreDatabaseFromSnapshotUseCase:
         storage=file_storage_service(),
         snapshots=snapshot_repository(),
         locks=lock_service(),
+        cache=cache_service(),
     )
 
 
 def get_provision_uc() -> ProvisionTenantResourcesUseCase:
     return ProvisionTenantResourcesUseCase(
         bucket_service=MinioBucketProvisioningAdapter(),
-        db_service=KuzuDatabaseProvisioningAdapter(),
-        metadata_repo=PostgresDatabaseMetadataRepository(),
-        snapshot_uc=get_create_snapshot_uc(),
+        database_service=KuzuDatabaseProvisioningAdapter(),
+        metadata_repository=PostgresDatabaseMetadataRepository(),
+        snapshot_usecase=get_create_snapshot_uc(),
     )
 
 
 def get_delete_db_uc() -> DeleteKuzuDatabaseUseCase:
     return DeleteKuzuDatabaseUseCase(
-        authz=authorization_service(),
-        db_repo=kuzu_database_repository(),
-        metadata_repo=PostgresDatabaseMetadataRepository(),
+        authz_service=authorization_service(),
+        database_repository=kuzu_database_repository(),
         storage=file_storage_service(),
-        cache=cache_service(),
+        cache_service=cache_service(),
+        event_service=event_service(),
     )
 
 
@@ -129,6 +132,13 @@ def get_create_branch_uc() -> CreateBranchUseCase:
         snapshot_uc=get_create_snapshot_uc(),
         provision_uc=get_provision_uc(),
         restore_uc=get_restore_snapshot_uc(),
+        # PITR deps for timestamp-based branch creation
+        db_repo=kuzu_database_repository(),
+        snapshots=snapshot_repository(),
+        storage=file_storage_service(),
+        locks=lock_service(),
+        cache=cache_service(),
+        kuzu=kuzu_query_service(),
     )
 
 

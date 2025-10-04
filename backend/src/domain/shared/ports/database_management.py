@@ -76,6 +76,10 @@ class FileStorageService(Protocol):
         """
         ...
 
+    async def set_object_tags(self, file_path: str, tags: Dict[str, str]) -> bool:
+        """Set object tags used by lifecycle (e.g., retention policies)."""
+        ...
+
 
 @runtime_checkable
 class KuzuQueryService(Protocol):

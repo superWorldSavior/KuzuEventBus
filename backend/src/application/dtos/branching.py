@@ -30,6 +30,7 @@ class CreateBranchResponse:
     snapshot_id: UUID
     created_at: str
     description: str | None = None
+    origin_snapshot_id: UUID | None = None
 
 
 # ==================== Merge Branch ====================

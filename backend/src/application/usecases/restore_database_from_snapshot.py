@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 from uuid import UUID
@@ -97,41 +97,22 @@ class RestoreDatabaseFromSnapshotUseCase:
                     # Choose the single root if present, else tmp_dir as content root
                     content_root: Path = entries[0] if len(entries) == 1 else tmp_dir
 
-                    if target_path.is_dir() or not target_path.suffix:
-                        # Overwrite directory atomically
-                        backup = target_path.with_name(target_path.name + f".bak_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}")
-                        if target_path.exists():
-                            os.replace(str(target_path), str(backup))
-                        os.replace(str(content_root), str(target_path))
-                        # Cleanup backup best-effort
-                        if backup.exists():
-                            try:
-                                if backup.is_dir():
-                                    for root, dirs, files in os.walk(backup, topdown=False):
-                                        for f in files:
-                                            Path(root, f).unlink(missing_ok=True)
-                                        for d in dirs:
-                                            Path(root, d).rmdir()
-                                    backup.rmdir()
-                                else:
-                                    backup.unlink(missing_ok=True)
-                            except Exception:  # noqa: BLE001
-                                pass
-                    else:
-                        # target is a file path, move the expected file into place
-                        # try to locate a file named like the target file in content_root
-                        candidate = content_root / target_path.name
-                        if not candidate.exists():
-                            # fallback: if content_root is a dir with single file, use it
-                            files = list(content_root.rglob("*"))
-                            file_candidates = [f for f in files if f.is_file()]
-                            if len(file_candidates) == 1:
-                                candidate = file_candidates[0]
-                            else:
-                                raise RuntimeError("Snapshot archive format unsupported for file target")
-                        tmp_target = target_path.with_suffix(target_path.suffix + ".tmp")
-                        os.replace(str(candidate), str(tmp_target))
-                        os.replace(str(tmp_target), str(target_path))
+                    # Kuzu DB is always a directory (data.kuzu) - overwrite atomically
+                    backup = target_path.with_name(target_path.name + f".bak_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}")
+                    if target_path.exists():
+                        os.replace(str(target_path), str(backup))
+                    os.replace(str(content_root), str(target_path))
+                    # Cleanup backup best-effort
+                    if backup.exists():
+                        try:
+                            for root, dirs, files in os.walk(backup, topdown=False):
+                                for f in files:
+                                    Path(root, f).unlink(missing_ok=True)
+                                for d in dirs:
+                                    Path(root, d).rmdir()
+                            backup.rmdir()
+                        except Exception:  # noqa: BLE001
+                            pass
                 else:
                     # Raw file snapshot
                     tmp_file = target_path.with_suffix(target_path.suffix + ".tmp")
@@ -156,7 +137,7 @@ class RestoreDatabaseFromSnapshotUseCase:
                 restored=True,
                 database_id=req.database_id,
                 mode="overwrite",
-                restored_at=datetime.utcnow().isoformat(),
+                restored_at=datetime.now(timezone.utc).isoformat(),
             )
         finally:
             await self._locks.release_lock(lock_res, token)

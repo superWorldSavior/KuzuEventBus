@@ -8,7 +8,7 @@ from src.domain.shared.ports import (
     CacheService,
     KuzuDatabaseRepository,
     FileStorageService,
-    NotificationService,
+    EventService,
 )
 
 
@@ -25,13 +25,13 @@ class DeleteKuzuDatabaseUseCase:
         database_repository: KuzuDatabaseRepository,
         storage: FileStorageService,
         cache_service: CacheService,
-        notification_service: NotificationService,
+        notification_service: EventService,
     ) -> None:
         self._authz = authz_service
         self._dbs = database_repository
         self._storage = storage
         self._cache = cache_service
-        self._notify = notification_service
+        self._events = notification_service
 
     async def execute(self, req: DeleteKuzuDatabaseRequest) -> bool:
         allowed = await self._authz.check_permission(
@@ -56,7 +56,7 @@ class DeleteKuzuDatabaseUseCase:
         ok = await self._dbs.delete(req.database_id)
         if ok:
             await self._cache.delete(f"db_info:{req.database_id}")
-            await self._notify.send_notification(
+            await self._events.emit_event(
                 tenant_id=req.tenant_id,
                 notification_type="database_deleted",
                 title="Database Deleted",

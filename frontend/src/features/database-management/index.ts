@@ -15,5 +15,6 @@ export {
   useDatabaseOperations,
   useDatabaseSchema
 } from "./hooks/useDatabases";
+export { useDatabasePitr } from "./hooks/useDatabasePitr";
 
 // Components removed (YAGNI - not used in simplified dashboard)

@@ -1,0 +1,3 @@
+retention:
+  snapshots_archive_days: 90
+  wal_days: 90

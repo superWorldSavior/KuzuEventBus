@@ -1,32 +1,16 @@
- 
-import { NavLink, useLocation } from "react-router-dom";
 import {
-  House,
-  Database,
-  Code,
-  ChartBar,
-  Gear,
   CaretLeft,
   X,
 } from "@phosphor-icons/react";
 import { cn } from "@/shared/lib";
-import { useNavigationStore, navigationItems } from "@/app/stores/navigation";
-import { useDatabases } from "@/shared/hooks/useApi";
-
-const iconMap = {
-  Home: House,
-  Database,
-  Code,
-  BarChart: ChartBar,
-  Settings: Gear,
-};
+import { useNavigationStore } from "@/app/stores/navigation";
+import { useDatabases } from "@/features/database-management/hooks/useDatabases";
 
 interface SidebarProps {
   className?: string;
 }
 
 export function Sidebar({ className }: SidebarProps) {
-  const location = useLocation();
   const { sidebarCollapsed, mobileMenuOpen, toggleSidebar, setMobileMenuOpen, selectedDatabaseId, setSelectedDatabaseId } =
     useNavigationStore();
   const { data: databases = [], isLoading } = useDatabases();

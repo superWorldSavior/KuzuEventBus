@@ -9,7 +9,7 @@ from src.domain.shared.ports import (
     AuthenticationService,
     CacheService,
     CustomerAccountRepository,
-    NotificationService,
+    EventService,
 )
 from src.domain.shared.ports.database_management import (
     BucketProvisioningService,
@@ -48,7 +48,7 @@ class RegisterCustomerUseCase:
         self,
         account_repository: CustomerAccountRepository,
         auth_service: AuthenticationService,
-        notification_service: NotificationService,
+        event_service: EventService,
         cache_service: CacheService,
         bucket_service: BucketProvisioningService | None = None,
         database_service: DatabaseProvisioningService | None = None,
@@ -56,7 +56,7 @@ class RegisterCustomerUseCase:
     ) -> None:
         self._account_repository = account_repository
         self._auth_service = auth_service
-        self._notification_service = notification_service
+        self._event_service = event_service
         self._cache_service = cache_service
         self._bucket_service = bucket_service
         self._database_service = database_service
@@ -119,7 +119,7 @@ class RegisterCustomerUseCase:
                 pass
 
         # Notify
-        await self._notification_service.send_notification(
+        await self._event_service.emit_event(
             tenant_id=customer_id.value,
             notification_type="welcome",
             title="Welcome to Kuzu Event Bus",

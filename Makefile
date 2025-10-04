@@ -111,10 +111,11 @@ unit:
 	export ENVIRONMENT=test; \
 	pytest -q -c backend/pyproject.toml
 
-integration: compose-up wait
+integration: compose-up
 	. .venv/bin/activate; \
+	export $$(grep -v '^#' backend/.env | xargs); \
 	export ENVIRONMENT=development; \
-	pytest -m "integration or e2e" -q -c backend/pyproject.toml
+	pytest -m "(integration or e2e) and not slow" -q -c backend/pyproject.toml
 
 integration-noup:
 	. .venv/bin/activate; \

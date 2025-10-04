@@ -81,31 +81,19 @@ export const useNavigationStore = create<NavigationStore>()(
   )
 );
 
-// Navigation items configuration - MVP only
+// Navigation items configuration - YAGNI minimal
 export const navigationItems = [
   {
     path: "/dashboard",
     label: "Dashboard",
     icon: "Home",
-    description: "Overview and metrics",
-  },
-  {
-    path: "/databases",
-    label: "Databases",
-    icon: "Database",
-    description: "Manage your databases",
-  },
-  {
-    path: "/queries",
-    label: "Queries",
-    icon: "Code",
-    description: "Build and execute queries",
+    description: "Graph viewer and query editor",
   },
   {
     path: "/settings",
     label: "Settings",
     icon: "Settings",
-    description: "Account and preferences",
+    description: "API keys and configuration",
   },
 ];
 

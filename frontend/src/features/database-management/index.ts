@@ -1,4 +1,4 @@
-// Database management feature - barrel export
+// Database management feature - barrel export (YAGNI simplified)
 
 // Export types
 export * from "./types";
@@ -16,5 +16,4 @@ export {
   useDatabaseSchema
 } from "./hooks/useDatabases";
 
-// Export components (migrated from old structure)
-export { DatabaseList } from "./components/DatabaseList";
+// Components removed (YAGNI - not used in simplified dashboard)

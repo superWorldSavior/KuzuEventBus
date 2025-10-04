@@ -1,6 +1,4 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-// DEPRECATED: Use feature-specific hooks instead
-import { analyticsApi } from "@/features/analytics";
 import { databaseApi } from "@/features/database-management"; 
 import { queryApi } from "@/features/query-execution";
 import { useApiErrorHandler, isUsingMockData } from "./useApiErrorHandler";
@@ -14,33 +12,13 @@ import { apiClient } from "@/shared/api/client";
 
 /**
  * @deprecated Use feature-specific hooks instead:
- * - @/features/analytics for dashboard stats, recent queries, performance metrics
  * - @/features/database-management for database CRUD operations  
  * - @/features/query-execution for query submission and results
  * 
  * This hook is maintained for backward compatibility but will be removed in future versions.
  */
 
-// Types for API responses
-interface RecentQueryResponse {
-  id: string;
-  database: string;
-  query: string;
-  status: string;
-  executionTime: number | null;
-  timestamp: string;
-  resultCount: number | null;
-}
-
-interface RecentActivityResponse {
-  id: string;
-  type: string;
-  title: string;
-  description: string;
-  timestamp: string;
-  user: string;
-  metadata?: Record<string, unknown>;
-}
+// No analytics types needed (YAGNI)
 
 interface UploadFileRequest {
   databaseId: string;
@@ -50,18 +28,12 @@ interface UploadFileRequest {
 
 // Query Keys for better cache management using hierarchical strategy
 export const queryKeys = {
-  // Root keys
+  // Root keys (minimal)
   all: QUERY_KEY_STRATEGIES.hierarchical.root,
-  dashboard: QUERY_KEY_STRATEGIES.hierarchical.dashboard,
   databases: QUERY_KEY_STRATEGIES.hierarchical.databases,
   queries: QUERY_KEY_STRATEGIES.hierarchical.queries,
-  analytics: QUERY_KEY_STRATEGIES.hierarchical.analytics,
-  
+
   // Specific keys
-  dashboardStats: [...QUERY_KEY_STRATEGIES.hierarchical.dashboard, 'stats'] as const,
-  recentQueries: (limit?: number) => [...QUERY_KEY_STRATEGIES.hierarchical.queries, 'recent', { limit }] as const,
-  recentActivity: (limit?: number) => [...QUERY_KEY_STRATEGIES.hierarchical.dashboard, 'activity', { limit }] as const,
-  performanceMetrics: (timeRange: string) => QUERY_KEY_STRATEGIES.parameterized.performanceMetrics(timeRange),
   database: (id: string) => QUERY_KEY_STRATEGIES.parameterized.database(id),
   databaseMetrics: (id: string) => QUERY_KEY_STRATEGIES.parameterized.databaseMetrics(id),
   queryExecutions: (databaseId?: string) => [...QUERY_KEY_STRATEGIES.hierarchical.queries, 'executions', { databaseId }] as const,
@@ -69,80 +41,7 @@ export const queryKeys = {
   queryResults: (transactionId: string) => QUERY_KEY_STRATEGIES.parameterized.queryResults(transactionId),
 } as const;
 
-// Dashboard stats query hook with optimized configuration
-export function useDashboardStats() {
-  // Determine if we're likely using mock data by checking localStorage for API key
-  const hasApiKey = Boolean(localStorage.getItem('kuzu_api_key'));
-  const config = getOptimalQueryConfig('analytics', !hasApiKey ? { refetchInterval: 5000 } : {});
-  
-  return useQuery({
-    queryKey: queryKeys.dashboardStats,
-    queryFn: analyticsApi.getDashboardStats,
-    staleTime: config.staleTime,
-    gcTime: config.gcTime,
-    refetchInterval: config.refetchInterval,
-    refetchOnWindowFocus: config.refetchOnWindowFocus,
-    refetchOnMount: config.refetchOnMount,
-    refetchOnReconnect: config.refetchOnReconnect,
-    retry: QUERY_OPTIONS.dashboard.retry,
-    retryDelay: QUERY_OPTIONS.dashboard.retryDelay,
-    networkMode: QUERY_OPTIONS.dashboard.networkMode,
-  });
-}
-
-// Recent queries hook
-export function useRecentQueries(limit = 10) {
-  return useQuery({
-    queryKey: queryKeys.recentQueries(limit),
-    queryFn: () => analyticsApi.getRecentQueries(limit),
-    refetchInterval: 10000,
-    staleTime: 5000,
-    select: (data: RecentQueryResponse[]) => {
-      // Transform API data to match component expectations
-      return data?.map((item) => ({
-        id: item.id,
-        query: item.query,
-        status: (item.status === "completed" ? "success" : item.status) as "success" | "error" | "running",
-        executionTime: item.executionTime || undefined,
-        createdAt: item.timestamp, // Transform timestamp to createdAt
-        database: item.database,
-        resultCount: item.resultCount || undefined,
-      }));
-    },
-  });
-}
-
-// Recent activity hook
-export function useRecentActivity(limit = 10) {
-  return useQuery({
-    queryKey: queryKeys.recentActivity(limit),
-    queryFn: () => analyticsApi.getRecentActivity(limit),
-    refetchInterval: 15000,
-    staleTime: 10000,
-    select: (data: RecentActivityResponse[]) => {
-      // Transform API data to match component expectations
-      return data?.map((item) => ({
-        id: item.id,
-        type: item.type as "database_created" | "database_deleted" | "query_executed" | "query_error" | "user_login" | "file_uploaded",
-        title: item.title,
-        description: item.description,
-        timestamp: item.timestamp, // Keep as string, component will handle parsing
-        user: item.user,
-        metadata: item.metadata,
-      }));
-    },
-  });
-}
-
-// Performance metrics hook
-export function usePerformanceMetrics(timeRange: "1h" | "24h" | "7d" | "30d" = "7d") {
-  return useQuery({
-    queryKey: queryKeys.performanceMetrics(timeRange),
-    queryFn: () => analyticsApi.getPerformanceMetrics(timeRange),
-    refetchInterval: 60000, // Refetch every minute
-    staleTime: 30000,
-  });
-}
+// Analytics-related hooks removed (YAGNI)
 
 // Database list hook with optimized caching
 export function useDatabases() {
@@ -188,9 +87,6 @@ export function useRunQuery() {
     },
     onSuccess: (_: unknown, variables: { query: string; databaseId: string; parameters?: Record<string, unknown> }) => {
       // Invalidate and refetch queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.recentQueries() });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
-      queryClient.invalidateQueries({ queryKey: queryKeys.recentActivity() });
       queryClient.invalidateQueries({ queryKey: queryKeys.databaseMetrics(variables.databaseId) });
     },
   });
@@ -207,7 +103,6 @@ export function useCreateDatabase() {
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.databases });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
       
       // Show success message
       handleSuccess(
@@ -279,29 +174,10 @@ export function useUploadFile() {
       queryClient.invalidateQueries({ queryKey: queryKeys.database(variables.databaseId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.databases });
       queryClient.invalidateQueries({ queryKey: queryKeys.databaseMetrics(variables.databaseId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.dashboardStats });
     },
   });
 }
-
-// Enhanced real-time hooks
-export function useRealTimeDashboard() {
-  const dashboardStats = useDashboardStats();
-  const recentQueries = useRecentQueries(5);
-  const recentActivity = useRecentActivity(10);
-  const performanceMetrics = usePerformanceMetrics('24h');
-  
-  return {
-    stats: dashboardStats,
-    queries: recentQueries,
-    activity: recentActivity,
-    metrics: performanceMetrics,
-    isLoading: dashboardStats.isLoading || recentQueries.isLoading || 
-              recentActivity.isLoading || performanceMetrics.isLoading,
-    error: dashboardStats.error || recentQueries.error || 
-           recentActivity.error || performanceMetrics.error,
-  };
-}
+// Real-time dashboard helpers removed (YAGNI)
 
 // Database metrics hook with real-time updates
 export function useDatabaseMetrics(databaseId: string, realTime = false) {

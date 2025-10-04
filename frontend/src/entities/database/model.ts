@@ -28,34 +28,3 @@ export interface DatabaseStats {
   queryCount: number;
   lastQueryAt?: string;
 }
-
-export interface DatabaseSchema {
-  tables: DatabaseTable[];
-  relationships: DatabaseRelationship[];
-}
-
-export interface DatabaseTable {
-  name: string;
-  columns: DatabaseColumn[];
-  rowCount: number;
-}
-
-export interface DatabaseColumn {
-  name: string;
-  type: string;
-  nullable: boolean;
-  primaryKey: boolean;
-  foreignKey?: {
-    table: string;
-    column: string;
-  };
-}
-
-export interface DatabaseRelationship {
-  id: string;
-  fromTable: string;
-  fromColumn: string;
-  toTable: string;
-  toColumn: string;
-  type: "one-to-one" | "one-to-many" | "many-to-many";
-}

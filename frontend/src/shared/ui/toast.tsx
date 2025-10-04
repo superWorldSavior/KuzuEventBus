@@ -1,7 +1,6 @@
 import { forwardRef, ReactNode, useEffect, useState } from "react";
 import { X, Check, Warning, Info } from "@phosphor-icons/react";
 import { cn } from "@/shared/lib";
-import { SlideIn } from "./animations";
 
 interface ToastProps {
   variant?: "success" | "error" | "warning" | "info";
@@ -82,10 +81,10 @@ export const Toast = forwardRef<HTMLDivElement, ToastProps>(({
   const currentVariant = variants[variant];
 
   return (
-    <SlideIn direction="right" duration={300}>
-      <div
-        ref={ref}
-        className={cn(
+    <div
+      ref={ref}
+      className={cn(
+        "animate-in slide-in-from-right-4 duration-300",
           "relative max-w-sm w-full bg-white border rounded-lg shadow-lg pointer-events-auto",
           "transform transition-all duration-300 ease-in-out",
           isVisible ? "translate-x-0 opacity-100" : "translate-x-full opacity-0",
@@ -162,7 +161,6 @@ export const Toast = forwardRef<HTMLDivElement, ToastProps>(({
           </div>
         </div>
       </div>
-    </SlideIn>
   );
 });
 
@@ -220,10 +218,9 @@ export function CompactToast({
   };
 
   return (
-    <SlideIn direction="down" duration={200}>
-      <div
-        className={cn(
-          "px-4 py-2 rounded-full text-sm font-medium shadow-lg",
+    <div
+      className={cn(
+        "px-4 py-2 rounded-full text-sm font-medium shadow-lg animate-in slide-in-from-top-4 duration-200",
           variants[variant],
           props.className
         )}
@@ -232,7 +229,6 @@ export function CompactToast({
       >
         {message}
       </div>
-    </SlideIn>
   );
 }
 

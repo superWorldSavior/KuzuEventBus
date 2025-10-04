@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useNotifications } from './useNotifications';
+import { useToast } from './use-toast';
 import { createErrorNotification, getUserFriendlyError, type ApiErrorDetails } from '@/shared/lib/errorHandling';
 
 /**
@@ -7,7 +7,7 @@ import { createErrorNotification, getUserFriendlyError, type ApiErrorDetails } f
  * Automatically creates appropriate toast notifications based on error type
  */
 export function useApiErrorHandler() {
-  const { addNotification } = useNotifications();
+  const { toast } = useToast();
 
   const handleError = useCallback((error: any, context?: string) => {
     console.error('API Error:', error, context ? `Context: ${context}` : '');
@@ -19,39 +19,32 @@ export function useApiErrorHandler() {
       notification.title = `${context}: ${notification.title}`;
     }
     
-    addNotification({
-      type: notification.type,
-      title: notification.title,
-      message: notification.message,
-      // Convert duration to appropriate action format if needed
-      actionUrl: notification.actions?.[0] ? undefined : undefined,
-      actionLabel: notification.actions?.[0]?.label,
-    });
-  }, [addNotification]);
+    // Route toasts by type
+    const title = context ? `${context}: ${notification.title}` : notification.title;
+    switch (notification.type) {
+      case 'warning':
+        toast.warning(notification.message, { title });
+        break;
+      case 'info':
+        toast.info(notification.message, { title });
+        break;
+      default:
+        toast.error(notification.message, { title });
+        break;
+    }
+  }, [toast]);
 
   const handleSuccess = useCallback((message: string, title?: string) => {
-    addNotification({
-      type: 'success',
-      title: title || 'Success',
-      message,
-    });
-  }, [addNotification]);
+    toast.success(message, { title: title || 'Success' });
+  }, [toast]);
 
   const handleInfo = useCallback((message: string, title?: string) => {
-    addNotification({
-      type: 'info',
-      title: title || 'Information',
-      message,
-    });
-  }, [addNotification]);
+    toast.info(message, { title: title || 'Information' });
+  }, [toast]);
 
   const handleWarning = useCallback((message: string, title?: string) => {
-    addNotification({
-      type: 'warning',
-      title: title || 'Warning',
-      message,
-    });
-  }, [addNotification]);
+    toast.warning(message, { title: title || 'Warning' });
+  }, [toast]);
 
   return {
     handleError,

@@ -1,24 +1,16 @@
-import { useState } from "react";
-import {
-  List,
-  MagnifyingGlass,
-} from "@phosphor-icons/react";
+import { List } from "@phosphor-icons/react";
 import { cn } from "@/shared/lib";
 import { useNavigationStore } from "@/app/stores/navigation";
 import { TenantSwitcher } from "./TenantSwitcher";
 import { UserMenu } from "./UserMenu";
-import { MobileSearchModal } from "./MobileSearchModal";
 import { Breadcrumbs } from "./Breadcrumbs";
-import { NotificationCenter } from "./NotificationCenter";
-import { SearchBar } from "./SearchBar";
-import { RealTimeStatus } from "@/shared/ui/RealTimeIndicator";
+// Real-time indicator removed for MVP
 
 interface HeaderProps {
   className?: string;
 }
 
 export function Header({ className }: HeaderProps) {
-  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const { mobileMenuOpen, setMobileMenuOpen } = useNavigationStore();
 
   const toggleMobileMenu = () => setMobileMenuOpen(!mobileMenuOpen);
@@ -41,10 +33,8 @@ export function Header({ className }: HeaderProps) {
           <Breadcrumbs className="ml-2 md:ml-0" showHome={false} />
         </div>
 
-        {/* Center section - Search */}
-        <div className="flex-1 max-w-lg mx-4 hidden sm:block">
-          <SearchBar />
-        </div>
+        {/* Center section - (search removed) */}
+        <div className="flex-1 max-w-lg mx-4 hidden sm:block" />
 
         {/* Right section - Tenant switcher + Notifications + User menu */}
         <div className="flex items-center space-x-3">
@@ -53,30 +43,16 @@ export function Header({ className }: HeaderProps) {
             <TenantSwitcher />
           </div>
 
-          {/* Search button for mobile */}
-          <button 
-            onClick={() => setIsMobileSearchOpen(true)}
-            className="sm:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
-          >
-            <MagnifyingGlass className="w-5 h-5 text-gray-500" />
-          </button>
-
-          {/* Notifications */}
-          <NotificationCenter />
+          {/* Notifications removed */}
           
-          {/* Real-time connection status */}
-          <RealTimeStatus />
+          {/* Real-time connection status removed */}
 
           {/* User menu */}
           <UserMenu />
         </div>
       </div>
 
-      {/* Mobile search modal */}
-      <MobileSearchModal 
-        isOpen={isMobileSearchOpen}
-        onClose={() => setIsMobileSearchOpen(false)}
-      />
+      {/* Mobile search modal removed */}
     </header>
   );
 }

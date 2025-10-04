@@ -1,53 +1,16 @@
-// Tenant Entity Model
+// Tenant entity - minimal types for future multi-tenant support
+
+export type TenantId = string;
+export type TenantName = string;
+
 export interface Tenant {
-  id: string;
-  name: string;
-  displayName?: string;
-  customerId: string;
-  status: TenantStatus;
-  createdAt: string;
-  updatedAt: string;
-  settings: TenantSettings;
-  limits: TenantLimits;
+  id: TenantId;
+  name: TenantName;
+  createdAt?: string; // ISO timestamp (optional in frontend)
 }
 
-export type TenantStatus = "active" | "inactive" | "suspended";
-
-export interface TenantSettings {
-  timezone: string;
-  dateFormat: string;
-  theme: "light" | "dark" | "auto";
-  notifications: {
-    email: boolean;
-    webhook: boolean;
-    inApp: boolean;
-  };
-  queryDefaults: {
-    timeout: number;
-    maxResults: number;
-    autoSave: boolean;
-  };
-}
-
-export interface TenantLimits {
-  maxDatabases: number;
-  maxStorageBytes: number;
-  maxQueriesPerHour: number;
-  maxConcurrentQueries: number;
-  maxQueryTimeout: number;
-}
-
-export interface TenantCreate {
-  name: string;
-  displayName?: string;
-  customerId: string;
-  settings?: Partial<TenantSettings>;
-  limits?: Partial<TenantLimits>;
-}
-
-export interface TenantUpdate {
-  displayName?: string;
-  status?: TenantStatus;
-  settings?: Partial<TenantSettings>;
-  limits?: Partial<TenantLimits>;
-}
+// Conventions and simple validations (kept in sync with backend when added)
+export const TENANT_ID_PREFIX = "tn_" as const;
+export const TENANT_NAME_REGEX = /^[a-z0-9-]{3,32}$/;
+export const MIN_TENANT_NAME_LENGTH = 3;
+export const MAX_TENANT_NAME_LENGTH = 32;

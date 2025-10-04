@@ -4,6 +4,7 @@
  */
 
 import { TimeTravelAPI } from './timeTravel';
+import { BranchesAPI } from './branches';
 
 export interface KuzuClientConfig {
   baseUrl: string;
@@ -127,17 +128,45 @@ export class KuzuEventBusClient {
    */
   public readonly timeTravel: TimeTravelAPI;
 
+  /**
+   * Branches API - Git-like branching for databases
+   * 
+   * Create isolated branches for testing/development without affecting production.
+   * 
+   * @example
+   * ```typescript
+   * // Create branch from prod
+   * const branch = await client.branches.create({
+   *   sourceDatabase: 'prod-db',
+   *   branchName: 'test-migration',
+   *   fromSnapshot: 'latest'
+   * });
+   * 
+   * // Work on branch (isolated)
+   * await client.executeQuery(branch.fullName, 'CREATE (:Test {...})');
+   * 
+   * // Merge back to prod when ready
+   * await client.branches.merge(branch.fullName, { targetDatabase: 'prod-db' });
+   * 
+   * // Or discard
+   * await client.branches.delete(branch.fullName);
+   * ```
+   */
+  public readonly branches: BranchesAPI;
+
   constructor(config: KuzuClientConfig) {
     this.config = config;
     
+    const getHeaders = () => ({
+      'Authorization': `Bearer ${this.config.apiKey}`,
+      'Content-Type': 'application/json',
+    });
+    
     // Initialize Time Travel API
-    this.timeTravel = new TimeTravelAPI(
-      config.baseUrl,
-      () => ({
-        'Authorization': `Bearer ${this.config.apiKey}`,
-        'Content-Type': 'application/json',
-      })
-    );
+    this.timeTravel = new TimeTravelAPI(config.baseUrl, getHeaders);
+    
+    // Initialize Branches API
+    this.branches = new BranchesAPI(config.baseUrl, getHeaders);
   }
   private async request<T>(
     path: string,

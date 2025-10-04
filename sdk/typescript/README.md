@@ -151,6 +151,45 @@ await client.timeTravel.goBackTo('my-db', '2 hours ago');
 - ✅ **Précis** : Restaurez à n'importe quel timestamp (à la seconde près)
 - ✅ **Preview** : Testez avant de restaurer (non-destructif)
 
+### 🌿 Branches (Git-like pour databases)
+
+Créez des branches isolées pour tester sans casser la prod :
+
+```typescript
+// 1. Créer branche depuis prod
+const branch = await client.branches.create({
+  sourceDatabase: 'prod-db',
+  branchName: 'alice-test-migration',
+  fromSnapshot: 'latest'  // ou 'yesterday', timestamp, snapshot ID
+});
+
+console.log('Branch créée:', branch.fullName);
+// → 'prod-db--branch--alice-test-migration'
+
+// 2. Travailler sur la branche (isolé, pas d'impact prod)
+await client.executeQuery(branch.fullName, 'CREATE (:NewFeature {...})');
+await client.executeQuery(branch.fullName, 'ALTER ...');
+// Tests, migrations, etc.
+
+// 3. Lister les branches
+const branches = await client.branches.list('prod-db');
+
+// 4. Décider du sort de la branche
+
+// Option A: Merger vers prod (écrase prod !)
+await client.branches.merge(branch.fullName, { 
+  targetDatabase: 'prod-db' 
+});
+
+// Option B: Supprimer la branche (abandon)
+await client.branches.delete(branch.fullName);
+```
+
+**Use cases** :
+- ✅ **Testing** : Tester migrations/changements sur copie de prod
+- ✅ **Multi-users** : Chaque dev a sa branche, pas de conflits
+- ✅ **Safe** : Prod n'est jamais touchée jusqu'au merge
+
 ### Événements temps réel (SSE)
 
 ```typescript

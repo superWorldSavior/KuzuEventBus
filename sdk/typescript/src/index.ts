@@ -29,3 +29,11 @@ export type {
   ViewHistoryOptions,
   PreviewOptions,
 } from './timeTravel';
+
+// Branches API
+export { BranchesAPI } from './branches';
+export type {
+  CreateBranchOptions,
+  Branch,
+  MergeOptions,
+} from './branches';

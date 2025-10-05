@@ -14,14 +14,12 @@ import { useQueryExecution } from "@/features/graph/hooks/useQueryExecution";
 import { PitrTimeline } from "@/features/graph/components/PitrTimeline";
 import { GraphViewerControls } from "@/features/graph/components/GraphViewerControls";
 import { useBranching } from "@/features/graph/hooks/useBranching";
-import { useDatabaseEvents } from "@/shared/hooks/useDatabaseEvents";
-import { useToast } from "@/shared/hooks/use-toast";
+import { usePitrRestoreEvents } from "@/features/database-management/hooks/usePitrRestoreEvents";
 
 export function DashboardPage() {
   const { selectedDatabaseId, setSelectedDatabaseId, selectedPitrPoint, setSelectedPitrPoint, currentAnchorTimestamp, setCurrentAnchorTimestamp } = useNavigationStore();
   const LAST_ANCHOR = PITR_ANCHOR.LAST;
   const [selectedSnapshotId] = useState<string | null>(null);
-  const { toast } = useToast();
   type ExecContext = 'prod' | 'preview' | 'branch';
   const [executionContextByDb, setExecutionContextByDb] = useState<Record<string, ExecContext>>({});
   const executionContext = selectedDatabaseId ? (executionContextByDb[selectedDatabaseId] ?? 'prod') : 'prod';
@@ -56,26 +54,20 @@ export function DashboardPage() {
   const selectedDb = databases.find(db => db.id === selectedDatabaseId) || null;
   const { branches, activeBranch, activeBranchName, createBranch, switchBranch, addWinToBranch } = useBranching(selectedDatabaseId, selectedDb?.name ?? null);
   
-  // Listen for database restore events via SSE
-  useDatabaseEvents({
-    onDatabaseRestored: (event) => {
-      console.log('🔄 [SSE] Database restored:', event.database_id);
-      // Only react if it's the currently selected database
-      if (event.database_id === selectedDatabaseId) {
-        toast({
-          title: "Database Restored",
-          description: `Database restored to ${new Date(event.target_timestamp).toLocaleString()}`,
-        });
-        // Reset UI to PROD @ HEAD after restore
-        setSelectedPitrPoint(null);
-        setCurrentAnchorTimestamp(LAST_ANCHOR);
-        setExecutionContext('prod');
-        if (selectedDatabaseId) {
-          setProdArmedByDb((prev) => ({ ...prev, [selectedDatabaseId]: false }));
-        }
-        // Refetch PITR data to update timeline
-        pitrQuery.refetch?.();
+  // Listen for database restore events via SSE (feature-owned hook)
+  usePitrRestoreEvents({
+    selectedDatabaseId,
+    onRestored: ({ database_id, target_timestamp }) => {
+      if (database_id !== selectedDatabaseId) return;
+      // Reset UI to PROD @ HEAD after restore
+      setSelectedPitrPoint(null);
+      setCurrentAnchorTimestamp(LAST_ANCHOR);
+      setExecutionContext('prod');
+      if (selectedDatabaseId) {
+        setProdArmedByDb((prev) => ({ ...prev, [selectedDatabaseId]: false }));
       }
+      // Refetch PITR data to update timeline
+      pitrQuery.refetch?.();
     },
     debug: true,
   });

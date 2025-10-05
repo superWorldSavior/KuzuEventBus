@@ -43,7 +43,7 @@ async def test_register_customer_success(ports):
     uc = RegisterCustomerUseCase(
         account_repository=ports["accounts"],
         auth_service=ports["auth"],
-        notification_service=ports["notify"],
+        event_service=ports["notify"],
         cache_service=ports["cache"],
     )
     ports["accounts"].find_by_tenant_name.return_value = None
@@ -63,7 +63,7 @@ async def test_register_customer_success(ports):
 
     assert res.api_key.startswith("kb_")
     ports["accounts"].save.assert_called_once()
-    ports["notify"].send_notification.assert_called_once()
+    ports["notify"].emit_event.assert_called_once()
     ports["cache"].set.assert_called_once()
 
 
@@ -101,7 +101,7 @@ async def test_create_customer_api_key_paths(ports):
     uc = CreateCustomerApiKeyUseCase(ports["accounts"], ports["auth"], ports["notify"])
     r = await uc.execute(CreateCustomerApiKeyRequest(customer_id=tenant, key_name="prod", permissions=["q"]))
     assert r.startswith("kb_") and len(r) >= 10
-    ports["notify"].send_notification.assert_called_once()
+    ports["notify"].emit_event.assert_called_once()
 
     # Inactive
     ports["accounts"].find_by_id.return_value = MagicMock(status=CustomerAccountStatus.SUSPENDED)

@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { branchApi } from '../services/branchApi';
 import { useApiErrorHandler } from '@/shared/hooks/useApiErrorHandler';
-import { useBranchEvents } from '@/shared/hooks/useBranchEvents';
+import { useBranchSSE } from '@/features/branching/hooks/useBranchSSE';
 import type { MutatingWin } from '../components/PitrTimeline';
 
 export interface Branch {
@@ -120,35 +120,18 @@ export function useBranching(databaseId: string | null, databaseName?: string | 
 
   const activeBranch = branches.find((b) => b.name === activeBranchName) || null;
 
-  // Listen for SSE events to auto-refresh branches
-  useBranchEvents({
-    onBranchCreated: (event) => {
-      console.log('🌿 [SSE] Branch created:', event.branch_name);
-      // Refetch branches list → branch appears in UI
-      queryClient.invalidateQueries({ queryKey: ['branches', effectiveKey] });
-      // Auto-switch to new branch
-      setActiveBranchName(event.branch_name);
-    },
-    onBranchMerged: (event) => {
-      console.log('🔀 [SSE] Branch merged:', event.branch_name);
-      queryClient.invalidateQueries({ queryKey: ['branches', effectiveKey] });
-      // Also invalidate databases since merge affects the target
-      queryClient.invalidateQueries({ queryKey: ['databases'] });
-    },
-    onBranchDeleted: (event) => {
-      console.log('🗑️ [SSE] Branch deleted:', event.branch_name);
-      // Refetch branches list → branch disappears from UI
-      queryClient.invalidateQueries({ queryKey: ['branches', effectiveKey] });
-      if (activeBranchName === event.branch_name) {
-        setActiveBranchName(null);
-      }
-      // Clean local wins
+  // Centralized SSE listeners for Branching feature
+  useBranchSSE({
+    effectiveKey,
+    activeBranchName,
+    onSwitchActiveBranch: setActiveBranchName,
+    onCleanupBranchWins: (branchName: string) => {
       setLocalWins((prev) => {
-        const { [event.branch_name]: _, ...rest } = prev;
+        const { [branchName]: _, ...rest } = prev;
         return rest;
       });
     },
-    debug: true, // Enable debug logs
+    debug: true,
   });
 
   return {

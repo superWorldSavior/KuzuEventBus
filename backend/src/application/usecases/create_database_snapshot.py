@@ -19,6 +19,7 @@ from src.domain.shared.ports.database_management import (
     FileStorageService,
 )
 from src.domain.shared.ports.query_execution import DistributedLockService
+from src.domain.database_management.database_path_factory import DatabasePathFactory
 from src.infrastructure.settings import settings
 
 
@@ -96,22 +97,19 @@ class CreateDatabaseSnapshotUseCase:
             # Construire un tar.gz NORMALISÉ:
             # <database_id>/data.kuzu
             from tempfile import mkdtemp
-            import shutil
             import io
             import uuid
             # Add UUID suffix to avoid collisions when creating multiple snapshots in the same second
             ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"-{uuid.uuid4().hex[:8]}"
             try:
                 tmp_parent = Path(mkdtemp(prefix="kuzu-snap-"))
-                # Kuzu DB is normally a directory (data.kuzu/), but support file fallback for tests
-                db_path = p
                 root_dir = tmp_parent / str(req.database_id)
-                root_dir.mkdir(parents=True, exist_ok=True)
-                # Copy DB content into normalized location inside archive
-                if db_path.is_dir():
-                    shutil.copytree(str(db_path), str(root_dir / "data.kuzu"))
-                else:
-                    shutil.copy2(str(db_path), str(root_dir / "data.kuzu"))
+                
+                # Use factory to copy database (handles dir/file formats)
+                DatabasePathFactory.copy_database_to_archive(
+                    source_path=p,
+                    dest_dir=root_dir,
+                )
 
                 buf = io.BytesIO()
                 with tarfile.open(fileobj=buf, mode="w:gz") as tar:

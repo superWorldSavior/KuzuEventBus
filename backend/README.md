@@ -209,6 +209,43 @@ Docs interactives: http://localhost:8200/docs et http://localhost:8200/redoc
 Pour les détails des modèles et exemples de payloads, voir aussi:
 - `src/presentation/api/databases/README.md`
 
+## 🏗️ Architecture Technique
+
+### Événements SSE (Server-Sent Events)
+
+Le système émet **15 types d'événements** en temps réel via Redis Streams pour notifier le frontend:
+
+**Databases**: `database_created`, `database_deleted`, `file_uploaded`  
+**Snapshots & PITR**: `snapshot_created`, `database_restored`  
+**Branches**: `branch_created`, `branch_merged`, `branch_deleted`  
+**Queries**: `completed`, `timeout`, `failed`, `query_cancelled`  
+**Comptes**: `welcome`, `api_key_created`, `subscription_updated`
+
+📖 Documentation complète: [src/infrastructure/events/README.md](src/infrastructure/events/README.md)
+
+### Dual Storage Model
+
+Les bases Kuzu utilisent un modèle de stockage dual:
+
+1. **Filesystem actif** (`/tmp/kuzu_data/`)
+   - Structure: `{tenant_id}/databases/{database_id}/data.kuzu/`
+   - Usage: Base de données active pour queries
+   - Format: Répertoire `data.kuzu/` (Kuzu moderne)
+
+2. **MinIO archives** (snapshots)
+   - Structure: `{tenant_id}/snapshots/{snapshot_id}.tar.gz`
+   - Usage: Snapshots compressés pour PITR et branches
+   - Format: Archive tar.gz contenant `{database_id}/data.kuzu/`
+
+**Factory centralisée**: `src/domain/database_management/database_path_factory.py` gère toutes les opérations de path (copy, extract, validate).
+
+### Documentation Infrastructure
+
+- [Events & SSE](src/infrastructure/events/README.md)
+- [File Storage (MinIO)](src/infrastructure/file_storage/README.md)
+- [Kuzu](src/infrastructure/kuzu/README.md)
+- [Redis (cache/queue/locks)](src/infrastructure/redis/README.md)
+
 
 ## 🤝 Pour Contribuer
 

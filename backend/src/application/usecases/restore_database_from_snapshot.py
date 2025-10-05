@@ -17,6 +17,7 @@ from src.domain.shared.ports.database_management import (
     FileStorageService,
 )
 from src.domain.shared.ports.query_execution import DistributedLockService
+from src.domain.database_management.database_path_factory import DatabasePathFactory
 
 
 @dataclass(frozen=True)
@@ -97,22 +98,12 @@ class RestoreDatabaseFromSnapshotUseCase:
                     # Choose the single root if present, else tmp_dir as content root
                     content_root: Path = entries[0] if len(entries) == 1 else tmp_dir
 
-                    # Kuzu DB is always a directory (data.kuzu) - overwrite atomically
-                    backup = target_path.with_name(target_path.name + f".bak_{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}")
-                    if target_path.exists():
-                        os.replace(str(target_path), str(backup))
-                    os.replace(str(content_root), str(target_path))
-                    # Cleanup backup best-effort
-                    if backup.exists():
-                        try:
-                            for root, dirs, files in os.walk(backup, topdown=False):
-                                for f in files:
-                                    Path(root, f).unlink(missing_ok=True)
-                                for d in dirs:
-                                    Path(root, d).rmdir()
-                            backup.rmdir()
-                        except Exception:  # noqa: BLE001
-                            pass
+                    # Use factory to extract database from archive
+                    DatabasePathFactory.extract_database_from_archive(
+                        archive_content_dir=content_root,
+                        dest_path=target_path,
+                        expected_db_name="data.kuzu",
+                    )
                 else:
                     # Raw file snapshot
                     tmp_file = target_path.with_suffix(target_path.suffix + ".tmp")

@@ -11,18 +11,19 @@ GET /api/v1/events/stream
     ↓ xread
 Redis Streams: events:{tenant_id}
     ↑ xadd
-SSEEventService
-    ↑ send_notification()
-Use Cases (DB, Snapshots, Queries, etc.)
+SSEEventService (implements EventService)
+    ↑ emit_event()
+Use Cases (DB, Snapshots, Branches, Queries, etc.)
 ```
 
 ## 📦 Composants
 
 ### SSEEventService
-- **Rôle**: Implémente `NotificationService` en émettant via Redis Streams
+- **Rôle**: Implémente `EventService` protocol en émettant via Redis Streams
 - **Stream**: `events:{tenant_id}` (un stream par tenant)
 - **Rétention**: 10,000 événements par stream (configurable)
 - **Format**: Événements structurés avec `event_type`, `title`, `message`, `metadata`
+- **Fichier**: `backend/src/infrastructure/events/sse_event_service.py`
 
 ### Endpoint SSE
 - **Route**: `GET /api/v1/events/stream`

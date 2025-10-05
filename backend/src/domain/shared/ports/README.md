@@ -109,66 +109,42 @@ class AuthenticationService(Protocol):
 - `JWTAuthService` (future) : Tokens JWT avec validation
 - `DatabaseAuthService` (future) : Stockage en base
 
-### `NotificationService`
+### `EventService`
 
-**Service de notifications multi-canal**
+**Service d'émission d'événements métier (SSE via Redis Streams)**
 
 ```python
 @runtime_checkable
-class NotificationService(Protocol):
-    """Service de notifications (email, SMS, push, etc.)."""
+class EventService(Protocol):
+    """Service d'émission d'événements vers le frontend (SSE)."""
 
-    async def send_notification(
+    async def emit_event(
         self,
         tenant_id: UUID,
-        notification_type: str,
+        event_type: str,
         title: str,
         message: str,
-        recipients: Optional[List[str]] = None,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """
-        Envoyer une notification.
+        Émettre un événement structuré pour le tenant donné.
         
         Args:
             tenant_id: Identifiant du tenant
-            notification_type: Type de notification (welcome, alert, etc.)
-            title: Titre de la notification
-            message: Contenu du message
-            recipients: Destinataires spécifiques (optionnel)
-            metadata: Métadonnées additionnelles
+            event_type: Type d'événement (branch_created, snapshot_created, ...)
+            title: Titre affichable
+            message: Message court
+            metadata: Métadonnées additionnelles sérialisables
             
         Returns:
-            True si l'envoi a réussi
-        """
-        ...
-
-    async def send_email(
-        self,
-        to_email: str,
-        subject: str,
-        content: str,
-        content_type: str = "text/plain",
-    ) -> bool:
-        """
-        Envoyer un email spécifique.
-        
-        Args:
-            to_email: Adresse destinataire
-            subject: Sujet de l'email
-            content: Contenu du message
-            content_type: Type de contenu (text/plain, text/html)
-            
-        Returns:
-            True si l'envoi a réussi
+            True si l'émission a réussi (best-effort selon implémentation)
         """
         ...
 ```
 
 **Implémentations :**
-- `InMemoryNotificationService` (YAGNI) : Affichage console
-- `SMTPNotificationService` (future) : Envoi email SMTP
-- `SendGridNotificationService` (future) : API SendGrid
+- `SSEEventService` (infra/events) : écrit dans `events:{tenant_id}` (Redis Streams) pour consommation SSE
+- `ConsoleEventService` (tests/doc) : affiche sur la console
 
 ### `CacheService`
 
@@ -461,14 +437,14 @@ class MockAuthService(AuthenticationService):
 ### 1. Adaptateur Simple (YAGNI)
 
 ```python
-class SimpleNotificationService(NotificationService):
-    """Implémentation YAGNI - console uniquement."""
-    
-    async def send_notification(
-        self, tenant_id: UUID, notification_type: str, title: str, message: str, **kwargs
+class ConsoleEventService(EventService):
+    """Implémentation simple - log console."""
+
+    async def emit_event(
+        self, tenant_id: UUID, event_type: str, title: str, message: str, metadata: Optional[Dict[str, Any]] = None
     ) -> bool:
-        print(f"📧 {notification_type}: {title} -> {message}")
-        return True  # Toujours réussir pour YAGNI
+        print(f"🔔 {event_type}: {title} -> {message} | tenant={tenant_id} | meta={metadata}")
+        return True
 ```
 
 ### 2. Adaptateur Complexe (Future)

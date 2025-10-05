@@ -52,7 +52,14 @@ export function PitrTimeline({
   // Close tooltip on click outside for PROD rail area
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (whiteNodeRef.current && !whiteNodeRef.current.contains(event.target as Node)) {
+      const target = event.target as HTMLElement;
+      
+      // Ignore clicks on menu buttons (let their onClick handlers run first)
+      if (target.closest('button')) {
+        return;
+      }
+      
+      if (whiteNodeRef.current && !whiteNodeRef.current.contains(target)) {
         setMenuTs(null);
         setConfirmRestoreTs(null);
         setConfirmInput("");
@@ -63,7 +70,7 @@ export function PitrTimeline({
   }, []);
 
   return (
-    <div className="w-80 px-3 bg-gradient-to-br from-gray-50 to-gray-100 border-r border-gray-200 flex flex-row items-start py-6 overflow-y-auto gap-4">
+    <div className="w-80 px-3 bg-gradient-to-br from-gray-50 to-gray-100 border-r border-gray-200 flex flex-row items-start py-6 overflow-y-auto gap-4 relative">
       {/* PROD rail */}
       <div className="flex-1 flex flex-col items-center">
         <div className="text-[10px] tracking-wider text-gray-600 mb-2 font-semibold">PROD</div>
@@ -123,7 +130,11 @@ export function PitrTimeline({
               <button
                 type="button"
                 className="px-2 py-1 text-[11px] rounded border border-gray-300 hover:bg-gray-50"
-                onClick={() => onCreateBranch(lastAnchorValue)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCreateBranch(lastAnchorValue);
+                  setMenuTs(null); // Close menu after action
+                }}
               >
                 New Branch
               </button>
@@ -176,7 +187,11 @@ export function PitrTimeline({
                           <button
                             type="button"
                             className="px-2 py-1 text-[11px] rounded border bg-white text-gray-700 border-gray-300 hover:bg-gray-50 whitespace-nowrap"
-                            onClick={() => onCreateBranch(w.end)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCreateBranch(w.end);
+                              setMenuTs(null); // Close menu after action
+                            }}
                           >
                             New Branch
                           </button>
@@ -243,25 +258,66 @@ export function PitrTimeline({
         </div>
       </div>
 
+      {/* Diagonal branch connector - Git-style */}
+      {branch && (
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0" style={{ overflow: 'visible' }}>
+          <path
+            d="M 80 80 Q 120 80, 160 100"
+            stroke={branch.color}
+            strokeWidth="2"
+            fill="none"
+            opacity="0.6"
+            strokeLinecap="round"
+          />
+        </svg>
+      )}
+
       {/* BRANCH rail (optional) */}
       {branch && (
-        <div className="flex-1 flex flex-col items-center">
-          <div className="text-[10px] tracking-wider mb-2 font-semibold" style={{ color: branch.color }}>
+        <div className="flex-1 flex flex-col items-center relative z-10">
+          <div className="text-[10px] tracking-wider mb-2 font-semibold uppercase" style={{ color: branch.color }}>
             {branch.name}
           </div>
           <div className="w-px h-2" style={{ backgroundColor: branch.color, opacity: 0.6 }} />
-          {/* Branch nodes */}
-          <div className="flex flex-col items-center space-y-2 mt-4 mx-auto">
+          
+          {/* Branch HEAD node - matching PROD style */}
+          <div className="flex flex-col items-center space-y-2 mt-2 mx-auto">
+            <div className="relative flex items-center gap-3">
+              <div className="flex flex-col items-center">
+                <div
+                  className="w-4 h-4 rounded-full border-2 cursor-pointer transition-all duration-200 shadow-lg"
+                  style={{ 
+                    backgroundColor: branch.color, 
+                    borderColor: branch.color,
+                    boxShadow: `0 0 15px ${branch.color}40, 0 0 0 4px ${branch.color}33`
+                  }}
+                  title="Branch HEAD"
+                />
+                {branch.wins.length > 0 && (
+                  <div className="w-0.5 h-8 my-1 rounded-full" style={{ backgroundColor: branch.color, opacity: 0.7 }} />
+                )}
+              </div>
+              <div 
+                className="absolute left-6 text-[11px] font-medium text-white px-2 py-1 rounded shadow-lg whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-200"
+                style={{ backgroundColor: branch.color }}
+              >
+                HEAD
+              </div>
+            </div>
+          </div>
+
+          {/* Branch mutation nodes - matching PROD style */}
+          <div className="flex flex-col items-center space-y-2 mt-2 mx-auto">
             {branch.wins.length === 0 && (
-              <div className="text-[10px] text-gray-400">No queries yet</div>
+              <div className="text-[10px] text-gray-400 mt-4">No queries yet</div>
             )}
             {branch.wins.map((w, idx) => (
               <div key={`bnode-${w.end}-${idx}`} className="relative flex items-center gap-3">
                 <div className="flex flex-col items-center">
                   <div
-                    className="w-4 h-4 rounded-full border-2 cursor-pointer transition-all duration-200"
+                    className="w-4 h-4 rounded-full border-2 cursor-pointer transition-all duration-200 hover:scale-110 hover:shadow-md"
                     style={{ backgroundColor: branch.color, borderColor: branch.color }}
-                    title={`Branch node: ${formatRelativeDate(w.end)}`}
+                    title={`Mutation: ${formatRelativeDate(w.end)}`}
                     onClick={() => onSelectBranchNode && onSelectBranchNode(idx)}
                   />
                   {idx < branch.wins.length - 1 && (

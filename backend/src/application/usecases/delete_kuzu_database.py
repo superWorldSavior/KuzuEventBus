@@ -58,7 +58,7 @@ class DeleteKuzuDatabaseUseCase:
             await self._cache.delete(f"db_info:{req.database_id}")
             await self._events.emit_event(
                 tenant_id=req.tenant_id,
-                notification_type="database_deleted",
+                event_type="database_deleted",
                 title="Database Deleted",
                 message=f"Database '{info.get('name')}' has been deleted",
                 metadata={"database_id": str(req.database_id)},

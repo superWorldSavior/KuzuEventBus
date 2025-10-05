@@ -13,7 +13,7 @@ import { usePitrPreview } from "@/features/graph/hooks/usePitrPreview";
 import { useQueryExecution } from "@/features/graph/hooks/useQueryExecution";
 import { PitrTimeline } from "@/features/graph/components/PitrTimeline";
 import { GraphViewerControls } from "@/features/graph/components/GraphViewerControls";
-import { useBranching } from "@/features/graph/hooks/useBranching";
+import { useBranching } from "@/features/branching";
 import { usePitrRestoreEvents } from "@/features/database-management/hooks/usePitrRestoreEvents";
 
 export function DashboardPage() {
@@ -344,6 +344,8 @@ export function DashboardPage() {
             if (selectedDatabaseId) {
               setProdArmedByDb((prev) => ({ ...prev, [selectedDatabaseId]: false })); // Disarm if creating branch
             }
+          }).catch((error) => {
+            console.error('[Branch] Failed to create branch:', error);
           });
         }}
         onRestoreAt={handleRestoreAt}

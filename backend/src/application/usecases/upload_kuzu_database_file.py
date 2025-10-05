@@ -65,7 +65,7 @@ class UploadKuzuDatabaseFileUseCase:
 
         await self._events.emit_event(
             tenant_id=req.tenant_id,
-            notification_type="file_uploaded",
+            event_type="file_uploaded",
             title="File Uploaded",
             message=f"File '{req.file_name}' uploaded to database '{info.get('name')}'",
             metadata={

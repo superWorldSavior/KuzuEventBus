@@ -121,7 +121,7 @@ class RegisterCustomerUseCase:
         # Notify
         await self._event_service.emit_event(
             tenant_id=customer_id.value,
-            notification_type="welcome",
+            event_type="welcome",
             title="Welcome to Kuzu Event Bus",
             message=(
                 f"Your account has been created successfully. Organization: {req.organization_name}"

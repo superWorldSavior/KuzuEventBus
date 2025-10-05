@@ -65,7 +65,7 @@ class CancelQueryUseCase:
             await self._cache.delete(f"tx_results:{req.transaction_id}")
             await self._events.emit_event(
                 tenant_id=req.tenant_id,
-                notification_type="query_cancelled",
+                event_type="query_cancelled",
                 title="Query Cancelled",
                 message="Query execution has been cancelled",
                 metadata={"transaction_id": str(req.transaction_id)},

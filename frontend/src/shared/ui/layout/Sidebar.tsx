@@ -1,6 +1,7 @@
 import {
   CaretLeft,
   X,
+  Database,
 } from "@phosphor-icons/react";
 import { cn } from "@/shared/lib";
 import { useNavigationStore } from "@/app/stores/navigation";
@@ -14,6 +15,11 @@ export function Sidebar({ className }: SidebarProps) {
   const { sidebarCollapsed, mobileMenuOpen, toggleSidebar, setMobileMenuOpen, selectedDatabaseId, setSelectedDatabaseId } =
     useNavigationStore();
   const { data: databases = [], isLoading } = useDatabases();
+
+  // Filter out branches - only show parent databases in sidebar
+  // Branches have format: {parent}--branch--{branch_name}
+  const BRANCH_SEPARATOR = '--branch--';
+  const parentDatabases = databases.filter(db => !db.name.includes(BRANCH_SEPARATOR));
 
   const closeMobileMenu = () => setMobileMenuOpen(false);
 
@@ -92,13 +98,13 @@ export function Sidebar({ className }: SidebarProps) {
           <div className="p-2 space-y-1">
             {isLoading ? (
               <div className="text-center py-4 text-gray-400 text-xs">Loading...</div>
-            ) : databases.length === 0 ? (
+            ) : parentDatabases.length === 0 ? (
               <div className="text-center py-4 text-gray-400">
                 <Database className="w-8 h-8 mx-auto mb-1 opacity-30" />
                 <p className="text-xs">No databases</p>
               </div>
             ) : (
-              databases.map((db: any) => (
+              parentDatabases.map((db: any) => (
                 <button
                   key={db.id}
                   onClick={() => setSelectedDatabaseId(db.id)}

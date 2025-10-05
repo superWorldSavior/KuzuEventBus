@@ -42,7 +42,7 @@ class CreateCustomerApiKeyUseCase:
 
         await self._events.emit_event(
             tenant_id=req.customer_id,
-            notification_type="api_key_created",
+            event_type="api_key_created",
             title="New API Key Created",
             message=(
                 f"API key '{req.key_name}' has been created with {len(req.permissions)} permissions"

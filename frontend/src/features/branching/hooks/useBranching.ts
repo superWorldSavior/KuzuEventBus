@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { branchApi } from '../services/branchApi';
 import { useApiErrorHandler } from '@/shared/hooks/useApiErrorHandler';
-import { useBranchSSE } from '@/features/branching/hooks/useBranchSSE';
-import type { MutatingWin } from '../components/PitrTimeline';
+import { useBranchSSE } from './useBranchSSE';
+import type { MutatingWin } from '@/features/graph/components/PitrTimeline';
 
 export interface Branch {
   name: string;
@@ -30,12 +30,41 @@ export function useBranching(databaseId: string | null, databaseName?: string | 
   const [localWins, setLocalWins] = useState<Record<string, MutatingWin[]>>({});
   const { handleError, handleSuccess } = useApiErrorHandler();
 
-  // Fetch branches from backend
-  const effectiveKey = databaseName ?? databaseId ?? null;
+  // Extract parent database name if databaseName is a branch
+  // Branch naming: {parent}--branch--{branch_name}
+  const getParentDatabase = (dbName: string | null): string | null => {
+    if (!dbName) return null;
+    const BRANCH_SEPARATOR = '--branch--';
+    if (dbName.includes(BRANCH_SEPARATOR)) {
+      return dbName.split(BRANCH_SEPARATOR)[0];
+    }
+    return dbName;
+  };
+
+  const parentDatabaseName = getParentDatabase(databaseName);
+  
+  // Detect if current database is a branch and extract branch name
+  const getCurrentBranchName = (dbName: string | null): string | null => {
+    if (!dbName) return null;
+    const BRANCH_SEPARATOR = '--branch--';
+    if (dbName.includes(BRANCH_SEPARATOR)) {
+      return dbName.split(BRANCH_SEPARATOR)[1]; // Return branch name part
+    }
+    return null; // Not a branch
+  };
+  
+  const currentBranchName = getCurrentBranchName(databaseName ?? null);
+  console.log('[useBranching] Database:', databaseName, '→ Parent:', parentDatabaseName, '→ Current Branch:', currentBranchName);
+
+  // Fetch branches from backend (always from parent database)
+  const effectiveKey = parentDatabaseName ?? databaseId ?? null;
   const { data: branchesData, isLoading } = useQuery({
     queryKey: ['branches', effectiveKey],
-    queryFn: () => (databaseName ? branchApi.list(databaseName) : Promise.resolve({ branches: [], count: 0, database: '' })),
-    enabled: !!databaseName,
+    queryFn: () => {
+      console.log('[useBranching] Fetching branches for parent database:', parentDatabaseName);
+      return parentDatabaseName ? branchApi.list(parentDatabaseName) : Promise.resolve({ branches: [], count: 0, database: '' });
+    },
+    enabled: !!parentDatabaseName,
     staleTime: 30000,
   });
 
@@ -49,11 +78,37 @@ export function useBranching(databaseId: string | null, databaseName?: string | 
     createdAt: b.created_at,
     description: b.description,
   }));
+  
+  console.log('[useBranching] Branches loaded:', { count: branches.length, branches, activeBranchName });
+
+  // Sync activeBranchName with current database if it's a branch
+  useEffect(() => {
+    if (currentBranchName && activeBranchName !== currentBranchName) {
+      console.log('[useBranching] Auto-switching to detected branch:', currentBranchName);
+      setActiveBranchName(currentBranchName);
+    } else if (!currentBranchName && activeBranchName && !branches.find(b => b.name === activeBranchName)) {
+      // If we're back on the parent database and the active branch doesn't exist, clear it
+      console.log('[useBranching] Clearing active branch (branch no longer exists)');
+      setActiveBranchName(null);
+    }
+  }, [currentBranchName, branches, activeBranchName]);
+
+  // Auto-select the most recent branch when on parent database and branches exist
+  useEffect(() => {
+    if (!currentBranchName && !activeBranchName && branches.length > 0) {
+      // Sort by createdAt descending and pick the most recent
+      const mostRecentBranch = [...branches].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0];
+      console.log('[useBranching] Auto-selecting most recent branch:', mostRecentBranch.name);
+      setActiveBranchName(mostRecentBranch.name);
+    }
+  }, [branches, currentBranchName, activeBranchName]);
 
   // Create branch mutation
   const createBranchMutation = useMutation({
     mutationFn: async ({ fromTs: _fromTs, name }: { fromTs: string; name?: string }) => {
-      if (!databaseName) throw new Error('No database selected');
+      if (!parentDatabaseName) throw new Error('No database selected');
       
       const ts = new Date();
       const pad = (n: number) => String(n).padStart(2, '0');
@@ -61,13 +116,13 @@ export function useBranching(databaseId: string | null, databaseName?: string | 
       const base = `br-${String(ts.getFullYear()).slice(2)}${pad(ts.getMonth() + 1)}${pad(ts.getDate())}${pad(ts.getHours())}${pad(ts.getMinutes())}${pad(ts.getSeconds())}`;
       // Backend enforces DatabaseName 3-40 chars for full name: <parent>--branch--<name>
       const FULL_SEPARATOR = '--branch--';
-      const parentLen = (databaseName || '').length;
+      const parentLen = (parentDatabaseName || '').length;
       const allowedSuffixLen = Math.max(3, 40 - parentLen - FULL_SEPARATOR.length);
       let autoName = base.slice(0, allowedSuffixLen).toLowerCase().replace(/[^a-z0-9_-]/g, '');
       if (autoName.length < 3) autoName = 'brx';
       
       return branchApi.create({
-        source_database: databaseName,
+        source_database: parentDatabaseName,
         branch_name: name || autoName,
         // Utiliser le point sélectionné: 'latest' si on est sur HEAD, sinon timestamp
         from_snapshot: (_fromTs === 'LAST' ? 'latest' : _fromTs),

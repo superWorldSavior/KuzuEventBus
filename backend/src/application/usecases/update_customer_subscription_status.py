@@ -44,7 +44,7 @@ class UpdateCustomerSubscriptionStatusUseCase:
         await self._cache.delete(f"account:{req.customer_id}")
         await self._events.emit_event(
             tenant_id=req.customer_id,
-            notification_type="subscription_updated",
+            event_type="subscription_updated",
             title="Subscription Status Updated",
             message=f"Your subscription status has been updated to: {req.new_status}",
         )

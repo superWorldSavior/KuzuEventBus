@@ -6,12 +6,13 @@ services:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: kuzu_eventbus
-      POSTGRES_USER: kuzu_user
-      POSTGRES_PASSWORD: kuzu_password
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
-      - "5433:5432"  # Host:5433 → Container:5432 (évite conflit)
+      - "127.0.0.1:5433:5432"  # Host:5433 → Container:5432 (localhost only, sécurité)
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U kuzu_user -d kuzu_eventbus"]
       interval: 10s
@@ -49,14 +50,6 @@ services:
       interval: 30s
       timeout: 20s
       retries: 3
-
-  # Adminer - Interface pour PostgreSQL (dev only)
-  adminer:
-    image: adminer:latest
-    ports:
-      - "8180:8080"  # Host:8180 → Container:8080 (évite conflit)
-    depends_on:
-      - postgres
 
   # Redis Insight - Interface pour Redis (dev only)
   redis-insight:

@@ -1,0 +1,575 @@
+//! Parser ISO GQL MVP (MATCH/WHERE/RETURN/LIMIT)
+
+use super::ast::*;
+use super::ast::AggFunc;
+use crate::types::EngineError;
+use std::collections::HashMap;
+
+#[derive(Debug, Clone, PartialEq)]
+enum Token {
+    // Keywords
+    Match,
+    Where,
+    Return,
+    Order,
+    By,
+    Asc,
+    Desc,
+    Limit,
+    And,
+    Or,
+    Not,
+    Null,
+    True,
+    False,
+
+    // Symbols
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    LeftBracket,  // [
+    RightBracket, // ]
+    Colon,
+    Comma,
+    Dot,
+    Arrow,        // ->
+    LeftArrow,    // <-
+    Dash,         // -
+
+    // Operators
+    Eq,
+    Ne,
+    Lt,
+    Le,
+    Gt,
+    Ge,
+
+    // Literals
+    Ident(String),
+    String(String),
+    Int(i64),
+    Float(f64),
+
+    Eof,
+}
+
+struct Lexer {
+    input: Vec<char>,
+    pos: usize,
+}
+
+impl Lexer {
+    fn new(input: &str) -> Self {
+        Self {
+            input: input.chars().collect(),
+            pos: 0,
+        }
+    }
+
+    fn peek(&self) -> Option<char> {
+        self.input.get(self.pos).copied()
+    }
+
+    fn advance(&mut self) -> Option<char> {
+        let ch = self.peek()?;
+        self.pos += 1;
+        Some(ch)
+    }
+
+    fn skip_whitespace(&mut self) {
+        while let Some(ch) = self.peek() {
+            if ch.is_whitespace() {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn read_ident(&mut self) -> String {
+        let mut s = String::new();
+        while let Some(ch) = self.peek() {
+            if ch.is_alphanumeric() || ch == '_' {
+                s.push(ch);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        s
+    }
+
+    fn read_string(&mut self) -> Result<String, EngineError> {
+        self.advance(); // consume opening quote
+        let mut s = String::new();
+        while let Some(ch) = self.advance() {
+            if ch == '\'' {
+                return Ok(s);
+            }
+            s.push(ch);
+        }
+        Err(EngineError::InvalidArgument("unterminated string".into()))
+    }
+
+    fn read_number(&mut self) -> Result<Token, EngineError> {
+        let mut num = String::new();
+        let mut is_float = false;
+        while let Some(ch) = self.peek() {
+            if ch.is_ascii_digit() {
+                num.push(ch);
+                self.advance();
+            } else if ch == '.' && !is_float {
+                is_float = true;
+                num.push(ch);
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        if is_float {
+            num.parse::<f64>()
+                .map(Token::Float)
+                .map_err(|_| EngineError::InvalidArgument("invalid float".into()))
+        } else {
+            num.parse::<i64>()
+                .map(Token::Int)
+                .map_err(|_| EngineError::InvalidArgument("invalid int".into()))
+        }
+    }
+
+    fn next_token(&mut self) -> Result<Token, EngineError> {
+        self.skip_whitespace();
+        match self.peek() {
+            None => Ok(Token::Eof),
+            Some('(') => { self.advance(); Ok(Token::LeftParen) }
+            Some(')') => { self.advance(); Ok(Token::RightParen) }
+            Some('{') => { self.advance(); Ok(Token::LeftBrace) }
+            Some('}') => { self.advance(); Ok(Token::RightBrace) }
+            Some('[') => { self.advance(); Ok(Token::LeftBracket) }
+            Some(']') => { self.advance(); Ok(Token::RightBracket) }
+            Some(':') => { self.advance(); Ok(Token::Colon) }
+            Some(',') => { self.advance(); Ok(Token::Comma) }
+            Some('.') => { self.advance(); Ok(Token::Dot) }
+            Some('\'') => self.read_string().map(Token::String),
+            Some('<') => {
+                self.advance();
+                if self.peek() == Some('-') {
+                    self.advance();
+                    Ok(Token::LeftArrow)
+                } else if self.peek() == Some('=') {
+                    self.advance();
+                    Ok(Token::Le)
+                } else {
+                    Ok(Token::Lt)
+                }
+            }
+            Some('-') => {
+                self.advance();
+                if self.peek() == Some('>') {
+                    self.advance();
+                    Ok(Token::Arrow)
+                } else {
+                    Ok(Token::Dash)
+                }
+            }
+            Some('>') => {
+                self.advance();
+                if self.peek() == Some('=') {
+                    self.advance();
+                    Ok(Token::Ge)
+                } else {
+                    Ok(Token::Gt)
+                }
+            }
+            Some('=') => { self.advance(); Ok(Token::Eq) }
+            Some('!') => {
+                self.advance();
+                if self.peek() == Some('=') {
+                    self.advance();
+                    Ok(Token::Ne)
+                } else {
+                    Err(EngineError::InvalidArgument("unexpected !".into()))
+                }
+            }
+            Some(ch) if ch.is_ascii_digit() => self.read_number(),
+            Some(ch) if ch.is_alphabetic() || ch == '_' => {
+                let ident = self.read_ident();
+                let upper = ident.to_uppercase();
+                Ok(match upper.as_str() {
+                    "MATCH" => Token::Match,
+                    "WHERE" => Token::Where,
+                    "RETURN" => Token::Return,
+                    "ORDER" => Token::Order,
+                    "BY" => Token::By,
+                    "ASC" => Token::Asc,
+                    "DESC" => Token::Desc,
+                    "LIMIT" => Token::Limit,
+                    "AND" => Token::And,
+                    "OR" => Token::Or,
+                    "NOT" => Token::Not,
+                    "NULL" => Token::Null,
+                    "TRUE" => Token::True,
+                    "FALSE" => Token::False,
+                    "COUNT" | "SUM" | "AVG" | "MIN" | "MAX" => Token::Ident(ident), // Aggregate functions
+                    _ => Token::Ident(ident),
+                })
+            }
+            Some(ch) => Err(EngineError::InvalidArgument(format!("unexpected char: {ch}"))),
+        }
+    }
+}
+
+pub struct Parser {
+    tokens: Vec<Token>,
+    pos: usize,
+}
+
+impl Parser {
+    pub fn new(input: &str) -> Result<Self, EngineError> {
+        let mut lexer = Lexer::new(input);
+        let mut tokens = Vec::new();
+        loop {
+            let tok = lexer.next_token()?;
+            if tok == Token::Eof {
+                tokens.push(tok);
+                break;
+            }
+            tokens.push(tok);
+        }
+        Ok(Self { tokens, pos: 0 })
+    }
+
+    fn peek(&self) -> &Token {
+        self.tokens.get(self.pos).unwrap_or(&Token::Eof)
+    }
+
+    fn advance(&mut self) -> Token {
+        let tok = self.peek().clone();
+        if tok != Token::Eof {
+            self.pos += 1;
+        }
+        tok
+    }
+
+    fn expect(&mut self, expected: Token) -> Result<(), EngineError> {
+        let tok = self.advance();
+        if tok == expected {
+            Ok(())
+        } else {
+            Err(EngineError::InvalidArgument(format!("expected {:?}, got {:?}", expected, tok)))
+        }
+    }
+
+    pub fn parse_query(&mut self) -> Result<Query, EngineError> {
+        let match_clause = self.parse_match()?;
+        let where_clause = if *self.peek() == Token::Where {
+            Some(self.parse_where()?)
+        } else {
+            None
+        };
+        let return_clause = self.parse_return()?;
+        let order_by = if *self.peek() == Token::Order {
+            Some(self.parse_order_by()?)
+        } else {
+            None
+        };
+        let limit = if *self.peek() == Token::Limit {
+            self.advance();
+            if let Token::Int(n) = self.advance() {
+                Some(n as u64)
+            } else {
+                return Err(EngineError::InvalidArgument("expected int after LIMIT".into()));
+            }
+        } else {
+            None
+        };
+        Ok(Query { match_clause, where_clause, return_clause, order_by, limit })
+    }
+
+    fn parse_match(&mut self) -> Result<MatchClause, EngineError> {
+        self.expect(Token::Match)?;
+        let mut patterns = Vec::new();
+        
+        // Parse first node
+        let from_node = self.parse_node_pattern()?;
+        
+        // Check for edge pattern: -[r]-> or <-[r]- or -[r]-
+        if matches!(self.peek(), Token::Dash | Token::LeftArrow) {
+            let edge_pattern = self.parse_edge_pattern(from_node)?;
+            patterns.push(Pattern::Edge(edge_pattern));
+        } else {
+            patterns.push(Pattern::Node(from_node));
+        }
+        
+        Ok(MatchClause { patterns })
+    }
+    
+    fn parse_edge_pattern(&mut self, from_node: NodePattern) -> Result<EdgePattern, EngineError> {
+        // Determine direction and consume symbols
+        let direction = if *self.peek() == Token::LeftArrow {
+            self.advance(); // consume <-
+            Direction::Left
+        } else {
+            self.expect(Token::Dash)?; // consume -
+            Direction::Both // will be updated if we find ->
+        };
+        
+        // Parse edge: [r:TYPE {props}] or [r] or [] (optional)
+        let (edge_var, edge_type, edge_props) = if *self.peek() == Token::LeftBracket {
+            self.advance(); // consume [
+            let var = if let Token::Ident(name) = self.peek() {
+                let v = Some(name.clone());
+                self.advance();
+                v
+            } else {
+                None
+            };
+            
+            let typ = if *self.peek() == Token::Colon {
+                self.advance();
+                if let Token::Ident(t) = self.advance() {
+                    Some(t)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            
+            let props = if *self.peek() == Token::LeftBrace {
+                self.advance();
+                let p = self.parse_properties()?;
+                self.expect(Token::RightBrace)?;
+                p
+            } else {
+                HashMap::new()
+            };
+            
+            self.expect(Token::RightBracket)?; // consume ]
+            (var, typ, props)
+        } else {
+            (None, None, HashMap::new())
+        };
+        
+        // Now check for arrow after edge (for ->)
+        let final_direction = if direction == Direction::Both && *self.peek() == Token::Arrow {
+            self.advance(); // consume ->
+            Direction::Right
+        } else {
+            direction
+        };
+        
+        // Parse destination node
+        let to_node = self.parse_node_pattern()?;
+        
+        Ok(EdgePattern {
+            variable: edge_var,
+            edge_type,
+            direction: final_direction,
+            properties: edge_props,
+            from_node: Box::new(from_node),
+            to_node: Box::new(to_node),
+        })
+    }
+
+    fn parse_node_pattern(&mut self) -> Result<NodePattern, EngineError> {
+        self.expect(Token::LeftParen)?;
+        let variable = if let Token::Ident(name) = self.peek() {
+            let v = Some(name.clone());
+            self.advance();
+            v
+        } else {
+            None
+        };
+        let mut labels = Vec::new();
+        if *self.peek() == Token::Colon {
+            self.advance();
+            if let Token::Ident(label) = self.advance() {
+                labels.push(label);
+            }
+        }
+        let mut properties = HashMap::new();
+        if *self.peek() == Token::LeftBrace {
+            self.advance();
+            properties = self.parse_properties()?;
+            self.expect(Token::RightBrace)?;
+        }
+        self.expect(Token::RightParen)?;
+        Ok(NodePattern { variable, labels, properties })
+    }
+
+    fn parse_properties(&mut self) -> Result<HashMap<String, Literal>, EngineError> {
+        let mut props = HashMap::new();
+        loop {
+            if *self.peek() == Token::RightBrace {
+                break;
+            }
+            let key = if let Token::Ident(k) = self.advance() {
+                k
+            } else {
+                return Err(EngineError::InvalidArgument("expected property key".into()));
+            };
+            self.expect(Token::Colon)?;
+            let val = self.parse_literal()?;
+            props.insert(key, val);
+            if *self.peek() == Token::Comma {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        Ok(props)
+    }
+
+    fn parse_literal(&mut self) -> Result<Literal, EngineError> {
+        match self.advance() {
+            Token::String(s) => Ok(Literal::String(s)),
+            Token::Int(i) => Ok(Literal::Int(i)),
+            Token::Float(f) => Ok(Literal::Float(f)),
+            Token::True => Ok(Literal::Bool(true)),
+            Token::False => Ok(Literal::Bool(false)),
+            Token::Null => Ok(Literal::Null),
+            tok => Err(EngineError::InvalidArgument(format!("expected literal, got {:?}", tok))),
+        }
+    }
+
+    fn parse_where(&mut self) -> Result<WhereClause, EngineError> {
+        self.expect(Token::Where)?;
+        let expr = self.parse_expr()?;
+        Ok(WhereClause { expr })
+    }
+
+    fn parse_expr(&mut self) -> Result<Expr, EngineError> {
+        self.parse_or_expr()
+    }
+
+    fn parse_or_expr(&mut self) -> Result<Expr, EngineError> {
+        let mut left = self.parse_and_expr()?;
+        while *self.peek() == Token::Or {
+            self.advance();
+            let right = self.parse_and_expr()?;
+            left = Expr::BinaryOp(Box::new(left), BinOp::Or, Box::new(right));
+        }
+        Ok(left)
+    }
+
+    fn parse_and_expr(&mut self) -> Result<Expr, EngineError> {
+        let mut left = self.parse_comparison()?;
+        while *self.peek() == Token::And {
+            self.advance();
+            let right = self.parse_comparison()?;
+            left = Expr::BinaryOp(Box::new(left), BinOp::And, Box::new(right));
+        }
+        Ok(left)
+    }
+
+    fn parse_comparison(&mut self) -> Result<Expr, EngineError> {
+        let left = self.parse_primary()?;
+        let op = match self.peek() {
+            Token::Eq => { self.advance(); BinOp::Eq }
+            Token::Ne => { self.advance(); BinOp::Ne }
+            Token::Lt => { self.advance(); BinOp::Lt }
+            Token::Le => { self.advance(); BinOp::Le }
+            Token::Gt => { self.advance(); BinOp::Gt }
+            Token::Ge => { self.advance(); BinOp::Ge }
+            _ => return Ok(left),
+        };
+        let right = self.parse_primary()?;
+        Ok(Expr::BinaryOp(Box::new(left), op, Box::new(right)))
+    }
+
+    fn parse_primary(&mut self) -> Result<Expr, EngineError> {
+        match self.peek().clone() {
+            Token::Ident(name) => {
+                self.advance();
+                
+                // Check for function call (aggregate functions)
+                if *self.peek() == Token::LeftParen {
+                    let upper = name.to_uppercase();
+                    let agg_func = match upper.as_str() {
+                        "COUNT" => AggFunc::Count,
+                        "SUM" => AggFunc::Sum,
+                        "AVG" => AggFunc::Avg,
+                        "MIN" => AggFunc::Min,
+                        "MAX" => AggFunc::Max,
+                        _ => return Err(EngineError::InvalidArgument(format!("unknown function: {}", name))),
+                    };
+                    
+                    self.advance(); // consume (
+                    let arg = self.parse_expr()?;
+                    self.expect(Token::RightParen)?;
+                    
+                    return Ok(Expr::Aggregate(agg_func, Box::new(arg)));
+                }
+                
+                if *self.peek() == Token::Dot {
+                    self.advance();
+                    if let Token::Ident(prop) = self.advance() {
+                        Ok(Expr::Property(name, prop))
+                    } else {
+                        Err(EngineError::InvalidArgument("expected property name".into()))
+                    }
+                } else {
+                    Ok(Expr::Ident(name))
+                }
+            }
+            Token::String(_) | Token::Int(_) | Token::Float(_) | Token::True | Token::False | Token::Null => {
+                Ok(Expr::Literal(self.parse_literal()?))
+            }
+            Token::Not => {
+                self.advance();
+                Ok(Expr::UnaryOp(UnOp::Not, Box::new(self.parse_primary()?)))
+            }
+            Token::LeftParen => {
+                self.advance();
+                let expr = self.parse_expr()?;
+                self.expect(Token::RightParen)?;
+                Ok(expr)
+            }
+            tok => Err(EngineError::InvalidArgument(format!("unexpected token in expr: {:?}", tok))),
+        }
+    }
+
+    fn parse_order_by(&mut self) -> Result<OrderByClause, EngineError> {
+        self.expect(Token::Order)?;
+        self.expect(Token::By)?;
+        let mut items = Vec::new();
+        loop {
+            let expr = self.parse_expr()?;
+            let descending = match self.peek() {
+                Token::Desc => { self.advance(); true }
+                Token::Asc => { self.advance(); false }
+                _ => false, // Default to ASC
+            };
+            items.push(OrderByItem { expr, descending });
+            if *self.peek() == Token::Comma {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        Ok(OrderByClause { items })
+    }
+
+    fn parse_return(&mut self) -> Result<ReturnClause, EngineError> {
+        self.expect(Token::Return)?;
+        let mut items = Vec::new();
+        loop {
+            let expr = self.parse_expr()?;
+            let alias = None; // Simplified: no AS alias support yet
+            items.push(ReturnItem { expr, alias });
+            if *self.peek() == Token::Comma {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        Ok(ReturnClause { items })
+    }
+}
+
+pub fn parse(input: &str) -> Result<Query, EngineError> {
+    let mut parser = Parser::new(input)?;
+    parser.parse_query()
+}

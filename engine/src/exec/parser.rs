@@ -10,6 +10,8 @@ enum Token {
     // Keywords
     Match,
     Where,
+    With,         // WITH (for pipeline transformations)
+    As,           // AS (for aliases)
     Return,
     Order,
     By,
@@ -22,6 +24,8 @@ enum Token {
     Null,
     True,
     False,
+    Is,           // IS (for IS NULL)
+    Exists,       // EXISTS (for subqueries)
 
     // Symbols
     LeftParen,
@@ -33,6 +37,7 @@ enum Token {
     Colon,
     Comma,
     Dot,
+    Dollar,       // $ (for parameters)
     Arrow,        // ->
     LeftArrow,    // <-
     Dash,         // -
@@ -46,6 +51,10 @@ enum Token {
     Le,
     Gt,
     Ge,
+    Plus,         // +
+    Minus,        // -
+    // Star already exists for *
+    Slash,        // /
 
     // Literals
     Ident(String),
@@ -174,6 +183,9 @@ impl Lexer {
                 }
             }
             Some('*') => { self.advance(); Ok(Token::Star) }
+            Some('$') => { self.advance(); Ok(Token::Dollar) }
+            Some('+') => { self.advance(); Ok(Token::Plus) }
+            Some('/') => { self.advance(); Ok(Token::Slash) }
             Some('\'') => self.read_string().map(Token::String),
             Some('<') => {
                 self.advance();
@@ -193,7 +205,9 @@ impl Lexer {
                     self.advance();
                     Ok(Token::Arrow)
                 } else {
-                    Ok(Token::Dash)
+                    // Could be Minus (arithmetic) or Dash (pattern)
+                    // We'll use Minus and handle patterns contextually
+                    Ok(Token::Minus)
                 }
             }
             Some('>') => {
@@ -222,6 +236,8 @@ impl Lexer {
                 Ok(match upper.as_str() {
                     "MATCH" => Token::Match,
                     "WHERE" => Token::Where,
+                    "WITH" => Token::With,
+                    "AS" => Token::As,
                     "RETURN" => Token::Return,
                     "ORDER" => Token::Order,
                     "BY" => Token::By,
@@ -234,6 +250,8 @@ impl Lexer {
                     "NULL" => Token::Null,
                     "TRUE" => Token::True,
                     "FALSE" => Token::False,
+                    "IS" => Token::Is,
+                    "EXISTS" => Token::Exists,
                     "COUNT" | "SUM" | "AVG" | "MIN" | "MAX" => Token::Ident(ident), // Aggregate functions
                     _ => Token::Ident(ident),
                 })
@@ -286,6 +304,15 @@ impl Parser {
 
     pub fn parse_query(&mut self) -> Result<Query, EngineError> {
         let match_clause = self.parse_match()?;
+        
+        // WITH clause (optional pipeline transformation)
+        let with_clause = if *self.peek() == Token::With {
+            Some(self.parse_with()?)
+        } else {
+            None
+        };
+        
+        // WHERE clause (optional)
         let where_clause = if *self.peek() == Token::Where {
             Some(self.parse_where()?)
         } else {
@@ -307,7 +334,7 @@ impl Parser {
         } else {
             None
         };
-        Ok(Query { match_clause, where_clause, return_clause, order_by, limit })
+        Ok(Query { match_clause, with_clause, where_clause, return_clause, order_by, limit })
     }
 
     fn parse_match(&mut self) -> Result<MatchClause, EngineError> {
@@ -315,13 +342,18 @@ impl Parser {
         let mut patterns = Vec::new();
         
         // Parse first node
-        let from_node = self.parse_node_pattern()?;
+        let mut from_node = self.parse_node_pattern()?;
         
-        // Check for edge pattern: -[r]-> or <-[r]- or -[r]-
-        if matches!(self.peek(), Token::Dash | Token::LeftArrow) {
+        // Parse zero or more edge patterns as a chain: (a)-[:R]->(b)-[:S]->(c)
+        while matches!(self.peek(), Token::Minus | Token::LeftArrow) {
             let edge_pattern = self.parse_edge_pattern(from_node)?;
+            // Next from_node becomes the to_node of the parsed edge
+            from_node = (*edge_pattern.to_node).clone();
             patterns.push(Pattern::Edge(edge_pattern));
-        } else {
+        }
+        
+        // If no edges parsed, keep the standalone node pattern
+        if patterns.is_empty() {
             patterns.push(Pattern::Node(from_node));
         }
         
@@ -334,7 +366,7 @@ impl Parser {
             self.advance(); // consume <-
             Direction::Left
         } else {
-            self.expect(Token::Dash)?; // consume -
+            self.expect(Token::Minus)?; // consume -
             Direction::Both // will be updated if we find ->
         };
         
@@ -523,6 +555,33 @@ impl Parser {
         Ok(WhereClause { expr })
     }
 
+    fn parse_with(&mut self) -> Result<WithClause, EngineError> {
+        self.expect(Token::With)?;
+        let mut items = Vec::new();
+        
+        loop {
+            let expr = self.parse_expr()?;
+            
+            // Alias is required in WITH (AS is mandatory in ISO GQL WITH)
+            self.expect(Token::As)?;
+            let alias = if let Token::Ident(name) = self.advance() {
+                name
+            } else {
+                return Err(EngineError::InvalidArgument("expected alias after AS".into()));
+            };
+            
+            items.push(WithItem { expr, alias });
+            
+            if *self.peek() == Token::Comma {
+                self.advance();
+            } else {
+                break;
+            }
+        }
+        
+        Ok(WithClause { items })
+    }
+
     fn parse_expr(&mut self) -> Result<Expr, EngineError> {
         self.parse_or_expr()
     }
@@ -548,7 +607,31 @@ impl Parser {
     }
 
     fn parse_comparison(&mut self) -> Result<Expr, EngineError> {
-        let left = self.parse_primary()?;
+        let left = self.parse_additive()?;
+        
+        // Check for IS NULL / IS NOT NULL
+        if *self.peek() == Token::Is {
+            self.advance(); // consume IS
+            
+            // Check for NOT
+            let is_not = if *self.peek() == Token::Not {
+                self.advance(); // consume NOT
+                true
+            } else {
+                false
+            };
+            
+            // Expect NULL
+            self.expect(Token::Null)?;
+            
+            return Ok(if is_not {
+                Expr::IsNotNull(Box::new(left))
+            } else {
+                Expr::IsNull(Box::new(left))
+            });
+        }
+        
+        // Regular comparison operators
         let op = match self.peek() {
             Token::Eq => { self.advance(); BinOp::Eq }
             Token::Ne => { self.advance(); BinOp::Ne }
@@ -558,12 +641,48 @@ impl Parser {
             Token::Ge => { self.advance(); BinOp::Ge }
             _ => return Ok(left),
         };
-        let right = self.parse_primary()?;
+        let right = self.parse_additive()?;
         Ok(Expr::BinaryOp(Box::new(left), op, Box::new(right)))
+    }
+
+    fn parse_additive(&mut self) -> Result<Expr, EngineError> {
+        let mut left = self.parse_multiplicative()?;
+        loop {
+            let op = match self.peek() {
+                Token::Plus => { self.advance(); BinOp::Add }
+                Token::Minus => { self.advance(); BinOp::Sub }
+                _ => break,
+            };
+            let right = self.parse_multiplicative()?;
+            left = Expr::BinaryOp(Box::new(left), op, Box::new(right));
+        }
+        Ok(left)
+    }
+
+    fn parse_multiplicative(&mut self) -> Result<Expr, EngineError> {
+        let mut left = self.parse_primary()?;
+        loop {
+            let op = match self.peek() {
+                Token::Star => { self.advance(); BinOp::Mul }
+                Token::Slash => { self.advance(); BinOp::Div }
+                _ => break,
+            };
+            let right = self.parse_primary()?;
+            left = Expr::BinaryOp(Box::new(left), op, Box::new(right));
+        }
+        Ok(left)
     }
 
     fn parse_primary(&mut self) -> Result<Expr, EngineError> {
         match self.peek().clone() {
+            Token::Dollar => {
+                self.advance(); // consume $
+                if let Token::Ident(param_name) = self.advance() {
+                    Ok(Expr::Parameter(param_name))
+                } else {
+                    Err(EngineError::InvalidArgument("expected parameter name after $".into()))
+                }
+            }
             Token::Ident(name) => {
                 self.advance();
                 
@@ -603,6 +722,16 @@ impl Parser {
             Token::Not => {
                 self.advance();
                 Ok(Expr::UnaryOp(UnOp::Not, Box::new(self.parse_primary()?)))
+            }
+            Token::Exists => {
+                self.advance(); // consume EXISTS
+                self.expect(Token::LeftBrace)?; // expect {
+                
+                // Parse the subquery
+                let subquery = self.parse_query()?;
+                
+                self.expect(Token::RightBrace)?; // expect }
+                Ok(Expr::Exists(Box::new(subquery)))
             }
             Token::LeftParen => {
                 self.advance();

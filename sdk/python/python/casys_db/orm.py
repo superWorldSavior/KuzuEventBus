@@ -6,6 +6,9 @@ Defines NodeEntity, RelEntity, and relation descriptors (HasMany, HasOne).
 
 from typing import Optional, List, Any, Dict
 
+# Global registry of entity classes by name (for Session.<EntityName> sugar)
+ENTITY_REGISTRY: Dict[str, type] = {}
+
 
 class EntityMeta(type):
     """Metaclass for entities to register relations and properties."""
@@ -18,9 +21,22 @@ class EntityMeta(type):
             if value.__class__.__name__ in ('HasMany', 'HasOne'):
                 relations[key] = value
                 value.name = key
+                # Derive via from attribute name if not provided (lives_in → LIVES_IN)
+                if value.via is None:
+                    value.via = key.upper()
+                # Resolve typing.Self to the current class name
+                if value.target is None or (hasattr(value.target, '__name__') and value.target.__name__ == 'Self'):
+                    value.target = name
         
         attrs['_relations'] = relations
-        return super().__new__(mcs, name, bases, attrs)
+        cls = super().__new__(mcs, name, bases, attrs)
+        # Register entity class by its name (skip base classes)
+        try:
+            if name not in ("NodeEntity", "RelEntity"):
+                ENTITY_REGISTRY[name] = cls
+        except Exception:
+            pass
+        return cls
 
 
 class NodeEntity(metaclass=EntityMeta):
@@ -167,14 +183,27 @@ class HasMany:
         ...     print(friend.name)
     """
     
-    def __init__(self, target: str, via: str, inverse: bool = False, depth_min: int = 1, depth_max: int = 1):
-        self.target = target
-        self.via = via
+    def __init__(self, target: Any, via: str | None = None, inverse: bool = False, depth_min: int = 1, depth_max: int = 1):
+        # Resolve target: NodeEntity class or string label
+        if isinstance(target, type) and issubclass(target, NodeEntity):
+            self.target = target._get_label()
+        elif isinstance(target, str):
+            self.target = target
+        else:
+            # Handle typing.Self or other forward ref (resolved later by metaclass if needed)
+            self.target = target if isinstance(target, str) else None
+        self.via = via  # Can be None; will be derived from attribute name if needed
         self.inverse = inverse
         self.depth_min = depth_min
         self.depth_max = depth_max
         self.name = None  # Set by metaclass
         self._cache = {}  # Cache loaded entities per instance
+    
+    def depth(self, min_depth: int, max_depth: int | None = None) -> 'HasMany':
+        """Set depth range for variable-length traversals."""
+        self.depth_min = min_depth
+        self.depth_max = max_depth if max_depth is not None else min_depth
+        return self
     
     def __get__(self, instance, owner):
         if instance is None:
@@ -229,9 +258,15 @@ class HasOne:
         city = HasOne("City", via="LIVES_IN")
     """
     
-    def __init__(self, target: str, via: str, inverse: bool = False):
-        self.target = target
-        self.via = via
+    def __init__(self, target: Any, via: str | None = None, inverse: bool = False):
+        # Resolve target: NodeEntity class or string label
+        if isinstance(target, type) and issubclass(target, NodeEntity):
+            self.target = target._get_label()
+        elif isinstance(target, str):
+            self.target = target
+        else:
+            self.target = target if isinstance(target, str) else None
+        self.via = via  # Can be None; will be derived from attribute name
         self.inverse = inverse
         self.name = None  # Set by metaclass
         self._cache = {}  # Cache loaded entity per instance

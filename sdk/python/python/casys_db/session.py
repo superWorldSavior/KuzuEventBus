@@ -2,8 +2,8 @@
 Session for managing entity queries and transactions.
 """
 
-from typing import Type, Optional
-from .orm import NodeEntity
+from typing import Type
+from .orm import NodeEntity, ENTITY_REGISTRY
 from .query import QueryBuilder
 
 
@@ -40,6 +40,13 @@ class Session:
             people = session.query(Person).where(lambda p: p.age > 20).all()
         """
         return QueryBuilder(entity_class, self.branch)
+
+    def __getattr__(self, name: str) -> QueryBuilder:
+        """Sugar: session.Person → QueryBuilder(Person) if Person is a registered entity."""
+        cls = ENTITY_REGISTRY.get(name)
+        if cls is not None:
+            return self.query(cls)
+        raise AttributeError(name)
     
     def save(self, entity: NodeEntity) -> int:
         """
@@ -66,6 +73,8 @@ class Session:
         
         node_id = self.branch.add_node(labels, props_dict)
         entity._id = node_id
+        # Attach session for lazy-loading relations
+        setattr(entity, "_session", self)
         
         # Cache the entity
         self._entities_cache[node_id] = entity
@@ -103,7 +112,7 @@ class Session:
         """
         self.branch.load()
     
-    def execute_raw(self, gql: str) -> dict:
+    def execute_raw(self, gql: str, params: dict | None = None) -> dict:
         """
         Execute a raw ISO GQL query.
         
@@ -113,4 +122,55 @@ class Session:
         Returns:
             Query result as a dictionary with 'columns' and 'rows'
         """
-        return self.branch.query(gql)
+        if params is None:
+            return self.branch.query(gql)
+        return self.branch.query(gql, params)
+
+    def execute_scalar(self, gql: str, params: dict | None = None):
+        """Execute a query and return the first scalar value (or None)."""
+        res = self.execute_raw(gql, params)
+        if not res or not res.get("rows"):
+            return None
+        first_row = res["rows"][0]
+        return first_row[0] if first_row else None
+
+    # --- Constraints & Validation ---
+    def validate_has_one_constraints(self, enforce: bool = True) -> list[str]:
+        """
+        Validate HasOne cardinality: for each entity and each HasOne relation,
+        check that there is at most one outgoing edge of the given type per node.
+
+        Returns a list of violation messages. If enforce=True and violations exist, raises ValueError.
+        """
+        violations: list[str] = []
+        for entity_name, entity_cls in ENTITY_REGISTRY.items():
+            relations = getattr(entity_cls, "_relations", {}) or {}
+            for rel_name, desc in relations.items():
+                if desc.__class__.__name__ != 'HasOne':
+                    continue
+                via = getattr(desc, 'via', None)
+                target = getattr(desc, 'target', None)
+                if not via:
+                    # Try derive via from attribute name
+                    via = rel_name.upper()
+                label = entity_cls._get_label()
+                var = label[0].lower()
+                # choose alias for target
+                tgt_alias = (target or 'n')[:1].lower() if target else 'n'
+                tgt_label = f":{target}" if target else ""
+                # Build GQL to compute counts per node
+                gql = (
+                    f"MATCH ({var}:{label})-[:{via}]->({tgt_alias}{tgt_label}) "
+                    f"RETURN {var}, COUNT({tgt_alias})"
+                )
+                res = self.execute_raw(gql)
+                rows = res.get('rows', []) if isinstance(res, dict) else []
+                # Expect columns: [var, count]
+                for row in rows:
+                    if len(row) >= 2 and isinstance(row[1], (int, float)) and row[1] > 1:
+                        violations.append(
+                            f"HasOne violation on {entity_name}.{rel_name}: node {row[0]} has {int(row[1])} '{via}' edges"
+                        )
+        if enforce and violations:
+            raise ValueError("HasOne constraints violated:\n" + "\n".join(violations))
+        return violations

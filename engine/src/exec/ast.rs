@@ -1,10 +1,11 @@
 //! AST minimal pour ISO GQL MVP (MATCH/WHERE/RETURN/LIMIT)
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Query {
     pub match_clause: MatchClause,
+    pub with_clause: Option<WithClause>,  // Pipeline transformation
     pub where_clause: Option<WhereClause>,
     pub return_clause: ReturnClause,
     pub order_by: Option<OrderByClause>,
@@ -59,13 +60,28 @@ pub struct WhereClause {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct WithClause {
+    pub items: Vec<WithItem>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct WithItem {
+    pub expr: Expr,
+    pub alias: String,  // Required in WITH (unlike RETURN where it's optional)
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub enum Expr {
     Literal(Literal),
     Ident(String),
     Property(String, String), // variable.property
+    Parameter(String),        // $paramName - named parameter for prepared queries
     BinaryOp(Box<Expr>, BinOp, Box<Expr>),
     UnaryOp(UnOp, Box<Expr>),
     Aggregate(AggFunc, Box<Expr>),
+    IsNull(Box<Expr>),        // expr IS NULL
+    IsNotNull(Box<Expr>),     // expr IS NOT NULL
+    Exists(Box<Query>),       // EXISTS { subquery } - returns true if subquery has results
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -79,14 +95,21 @@ pub enum AggFunc {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum BinOp {
+    // Comparison
     Eq,
     Ne,
     Lt,
     Le,
     Gt,
     Ge,
+    // Logical
     And,
     Or,
+    // Arithmetic
+    Add,
+    Sub,
+    Mul,
+    Div,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -123,4 +146,67 @@ pub struct OrderByClause {
 pub struct OrderByItem {
     pub expr: Expr,
     pub descending: bool,
+}
+
+impl Query {
+    /// Extracts all parameter names used in this query
+    pub fn extract_parameters(&self) -> HashSet<String> {
+        let mut params = HashSet::new();
+        
+        // Extract from WITH clause
+        if let Some(with_clause) = &self.with_clause {
+            for item in &with_clause.items {
+                item.expr.collect_parameters(&mut params);
+            }
+        }
+        
+        // Extract from WHERE clause
+        if let Some(where_clause) = &self.where_clause {
+            where_clause.expr.collect_parameters(&mut params);
+        }
+        
+        // Extract from RETURN clause
+        for item in &self.return_clause.items {
+            item.expr.collect_parameters(&mut params);
+        }
+        
+        // Extract from ORDER BY clause
+        if let Some(order_by) = &self.order_by {
+            for item in &order_by.items {
+                item.expr.collect_parameters(&mut params);
+            }
+        }
+        
+        params
+    }
+}
+
+impl Expr {
+    /// Recursively collect all parameter names in this expression
+    pub fn collect_parameters(&self, params: &mut HashSet<String>) {
+        match self {
+            Expr::Parameter(name) => {
+                params.insert(name.clone());
+            }
+            Expr::BinaryOp(left, _, right) => {
+                left.collect_parameters(params);
+                right.collect_parameters(params);
+            }
+            Expr::UnaryOp(_, operand) => {
+                operand.collect_parameters(params);
+            }
+            Expr::IsNull(expr) | Expr::IsNotNull(expr) => {
+                expr.collect_parameters(params);
+            }
+            Expr::Aggregate(_, arg) => {
+                arg.collect_parameters(params);
+            }
+            Expr::Exists(subquery) => {
+                // Recursively collect parameters from subquery
+                let subquery_params = subquery.extract_parameters();
+                params.extend(subquery_params);
+            }
+            _ => {} // Literals, Idents, Properties have no parameters
+        }
+    }
 }

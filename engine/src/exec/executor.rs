@@ -49,11 +49,32 @@ impl Value {
 
 pub struct Executor<'a> {
     store: &'a dyn GraphStore,
+    parameters: HashMap<String, Value>,
 }
 
 impl<'a> Executor<'a> {
     pub fn new(store: &'a dyn GraphStore) -> Self {
-        Self { store }
+        Self { 
+            store,
+            parameters: HashMap::new(),
+        }
+    }
+
+    pub fn with_parameters(store: &'a dyn GraphStore, parameters: HashMap<String, Value>) -> Self {
+        Self { store, parameters }
+    }
+
+    /// Validate that all required parameters are bound
+    fn validate_parameters(&self, required_params: &std::collections::HashSet<String>) -> Result<(), EngineError> {
+        for param in required_params {
+            if !self.parameters.contains_key(param) {
+                return Err(EngineError::InvalidArgument(format!(
+                    "Required parameter ${} is not bound. Pass it via the params argument.",
+                    param
+                )));
+            }
+        }
+        Ok(())
     }
 
     pub fn execute(&self, plan: &ExecutionPlan) -> Result<QueryResult, EngineError> {
@@ -89,13 +110,38 @@ impl<'a> Executor<'a> {
     }
 
     fn execute_node(&self, node: &PlanNode) -> Result<Vec<Tuple>, EngineError> {
+        self.execute_node_with_context(node, &HashMap::new())
+    }
+    fn execute_node_with_context(&self, node: &PlanNode, parent_tuple: &Tuple) -> Result<Vec<Tuple>, EngineError> {
         match node {
             PlanNode::LabelScan { variable, label } => {
+                // Check if variable already exists in parent tuple (correlated subquery)
+                if let Some(existing_node_id) = parent_tuple.get(variable) {
+                    // Variable exists in parent context - use it directly (correlated)
+                    if let Value::NodeId(node_id) = existing_node_id {
+                        // Fetch the node to verify it has the correct label
+                        if let Ok(Some(node)) = self.store.get_node(*node_id) {
+                            if node.labels.contains(label) {
+                                // Node matches - return single tuple with parent context
+                                let mut tuple = parent_tuple.clone();
+                                tuple.insert(variable.clone(), Value::NodeId(*node_id));
+                                for (k, v) in node.properties {
+                                    let prop_key = format!("{}.{}", variable, k);
+                                    tuple.insert(prop_key, v);
+                                }
+                                return Ok(vec![tuple]);
+                            }
+                        }
+                    }
+                    // Variable exists but doesn't match - return empty
+                    return Ok(vec![]);
+                }
+                
+                // Variable doesn't exist in parent - normal scan
                 let nodes = self.store.scan_by_label(label)?;
                 Ok(nodes.into_iter().map(|n| {
-                    let mut tuple = HashMap::new();
+                    let mut tuple = parent_tuple.clone();
                     tuple.insert(variable.clone(), Value::NodeId(n.id));
-                    // Add properties to tuple
                     for (k, v) in n.properties {
                         let prop_key = format!("{}.{}", variable, k);
                         tuple.insert(prop_key, v);
@@ -104,19 +150,36 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::FullScan { variable } => {
+                // Correlated subquery: if the variable already exists in parent context, reuse it
+                if let Some(existing_node_id) = parent_tuple.get(variable) {
+                    if let Value::NodeId(node_id) = existing_node_id {
+                        if let Ok(Some(node)) = self.store.get_node(*node_id) {
+                            let mut tuple = parent_tuple.clone();
+                            tuple.insert(variable.clone(), Value::NodeId(*node_id));
+                            for (k, v) in node.properties {
+                                let prop_key = format!("{}.{}", variable, k);
+                                tuple.insert(prop_key, v);
+                            }
+                            return Ok(vec![tuple]);
+                        }
+                    }
+                    // Variable exists but cannot be resolved -> empty
+                    return Ok(vec![]);
+                }
+                // Non-correlated: scan all nodes
                 let nodes = self.store.scan_all()?;
                 Ok(nodes.into_iter().map(|n| {
-                    let mut tuple = HashMap::new();
+                    let mut tuple = parent_tuple.clone();
                     tuple.insert(variable.clone(), Value::NodeId(n.id));
                     for (k, v) in n.properties {
                         let prop_key = format!("{}.{}", variable, k);
-                        tuple.insert(prop_key, v);
+                        tuple.insert(prop_key, v.clone());
                     }
                     tuple
                 }).collect())
             }
             PlanNode::Filter { input, predicate } => {
-                let tuples = self.execute_node(input)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple)?;
                 Ok(tuples.into_iter().filter(|t| {
                     self.eval_expr(predicate, t).ok()
                         .and_then(|v| match v {
@@ -127,7 +190,7 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::Project { input, items } => {
-                let tuples = self.execute_node(input)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple)?;
                 Ok(tuples.into_iter().map(|t| {
                     let mut result = HashMap::new();
                     for item in items {
@@ -146,7 +209,7 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::Aggregate { input, group_by, aggregates } => {
-                let tuples = self.execute_node(input)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple)?;
                 
                 if group_by.is_empty() {
                     // Global aggregation (no GROUP BY)
@@ -201,7 +264,7 @@ impl<'a> Executor<'a> {
                 }
             }
             PlanNode::OrderBy { input, items } => {
-                let mut tuples = self.execute_node(input)?;
+                let mut tuples = self.execute_node_with_context(input, parent_tuple)?;
                 tuples.sort_by(|a, b| {
                     for item in items {
                         let val_a = self.eval_expr(&item.expr, a).ok();
@@ -223,11 +286,11 @@ impl<'a> Executor<'a> {
                 Ok(tuples)
             }
             PlanNode::Limit { input, count } => {
-                let tuples = self.execute_node(input)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple)?;
                 Ok(tuples.into_iter().take(*count as usize).collect())
             }
             PlanNode::Expand { input, from_var, edge_var, to_var, edge_type, depth } => {
-                let input_tuples = self.execute_node(input)?;
+                let input_tuples = self.execute_node_with_context(input, parent_tuple)?;
                 let mut result = Vec::new();
 
                 for tuple in input_tuples {
@@ -366,21 +429,165 @@ impl<'a> Executor<'a> {
                     }
                 }
             }
+            Expr::Parameter(param_name) => {
+                self.parameters
+                    .get(param_name)
+                    .cloned()
+                    .ok_or_else(|| EngineError::InvalidArgument(format!(
+                        "parameter ${} not bound - pass it in params argument",
+                        param_name
+                    )))
+            }
+            Expr::IsNull(expr) => {
+                let val = self.eval_expr(expr, tuple)?;
+                Ok(Value::Bool(matches!(val, Value::Null)))
+            }
+            Expr::IsNotNull(expr) => {
+                let val = self.eval_expr(expr, tuple)?;
+                Ok(Value::Bool(!matches!(val, Value::Null)))
+            }
+            Expr::Exists(subquery) => {
+                // Fast-path: if subquery is a simple edge pattern starting from a variable
+                if let Some(first_pat) = subquery.match_clause.patterns.get(0) {
+                    if let super::ast::Pattern::Edge(edge) = first_pat {
+                        if let Some(ref from_var) = edge.from_node.variable {
+                            if let Some(Value::NodeId(from_id)) = tuple.get(from_var) {
+                                // Optional target labels to enforce
+                                let target_labels = &edge.to_node.labels;
+                                let label_matches = |node: &crate::index::Node| -> bool {
+                                    if target_labels.is_empty() { return true; }
+                                    target_labels.iter().any(|lbl| node.labels.contains(lbl))
+                                };
+                                // Handle variable-length or single-hop
+                                let has_any = if let Some(depth_range) = &edge.depth {
+                                    let reachable = self.traverse_variable_length(
+                                        *from_id,
+                                        edge.edge_type.as_deref(),
+                                        depth_range.min,
+                                        depth_range.max,
+                                    )?;
+                                    reachable.into_iter().any(|n| label_matches(&n))
+                                } else {
+                                    let neighbors = self.store.get_neighbors(*from_id, edge.edge_type.as_deref())?;
+                                    neighbors.into_iter().any(|(_e, to)| label_matches(&to))
+                                };
+                                return Ok(Value::Bool(has_any));
+                            }
+                        }
+                    }
+                }
+
+                // Fallback: Execute the subquery plan in the context of current tuple
+                let plan = crate::exec::planner::Planner::plan(subquery)
+                    .map_err(|e| EngineError::InvalidArgument(format!("EXISTS subquery planning error: {:?}", e)))?;
+                let sub_executor = if self.parameters.is_empty() {
+                    Executor::new(self.store)
+                } else {
+                    Executor::with_parameters(self.store, self.parameters.clone())
+                };
+                let sub_tuples = sub_executor.execute_node_with_context(&plan.root, tuple)?;
+                Ok(Value::Bool(!sub_tuples.is_empty()))
+            }
             Expr::Aggregate(_, _) => Err(EngineError::InvalidArgument("aggregate must be evaluated at Project".into())),
         }
     }
 
     fn eval_binary_op(&self, left: &Value, op: &BinOp, right: &Value) -> Result<Value, EngineError> {
         match (left, right) {
-            (Value::Int(l), Value::Int(r)) => Ok(Value::Bool(match op {
-                BinOp::Eq => l == r,
-                BinOp::Ne => l != r,
-                BinOp::Lt => l < r,
-                BinOp::Le => l <= r,
-                BinOp::Gt => l > r,
-                BinOp::Ge => l >= r,
-                _ => return Err(EngineError::InvalidArgument("invalid int op".into())),
-            })),
+            // Int operations (arithmetic + comparison)
+            (Value::Int(l), Value::Int(r)) => match op {
+                // Arithmetic
+                BinOp::Add => Ok(Value::Int(l + r)),
+                BinOp::Sub => Ok(Value::Int(l - r)),
+                BinOp::Mul => Ok(Value::Int(l * r)),
+                BinOp::Div => {
+                    if *r == 0 {
+                        Err(EngineError::InvalidArgument("division by zero".into()))
+                    } else {
+                        Ok(Value::Int(l / r))
+                    }
+                }
+                // Comparison
+                BinOp::Eq => Ok(Value::Bool(l == r)),
+                BinOp::Ne => Ok(Value::Bool(l != r)),
+                BinOp::Lt => Ok(Value::Bool(l < r)),
+                BinOp::Le => Ok(Value::Bool(l <= r)),
+                BinOp::Gt => Ok(Value::Bool(l > r)),
+                BinOp::Ge => Ok(Value::Bool(l >= r)),
+                _ => Err(EngineError::InvalidArgument("invalid int op".into())),
+            },
+            // Float operations (arithmetic + comparison)
+            (Value::Float(l), Value::Float(r)) => match op {
+                // Arithmetic
+                BinOp::Add => Ok(Value::Float(l + r)),
+                BinOp::Sub => Ok(Value::Float(l - r)),
+                BinOp::Mul => Ok(Value::Float(l * r)),
+                BinOp::Div => {
+                    if *r == 0.0 {
+                        Err(EngineError::InvalidArgument("division by zero".into()))
+                    } else {
+                        Ok(Value::Float(l / r))
+                    }
+                }
+                // Comparison
+                BinOp::Eq => Ok(Value::Bool(l == r)),
+                BinOp::Ne => Ok(Value::Bool(l != r)),
+                BinOp::Lt => Ok(Value::Bool(l < r)),
+                BinOp::Le => Ok(Value::Bool(l <= r)),
+                BinOp::Gt => Ok(Value::Bool(l > r)),
+                BinOp::Ge => Ok(Value::Bool(l >= r)),
+                _ => Err(EngineError::InvalidArgument("invalid float op".into())),
+            },
+            // Mixed int/float (coercion to float)
+            (Value::Int(l), Value::Float(r)) => {
+                let lf = *l as f64;
+                match op {
+                    // Arithmetic
+                    BinOp::Add => Ok(Value::Float(lf + r)),
+                    BinOp::Sub => Ok(Value::Float(lf - r)),
+                    BinOp::Mul => Ok(Value::Float(lf * r)),
+                    BinOp::Div => {
+                        if *r == 0.0 {
+                            Err(EngineError::InvalidArgument("division by zero".into()))
+                        } else {
+                            Ok(Value::Float(lf / r))
+                        }
+                    }
+                    // Comparison
+                    BinOp::Eq => Ok(Value::Bool(lf == *r)),
+                    BinOp::Ne => Ok(Value::Bool(lf != *r)),
+                    BinOp::Lt => Ok(Value::Bool(lf < *r)),
+                    BinOp::Le => Ok(Value::Bool(lf <= *r)),
+                    BinOp::Gt => Ok(Value::Bool(lf > *r)),
+                    BinOp::Ge => Ok(Value::Bool(lf >= *r)),
+                    _ => Err(EngineError::InvalidArgument("invalid numeric op".into())),
+                }
+            }
+            (Value::Float(l), Value::Int(r)) => {
+                let rf = *r as f64;
+                match op {
+                    // Arithmetic
+                    BinOp::Add => Ok(Value::Float(l + rf)),
+                    BinOp::Sub => Ok(Value::Float(l - rf)),
+                    BinOp::Mul => Ok(Value::Float(l * rf)),
+                    BinOp::Div => {
+                        if *r == 0 {
+                            Err(EngineError::InvalidArgument("division by zero".into()))
+                        } else {
+                            Ok(Value::Float(l / rf))
+                        }
+                    }
+                    // Comparison
+                    BinOp::Eq => Ok(Value::Bool(*l == rf)),
+                    BinOp::Ne => Ok(Value::Bool(*l != rf)),
+                    BinOp::Lt => Ok(Value::Bool(*l < rf)),
+                    BinOp::Le => Ok(Value::Bool(*l <= rf)),
+                    BinOp::Gt => Ok(Value::Bool(*l > rf)),
+                    BinOp::Ge => Ok(Value::Bool(*l >= rf)),
+                    _ => Err(EngineError::InvalidArgument("invalid numeric op".into())),
+                }
+            }
+            // Bool comparisons
             (Value::Bool(l), Value::Bool(r)) => Ok(Value::Bool(match op {
                 BinOp::And => *l && *r,
                 BinOp::Or => *l || *r,
@@ -388,12 +595,16 @@ impl<'a> Executor<'a> {
                 BinOp::Ne => l != r,
                 _ => return Err(EngineError::InvalidArgument("invalid bool op".into())),
             })),
+            // String comparisons
             (Value::String(l), Value::String(r)) => Ok(Value::Bool(match op {
                 BinOp::Eq => l == r,
                 BinOp::Ne => l != r,
                 _ => return Err(EngineError::InvalidArgument("invalid string op".into())),
             })),
-            _ => Err(EngineError::InvalidArgument("type mismatch in binary op".into())),
+            _ => Err(EngineError::InvalidArgument(format!(
+                "type mismatch in binary op: {:?} {:?} {:?}",
+                left, op, right
+            ))),
         }
     }
     

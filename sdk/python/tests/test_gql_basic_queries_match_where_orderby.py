@@ -68,7 +68,9 @@ class TestEngineBasics:
             "MATCH (p:Person) RETURN p.name, p.age ORDER BY p.age DESC"
         )
         
-        ages = [row[1] for row in result['rows']]
+        # L'ordre des colonnes peut varier, on utilise les noms de colonnes
+        age_idx = result['columns'].index('p.age')
+        ages = [row[age_idx] for row in result['rows']]
         assert ages == [30, 28, 25]
     
     def test_query_with_limit(self, branch):

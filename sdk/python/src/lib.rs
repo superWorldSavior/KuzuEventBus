@@ -85,18 +85,47 @@ struct CasysBranch {
 
 #[pymethods]
 impl CasysBranch {
-    fn query(&self, gql: String, py: Python) -> PyResult<PyObject> {
+    #[pyo3(signature = (gql, params=None))]
+    fn query(&self, gql: String, params: Option<Py<PyDict>>, py: Python) -> PyResult<PyObject> {
         // Parse la requête GQL
         let ast = parser::parse(&gql)
             .map_err(|e| PyValueError::new_err(format!("Parse error: {:?}", e)))?;
+        
+        // Extract required parameters from AST
+        let required_params = ast.extract_parameters();
         
         // Planifie l'exécution
         let plan = Planner::plan(&ast)
             .map_err(|e| PyRuntimeError::new_err(format!("Planning error: {:?}", e)))?;
         
+        // Convert params to HashMap<String, Value>
+        let mut parameters = std::collections::HashMap::new();
+        if let Some(params_dict) = params {
+            for (k, v) in params_dict.as_ref(py).iter() {
+                let key = k.to_string();
+                let value = py_to_value(v)?;
+                parameters.insert(key, value);
+            }
+        }
+        
+        // Validate that all required parameters are provided
+        for required_param in &required_params {
+            if !parameters.contains_key(required_param) {
+                return Err(PyValueError::new_err(format!(
+                    "Required parameter ${} is not provided. Query parameters: {:?}",
+                    required_param,
+                    required_params
+                )));
+            }
+        }
+        
         // Exécute
         let store = self.store.lock().unwrap();
-        let executor = Executor::new(&*store);
+        let executor = if parameters.is_empty() {
+            Executor::new(&*store)
+        } else {
+            Executor::with_parameters(&*store, parameters)
+        };
         let result = executor.execute(&plan)
             .map_err(|e| PyRuntimeError::new_err(format!("Execution error: {:?}", e)))?;
         

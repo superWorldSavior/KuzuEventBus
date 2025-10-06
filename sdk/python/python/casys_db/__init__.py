@@ -5,7 +5,11 @@ This package provides native bindings (casys_engine) and an Entity Framework-sty
 """
 
 # Native bindings (Rust via pyo3)
-from casys_engine import CasysEngine, CasysBranch  # type: ignore
+# In dev, linters may not resolve top-level 'casys_engine' (compiled ext). Fallback to relative stub.
+try:  # runtime when installed via maturin
+    from casys_engine import CasysEngine, CasysBranch  # type: ignore
+except Exception:  # dev/type-checker path
+    from .casys_engine import CasysEngine, CasysBranch  # type: ignore
 
 # ORM (Entity Framework-style)
 from .orm import NodeEntity, RelEntity, HasMany, HasOne

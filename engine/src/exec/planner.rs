@@ -63,6 +63,22 @@ impl Planner {
         // Start with scan from MATCH clause
         let mut plan = Self::plan_match(&query.match_clause)?;
 
+        // Apply WITH transformation if present (pipeline intermediate projection)
+        if let Some(ref with_clause) = query.with_clause {
+            // Convert WithItem to ReturnItem for projection
+            let items: Vec<ReturnItem> = with_clause.items.iter()
+                .map(|item| ReturnItem {
+                    expr: item.expr.clone(),
+                    alias: Some(item.alias.clone()),
+                })
+                .collect();
+            
+            plan = PlanNode::Project {
+                input: Box::new(plan),
+                items,
+            };
+        }
+
         // Apply WHERE filter if present
         if let Some(ref where_clause) = query.where_clause {
             plan = PlanNode::Filter {
@@ -132,49 +148,62 @@ impl Planner {
             return Err(EngineError::InvalidArgument("empty MATCH clause".into()));
         }
 
-        match &match_clause.patterns[0] {
-            Pattern::Node(node) => {
-                let var = node.variable.clone()
-                    .ok_or_else(|| EngineError::InvalidArgument("node must have variable".into()))?;
+        let mut plan_opt: Option<PlanNode> = None;
 
-                // If node has label, use label scan; otherwise full scan
-                if let Some(label) = node.labels.first() {
-                    Ok(PlanNode::LabelScan {
-                        variable: var,
-                        label: label.clone(),
-                    })
-                } else {
-                    Ok(PlanNode::FullScan { variable: var })
+        for (idx, pat) in match_clause.patterns.iter().enumerate() {
+            match pat {
+                Pattern::Node(node) => {
+                    if plan_opt.is_none() {
+                        let var = node.variable.clone()
+                            .ok_or_else(|| EngineError::InvalidArgument("node must have variable".into()))?;
+                        // If node has label, use label scan; otherwise full scan
+                        let plan = if let Some(label) = node.labels.first() {
+                            PlanNode::LabelScan { variable: var, label: label.clone() }
+                        } else {
+                            PlanNode::FullScan { variable: var }
+                        };
+                        plan_opt = Some(plan);
+                    } else {
+                        // Multiple standalone nodes in a single MATCH not yet supported
+                        return Err(EngineError::InvalidArgument(format!(
+                            "unexpected standalone node at position {} in MATCH",
+                            idx
+                        )));
+                    }
+                }
+                Pattern::Edge(edge) => {
+                    // Determine input plan: if none yet, scan from_node; otherwise reuse current plan
+                    let from_var = edge.from_node.variable.clone()
+                        .ok_or_else(|| EngineError::InvalidArgument("from node must have variable".into()))?;
+                    let to_var = edge.to_node.variable.clone()
+                        .ok_or_else(|| EngineError::InvalidArgument("to node must have variable".into()))?;
+
+                    let input_plan = if let Some(current) = plan_opt.take() {
+                        current
+                    } else {
+                        // Start with scan of from_node
+                        if let Some(label) = edge.from_node.labels.first() {
+                            PlanNode::LabelScan { variable: from_var.clone(), label: label.clone() }
+                        } else {
+                            PlanNode::FullScan { variable: from_var.clone() }
+                        }
+                    };
+
+                    // Add expand wrapping previous plan
+                    let expand = PlanNode::Expand {
+                        input: Box::new(input_plan),
+                        from_var,
+                        edge_var: edge.variable.clone(),
+                        to_var,
+                        edge_type: edge.edge_type.clone(),
+                        depth: edge.depth.clone(),
+                    };
+                    plan_opt = Some(expand);
                 }
             }
-            Pattern::Edge(edge) => {
-                // Plan: Scan from_node, then expand to to_node
-                let from_var = edge.from_node.variable.clone()
-                    .ok_or_else(|| EngineError::InvalidArgument("from node must have variable".into()))?;
-                let to_var = edge.to_node.variable.clone()
-                    .ok_or_else(|| EngineError::InvalidArgument("to node must have variable".into()))?;
-
-                // Start with scan of from_node
-                let input = if let Some(label) = edge.from_node.labels.first() {
-                    PlanNode::LabelScan {
-                        variable: from_var.clone(),
-                        label: label.clone(),
-                    }
-                } else {
-                    PlanNode::FullScan { variable: from_var.clone() }
-                };
-
-                // Add expand operation
-                Ok(PlanNode::Expand {
-                    input: Box::new(input),
-                    from_var,
-                    edge_var: edge.variable.clone(),
-                    to_var,
-                    edge_type: edge.edge_type.clone(),
-                    depth: edge.depth.clone(),
-                })
-            }
         }
+
+        plan_opt.ok_or_else(|| EngineError::InvalidArgument("invalid MATCH plan".into()))
     }
     
     fn has_aggregate(expr: &Expr) -> bool {

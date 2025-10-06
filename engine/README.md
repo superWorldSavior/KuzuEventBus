@@ -1,11 +1,13 @@
-# Cassis (Rust) — ISO GQL Engine Skeleton
+# Casys (Rust) — ISO GQL Engine
 
-Ce dossier contient le squelette du futur moteur graphe (Rust) orienté ISO GQL, nommé Cassis, pensé pour s’intégrer proprement avec l’API FastAPI via un port/adaptateur, et pour porter nativement vos fonctionnalités clés: branches, snapshots (PITR), multi-tenant, et à terme GDS/Vector.
+Ce dossier contient le moteur graphe (Rust) orienté ISO GQL, nommé Casys, pensé pour s'intégrer proprement avec l'API FastAPI via un port/adaptateur, et pour porter nativement vos fonctionnalités clés: branches, snapshots (PITR), multi-tenant, et à terme GDS/Vector.
 
 ## Objectifs
 
-- **ISO GQL (profil pragmatique)**: support d’un sous-ensemble utile (MATCH/WHERE/RETURN/LIMIT/ORDER BY, expansions bornées, filtres props). Extensible.
+- **ISO GQL (profil pragmatique)**: support d'un sous-ensemble utile (MATCH/WHERE/RETURN/LIMIT/ORDER BY, expansions bornées, filtres props). Extensible.
 - **Branches/Snapshots en primitives**: copy‑on‑write (COW) sur segments/fichiers pour des branches quasi instantanées, PITR naturel, filiation explicite.
+- **Multi-tenant isolé**: séparation stricte par base et branche (catalogue + métadonnées). Aligné avec l'UX actuelle (rails PROD/BRANCH).
+- **Intégration hexagonale**: l'API Python ne dépend que d'un port `GraphStore`; bascule Kùzu ↔ moteur Rust par feature flag.
 - **Multi-tenant isolé**: séparation stricte par base et branche (catalogue + métadonnées). Aligné avec l’UX actuelle (rails PROD/BRANCH).
 - **Intégration hexagonale**: l’API Python ne dépend que d’un port `GraphStore`; bascule Kùzu ↔ moteur Rust par feature flag.
 
@@ -122,7 +124,7 @@ Avantage: vos écrans (`PitrTimeline.tsx`) mappent 1:1 à l’état interne du m
 - Lancer le serveur local (mode service facultatif):
 
 ```bash
-cargo run -p cassis
+cargo run -p casys
 
 curl http://localhost:9400/health
 # => {"status":"ok"}

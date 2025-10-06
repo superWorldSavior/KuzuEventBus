@@ -1,4 +1,4 @@
-use cassis::Engine;
+use casys::Engine;
 
 #[test]
 fn open_engine_and_handles() {

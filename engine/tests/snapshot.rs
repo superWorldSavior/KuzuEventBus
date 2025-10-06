@@ -1,5 +1,5 @@
-use cassis::{Engine, BranchName, DatabaseName};
-use cassis::storage::manifest as mf;
+use casys::{Engine, BranchName, DatabaseName};
+use casys::storage::manifest as mf;
 
 #[test]
 fn snapshot_writes_new_manifest_with_timestamp() {

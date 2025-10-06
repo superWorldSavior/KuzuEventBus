@@ -1,5 +1,5 @@
-use cassis::exec::{parser, planner::Planner, executor::{Executor, Value}};
-use cassis::index::{InMemoryGraphStore, GraphStore};
+use casys::exec::{parser, planner::Planner, executor::{Executor, Value}};
+use casys::index::{InMemoryGraphStore, GraphStore};
 use std::collections::HashMap;
 
 #[test]

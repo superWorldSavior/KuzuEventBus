@@ -9,7 +9,7 @@ async fn health() -> Json<Value> {
 }
 
 async fn root() -> Json<Value> {
-    Json(json!({"service": "cassis", "version": env!("CARGO_PKG_VERSION")}))
+    Json(json!({"service": "casys", "version": env!("CARGO_PKG_VERSION")}))
 }
 
 async fn gql() -> (axum::http::StatusCode, Json<Value>) {

@@ -1,5 +1,5 @@
-use cassis::{Engine, DatabaseName};
-use cassis::storage::segments::{self, Segment};
+use casys::{Engine, DatabaseName};
+use casys::storage::segments::{self, Segment};
 
 #[test]
 fn segment_write_and_read_roundtrip() {

@@ -6,7 +6,7 @@ use std::{
 
 use crate::types::{DatabaseName, EngineError};
 
-const SEGMENT_MAGIC: u32 = 0x43415353; // "CASS" for Cassis
+const SEGMENT_MAGIC: u32 = 0x43415353; // "CASS" for Casys
 const SEGMENT_VERSION: u16 = 1;
 
 #[derive(Debug, Clone)]

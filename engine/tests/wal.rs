@@ -1,5 +1,5 @@
-use cassis::{Engine, DatabaseName, BranchName};
-use cassis::storage::wal;
+use casys::{Engine, DatabaseName, BranchName};
+use casys::storage::wal;
 
 #[test]
 fn wal_write_and_read_records() {
@@ -11,7 +11,7 @@ fn wal_write_and_read_records() {
 
     // Writer with large enough segment to avoid rotation
     let mut w = wal::WalWriter::open(engine.data_dir(), &dbn, &brn, 1024).expect("open wal writer");
-    let payloads = vec![b"hello".to_vec(), b"world".to_vec(), b"cassis".to_vec()];
+    let payloads = vec![b"hello".to_vec(), b"world".to_vec(), b"casys".to_vec()];
     for p in &payloads { w.write_record(p).expect("write record"); }
     w.flush().expect("flush");
 

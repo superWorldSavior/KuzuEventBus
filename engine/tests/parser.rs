@@ -1,5 +1,5 @@
-use cassis::exec::parser;
-use cassis::exec::ast::*;
+use casys::exec::parser;
+use casys::exec::ast::*;
 
 #[test]
 fn parse_simple_match_return() {

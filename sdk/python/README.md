@@ -69,7 +69,6 @@ branch = engine.open_branch("mydb", "main")
 ```
 
 - `query(gql: str) -> dict`: Execute an ISO GQL query
-  - Returns: `{"columns": [...], "rows": [[...], ...]}`
 - `flush()`: Persist in-memory data to disk (segments)
 - `load()`: Load data from disk into memory
 
@@ -91,29 +90,57 @@ result = branch.query("""
     ORDER BY friend_count DESC
     LIMIT 5
 """)
+
+### Variable-Length Paths (ISO GQL `*min..max`)
+
+Casys supports bounded multi-hop traversals:
+
+- `*`       → 1 to ∞ hops
+- `*n`      → exactly n hops
+- `*n..m`   → n to m hops
+- `*..m`    → 0 to m hops (includes starting node)
+- `*n..`    → n to ∞ hops
+
+Examples:
+
+```python
+res1 = branch.query("MATCH (a:Person)-[:KNOWS*2]->(p:Person) WHERE a.name = 'Alice' RETURN p.name")
+res2 = branch.query("MATCH (a:Person)-[:KNOWS*1..3]->(p:Person) WHERE a.name = 'Alice' RETURN p.name")
+res3 = branch.query("MATCH (a:Person)-[:KNOWS*..2]->(p:Person) WHERE a.name = 'Alice' RETURN p.name")
 ```
 
 ## ORM (Coming Soon)
 
 Entity Framework-style ORM for Python:
+### ORM: Variable-Length Traversals via `depth()`
+
+Use `depth()` on relationships to control traversal length:
 
 ```python
-from casys_db import NodeEntity, HasMany, HasOne
-
 class Person(NodeEntity):
     labels = ["Person"]
-    name: str
-    age: int
+    # direct friends (1 hop)
     friends = HasMany("Person", via="KNOWS")
-    city = HasOne("City", via="LIVES_IN")
-
-# Query with navigation
-older_friends = (session.query(Person)
-    .where(lambda p: p.age > 20 and p.city.name == "Paris")
-    .order_by_desc(lambda p: p.age)
-    .take(5)
-    .all())
+    # friends of friends (exactly 2 hops)
+    friends_of_friends = HasMany("Person", via="KNOWS").depth(2)
+    # extended network (1..3 hops)
+    network = HasMany("Person", via="KNOWS").depth(1, 3)
+    # up to 3 hops
+    up_to_three = HasMany("Person", via="KNOWS").depth(max=3)
+    # at least 2 hops
+    two_or_more = HasMany("Person", via="KNOWS").depth(min=2)
+    # include starting node (0..2)
+    include_start = HasMany("Person", via="KNOWS").depth(0, 2)
 ```
+
+Semantics:
+
+- `depth(n)` → `*n`
+- `depth(n, m)` → `*n..m`
+- `depth(max=m)` → `*1..m`
+- `depth(min=n)` → `*n..`
+- `depth()` → `*`
+- `depth(0, m)` → `*0..m`
 
 ## Architecture
 
@@ -121,6 +148,26 @@ older_friends = (session.query(Person)
 - **pyo3 Bindings**: Zero-overhead Python ↔ Rust communication
 - **Storage**: Segments (nodes/edges) + WAL for durability
 - **Branches**: Copy-on-write branching for isolation
+
+## Tests
+
+Le SDK inclut une suite de tests complète:
+
+```bash
+# Installer les dépendances de dev
+pip install -e ".[dev]"
+
+# Exécuter tous les tests
+./run_tests.sh
+
+# Avec couverture
+./run_tests.sh --cov
+
+# Rebuild + tests
+./run_tests.sh --rebuild
+```
+
+Voir `tests/README.md` pour plus de détails.
 
 ## License
 

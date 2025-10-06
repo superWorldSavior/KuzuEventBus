@@ -1,0 +1,91 @@
+{
+  "Casys Node Entity": {
+    "prefix": "casys-entity",
+    "description": "Create a Casys NodeEntity class",
+    "body": [
+      "class ${1:EntityName}(NodeEntity):",
+      "    \"\"\"${2:Entity description}.\"\"\"",
+      "    labels = [\"${1:EntityName}\"]",
+      "    ",
+      "    # Relations",
+      "    ${3:relation_name} = HasMany(\"${4:TargetEntity}\", via=\"${5:RELATION_TYPE}\")",
+      "    $0"
+    ]
+  },
+  "Casys HasMany Relation": {
+    "prefix": "casys-hasmany",
+    "description": "Define a HasMany relationship",
+    "body": [
+      "${1:relation_name} = HasMany(\"${2:TargetEntity}\", via=\"${3:RELATION_TYPE}\")"
+    ]
+  },
+  "Casys HasOne Relation": {
+    "prefix": "casys-hasone",
+    "description": "Define a HasOne relationship",
+    "body": [
+      "${1:relation_name} = HasOne(\"${2:TargetEntity}\", via=\"${3:RELATION_TYPE}\")"
+    ]
+  },
+  "Casys Query": {
+    "prefix": "casys-query",
+    "description": "Create a Casys ORM query",
+    "body": [
+      "session.query(${1:Entity})",
+      "    .where(lambda e: e.${2:field} ${3:>} ${4:value})",
+      "    .order_by(lambda e: e.${5:field})",
+      "    .take(${6:10})",
+      "    .all()"
+    ]
+  },
+  "Casys Session": {
+    "prefix": "casys-session",
+    "description": "Create a Casys session",
+    "body": [
+      "from casys_db import CasysEngine, Session",
+      "",
+      "engine = CasysEngine(\"${1:/path/to/data}\")",
+      "branch = engine.open_branch(\"${2:db_name}\", \"${3:main}\")",
+      "session = Session(branch)",
+      "$0"
+    ]
+  },
+  "Casys GQL Query": {
+    "prefix": "casys-gql",
+    "description": "Execute a raw GQL query",
+    "body": [
+      "result = branch.query(\"\"\"",
+      "    MATCH (${1:n}:${2:Label})",
+      "    WHERE ${1:n}.${3:property} ${4:>} ${5:value}",
+      "    RETURN ${1:n}.${6:property}",
+      "    ORDER BY ${1:n}.${6:property} ${7:DESC}",
+      "    LIMIT ${8:10}",
+      "\"\"\")"
+    ]
+  },
+  "Casys Add Node": {
+    "prefix": "casys-add-node",
+    "description": "Add a node using low-level API",
+    "body": [
+      "node_id = branch.add_node(",
+      "    labels=[\"${1:Label}\"],",
+      "    properties={",
+      "        \"${2:property}\": ${3:value}",
+      "    }",
+      ")"
+    ]
+  },
+  "Casys Add Edge": {
+    "prefix": "casys-add-edge",
+    "description": "Add an edge using low-level API",
+    "body": [
+      "edge_id = branch.add_edge(",
+      "    from_id=${1:from_id},",
+      "    to_id=${2:to_id},",
+      "    edge_type=\"${3:RELATION_TYPE}\",",
+      "    properties={",
+      "        \"${4:property}\": ${5:value}",
+      "    }",
+      ")"
+    ]
+  }
+}

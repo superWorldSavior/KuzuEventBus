@@ -82,26 +82,54 @@ class QueryBuilder:
         self._limit_value = count
         return self
     
-    def depth(self, *args) -> 'QueryBuilder':
+    def depth(self, *args, min: int | None = None, max: int | None = None) -> 'QueryBuilder':
         """
-        Set traversal depth for relationship navigation.
+        Set traversal depth for relationship navigation (variable-length paths).
         
-        Examples:
-            .depth(3)        # 1 to 3 hops (min=1, max=3)
-            .depth(2, 5)     # 2 to 5 hops (min=2, max=5)
-            .depth(0, 2)     # 0 to 2 hops (includes starting node)
+        Semantics (aligned with ISO GQL):
+        - depth(n)            → exactly n hops           (GQL: *n)
+        - depth(n, m)         → between n and m hops     (GQL: *n..m)
+        - depth(max=m)        → 1 to m hops              (GQL: *1..m)
+        - depth(min=n)        → n to infinity            (GQL: *n..)
+        - depth()             → 1 to infinity            (GQL: *)
+        - depth(0, m)         → 0 to m hops (includes start) (GQL: *0..m)
+        
+        Notes:
+        - Hops = number of edges traversed
+        - min/max must be non-negative integers
+        - When both positional args and kwargs provided, kwargs take precedence
         """
-        if len(args) == 1:
-            # Single arg: max depth, min defaults to 1
-            self._depth_min = 1
-            self._depth_max = args[0]
-        elif len(args) == 2:
-            # Two args: min and max
-            self._depth_min = args[0]
-            self._depth_max = args[1]
+        # Determine min/max based on args/kwargs
+        dmin: int | None = None
+        dmax: int | None = None
+
+        if min is not None or max is not None:
+            dmin = 1 if min is None else min
+            dmax = (2**31 - 1) if max is None else max
         else:
-            raise ValueError("depth() takes 1 or 2 arguments")
-        
+            if len(args) == 0:
+                # depth() → 1..∞
+                dmin, dmax = 1, (2**31 - 1)
+            elif len(args) == 1:
+                # depth(n) → exactly n
+                dmin = int(args[0])
+                dmax = int(args[0])
+            elif len(args) == 2:
+                dmin = int(args[0])
+                dmax = int(args[1])
+            else:
+                raise ValueError("depth() takes 0, 1 or 2 positional arguments, optionally min= / max=")
+
+        # Validation
+        if dmin is None or dmax is None:
+            raise ValueError("Invalid depth specification")
+        if dmin < 0 or dmax < 0:
+            raise ValueError("depth() min/max must be non-negative")
+        if dmin > dmax:
+            raise ValueError("depth() min must be <= max")
+
+        self._depth_min = dmin
+        self._depth_max = dmax
         return self
     
     def include(self, *relations: str) -> 'QueryBuilder':

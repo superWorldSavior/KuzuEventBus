@@ -1,0 +1,96 @@
+{
+  "scopeName": "source.python.casys",
+  "injectionSelector": "L:source.python",
+  "patterns": [
+    {
+      "include": "#casys-classes"
+    },
+    {
+      "include": "#casys-methods"
+    },
+    {
+      "include": "#casys-decorators"
+    },
+    {
+      "include": "#gql-strings"
+    }
+  ],
+  "repository": {
+    "casys-classes": {
+      "patterns": [
+        {
+          "name": "support.class.casys",
+          "match": "\\b(CasysEngine|CasysBranch|NodeEntity|RelEntity|HasMany|HasOne|Session|QueryBuilder)\\b"
+        }
+      ]
+    },
+    "casys-methods": {
+      "patterns": [
+        {
+          "name": "support.function.casys.engine",
+          "match": "\\.(open_database|open_branch|create_branch)\\b"
+        },
+        {
+          "name": "support.function.casys.branch",
+          "match": "\\.(query|add_node|add_edge|flush|load)\\b"
+        },
+        {
+          "name": "support.function.casys.session",
+          "match": "\\.(save|delete|query)\\b"
+        },
+        {
+          "name": "support.function.casys.query",
+          "match": "\\.(where|order_by|take|all|first)\\b"
+        }
+      ]
+    },
+    "casys-decorators": {
+      "patterns": [
+        {
+          "name": "entity.name.function.decorator.casys",
+          "match": "@(entity|relation)\\b"
+        }
+      ]
+    },
+    "gql-strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.triple.python.gql",
+          "begin": "(\"\"\")",
+          "end": "(\"\"\")",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.begin.python"
+            }
+          },
+          "endCaptures": {
+            "1": {
+              "name": "punctuation.definition.string.end.python"
+            }
+          },
+          "patterns": [
+            {
+              "include": "#gql-keywords"
+            }
+          ]
+        }
+      ]
+    },
+    "gql-keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.gql",
+          "match": "\\b(MATCH|WHERE|RETURN|ORDER BY|LIMIT|CREATE|DELETE|SET|WITH)\\b"
+        },
+        {
+          "name": "keyword.operator.gql",
+          "match": "\\b(AND|OR|NOT|IN|AS)\\b"
+        },
+        {
+          "name": "support.function.gql",
+          "match": "\\b(count|sum|avg|min|max)\\b"
+        }
+      ]
+    }
+  }
+}

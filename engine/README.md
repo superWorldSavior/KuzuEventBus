@@ -100,6 +100,32 @@ Variables d’environnement (si mode service) à prévoir côté API:
 - Exécution: scans label/prop (index seek si possible), adjacency expand, filtres, projection, tri/limite.
 - Extensions ultérieures: agrégats, shortest path borné, procédures utilitaires.
 
+### Chemins à longueur variable (variable-length paths)
+
+Casys supporte les expansions multi-sauts avec la syntaxe ISO GQL `*min..max`.
+
+- `*`            → 1 à ∞ sauts
+- `*n`           → exactement n sauts
+- `*n..m`        → de n à m sauts
+- `*..m`         → de 0 à m sauts (inclut le nœud de départ)
+- `*n..`         → de n à ∞ sauts
+
+Exemples:
+
+```gql
+-- exactement 2 sauts
+MATCH (a:Person)-[:KNOWS*2]->(b:Person)
+RETURN b.name
+
+-- de 1 à 3 sauts
+MATCH (a:Person)-[:KNOWS*1..3]->(p:Person)
+RETURN p.name
+
+-- de 0 à 2 sauts (inclut départ)
+MATCH (a:Person)-[:KNOWS*..2]->(p:Person)
+RETURN p.name
+```
+
 ## Branches, Snapshots, PITR
 
 - **Branches**: entrées de catalogue qui référencent les mêmes segments (COW). Création quasi instantanée.

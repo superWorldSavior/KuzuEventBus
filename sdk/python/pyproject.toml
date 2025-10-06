@@ -32,6 +32,14 @@ classifiers = [
 Homepage = "https://github.com/kuzueventbus/casys"
 Repository = "https://github.com/kuzueventbus/casys"
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "jupyter>=1.0",
+    "nbconvert>=7.0",
+]
+
 [tool.maturin]
 features = ["pyo3/extension-module"]
 module-name = "casys_engine"

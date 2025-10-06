@@ -1,0 +1,74 @@
+{
+  "name": "casys-vscode",
+  "displayName": "Casys Python SDK",
+  "description": "Language support for Casys graph database SDK - snippets, syntax highlighting, and IntelliSense",
+  "version": "0.1.0",
+  "publisher": "casys",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kuzueventbus/casys"
+  },
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters"
+  ],
+  "keywords": [
+    "casys",
+    "graph",
+    "database",
+    "gql",
+    "orm"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "python",
+        "extensions": [
+          ".py"
+        ]
+      }
+    ],
+    "grammars": [
+      {
+        "language": "python",
+        "scopeName": "source.python.casys",
+        "path": "./syntaxes/casys-python.tmLanguage.json",
+        "injectTo": [
+          "source.python"
+        ]
+      }
+    ],
+    "snippets": [
+      {
+        "language": "python",
+        "path": "./snippets/casys.json"
+      }
+    ],
+    "configuration": {
+      "title": "Casys SDK",
+      "properties": {
+        "casys.enableSemanticHighlighting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable semantic highlighting for Casys SDK classes and methods"
+        },
+        "casys.enableLinting": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable linting for GQL queries"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "package": "npx @vscode/vsce package"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^3.6.2"
+  }
+}

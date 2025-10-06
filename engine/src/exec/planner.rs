@@ -52,6 +52,7 @@ pub enum PlanNode {
         edge_var: Option<String>,
         to_var: String,
         edge_type: Option<String>,
+        depth: Option<super::ast::DepthRange>,  // For variable-length paths
     },
 }
 
@@ -170,6 +171,7 @@ impl Planner {
                     edge_var: edge.variable.clone(),
                     to_var,
                     edge_type: edge.edge_type.clone(),
+                    depth: edge.depth.clone(),
                 })
             }
         }

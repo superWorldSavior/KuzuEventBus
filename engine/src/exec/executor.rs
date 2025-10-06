@@ -226,36 +226,57 @@ impl<'a> Executor<'a> {
                 let tuples = self.execute_node(input)?;
                 Ok(tuples.into_iter().take(*count as usize).collect())
             }
-            PlanNode::Expand { input, from_var, edge_var, to_var, edge_type } => {
+            PlanNode::Expand { input, from_var, edge_var, to_var, edge_type, depth } => {
                 let input_tuples = self.execute_node(input)?;
                 let mut result = Vec::new();
 
                 for tuple in input_tuples {
                     // Get from_node_id
                     if let Some(Value::NodeId(from_id)) = tuple.get(from_var) {
-                        // Get neighbors
-                        let neighbors = self.store.get_neighbors(*from_id, edge_type.as_deref())?;
-                        
-                        for (edge, to_node) in neighbors {
-                            let mut new_tuple = tuple.clone();
+                        // Check if variable-length path
+                        if let Some(depth_range) = depth {
+                            // Variable-length traversal
+                            let reachable = self.traverse_variable_length(
+                                *from_id,
+                                edge_type.as_deref(),
+                                depth_range.min,
+                                depth_range.max
+                            )?;
                             
-                            // Add to_node to tuple
-                            new_tuple.insert(to_var.clone(), Value::NodeId(to_node.id));
-                            for (k, v) in &to_node.properties {
-                                let prop_key = format!("{}.{}", to_var, k);
-                                new_tuple.insert(prop_key, v.clone());
-                            }
-                            
-                            // Add edge to tuple if variable specified
-                            if let Some(ref ev) = edge_var {
-                                new_tuple.insert(ev.clone(), Value::Int(edge.id as i64));
-                                for (k, v) in &edge.properties {
-                                    let prop_key = format!("{}.{}", ev, k);
+                            for to_node in reachable {
+                                let mut new_tuple = tuple.clone();
+                                new_tuple.insert(to_var.clone(), Value::NodeId(to_node.id));
+                                for (k, v) in &to_node.properties {
+                                    let prop_key = format!("{}.{}", to_var, k);
                                     new_tuple.insert(prop_key, v.clone());
                                 }
+                                result.push(new_tuple);
                             }
+                        } else {
+                            // Single-hop traversal (original behavior)
+                            let neighbors = self.store.get_neighbors(*from_id, edge_type.as_deref())?;
                             
-                            result.push(new_tuple);
+                            for (edge, to_node) in neighbors {
+                                let mut new_tuple = tuple.clone();
+                                
+                                // Add to_node to tuple
+                                new_tuple.insert(to_var.clone(), Value::NodeId(to_node.id));
+                                for (k, v) in &to_node.properties {
+                                    let prop_key = format!("{}.{}", to_var, k);
+                                    new_tuple.insert(prop_key, v.clone());
+                                }
+                                
+                                // Add edge to tuple if variable specified
+                                if let Some(ref ev) = edge_var {
+                                    new_tuple.insert(ev.clone(), Value::Int(edge.id as i64));
+                                    for (k, v) in &edge.properties {
+                                        let prop_key = format!("{}.{}", ev, k);
+                                        new_tuple.insert(prop_key, v.clone());
+                                    }
+                                }
+                                
+                                result.push(new_tuple);
+                            }
                         }
                     }
                 }
@@ -263,6 +284,54 @@ impl<'a> Executor<'a> {
                 Ok(result)
             }
         }
+    }
+
+    /// Traverse variable-length paths using BFS
+    fn traverse_variable_length(
+        &self,
+        start_id: u64,
+        edge_type: Option<&str>,
+        min_depth: u32,
+        max_depth: u32
+    ) -> Result<Vec<crate::index::Node>, EngineError> {
+        use std::collections::{HashSet, VecDeque};
+        
+        let mut result = Vec::new();
+        let mut visited = HashSet::new();
+        let mut queue = VecDeque::new();
+        
+        // BFS: (node_id, current_depth)
+        queue.push_back((start_id, 0));
+        visited.insert(start_id);
+        
+        while let Some((node_id, depth)) = queue.pop_front() {
+            // If we've reached max depth, stop expanding from this node
+            if depth >= max_depth {
+                continue;
+            }
+            
+            // Get neighbors
+            let neighbors = self.store.get_neighbors(node_id, edge_type)?;
+            
+            for (_edge, to_node) in neighbors {
+                if !visited.contains(&to_node.id) {
+                    visited.insert(to_node.id);
+                    
+                    // Add to result if within depth range
+                    let next_depth = depth + 1;
+                    if next_depth >= min_depth && next_depth <= max_depth {
+                        result.push(to_node.clone());
+                    }
+                    
+                    // Continue BFS if haven't reached max depth
+                    if next_depth < max_depth {
+                        queue.push_back((to_node.id, next_depth));
+                    }
+                }
+            }
+        }
+        
+        Ok(result)
     }
 
     fn eval_expr(&self, expr: &Expr, tuple: &Tuple) -> Result<Value, EngineError> {

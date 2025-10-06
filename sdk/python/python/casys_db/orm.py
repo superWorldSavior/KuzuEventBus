@@ -27,13 +27,35 @@ class NodeEntity(metaclass=EntityMeta):
     """
     Base class for node entities in the graph.
     
-    Usage:
-        class Person(NodeEntity):
-            labels = ["Person"]
-            name: str
-            age: int
-            friends = HasMany("Person", via="KNOWS")
-            city = HasOne("City", via="LIVES_IN")
+    Provides an Entity Framework-style ORM for working with graph nodes.
+    Supports lazy loading, relationship navigation, and automatic query generation.
+    
+    Attributes:
+        labels: List of node labels (e.g., ["Person", "Employee"])
+        _id: Internal node ID (set automatically after save)
+        _properties: Dictionary of node properties
+    
+    Example:
+        >>> class Person(NodeEntity):
+        ...     labels = ["Person"]
+        ...     
+        ...     # Relations with lazy loading
+        ...     friends = HasMany("Person", via="KNOWS")
+        ...     city = HasOne("City", via="LIVES_IN")
+        ...     
+        ...     # Traversals with depth control
+        ...     network = HasMany("Person", via="KNOWS").depth(1, 3)
+        
+        >>> # Create and save
+        >>> alice = Person(name="Alice", age=30)
+        >>> session.save(alice)
+        
+        >>> # Navigate relations (lazy loaded)
+        >>> for friend in alice.friends:
+        ...     print(friend.name)
+        
+        >>> # Access city (lazy loaded)
+        >>> print(alice.city.name)
     """
     
     labels: List[str] = []
@@ -114,10 +136,35 @@ class RelEntity:
 
 class HasMany:
     """
-    Descriptor for N:M or 1:N relationships.
+    Descriptor for one-to-many or many-to-many relationships.
     
-    Usage:
-        friends = HasMany("Person", via="KNOWS")
+    Provides lazy loading of related entities with automatic query generation.
+    Supports depth control for graph traversals (ISO GQL *min..max syntax).
+    
+    Args:
+        target: Target entity class name (e.g., "Person", "City")
+        via: Relationship type (e.g., "KNOWS", "FRIEND_OF")
+        inverse: If True, traverse edges in reverse direction (default: False)
+        depth_min: Minimum traversal depth (default: 1)
+        depth_max: Maximum traversal depth (default: 1)
+    
+    Example:
+        >>> class Person(NodeEntity):
+        ...     labels = ["Person"]
+        ...     
+        ...     # Direct friends (1 hop)
+        ...     friends = HasMany("Person", via="KNOWS")
+        ...     
+        ...     # Friends of friends (1-3 hops)
+        ...     network = HasMany("Person", via="KNOWS").depth(1, 3)
+        ...     
+        ...     # Followers (inverse direction)
+        ...     followers = HasMany("Person", via="FOLLOWS", inverse=True)
+        
+        >>> alice = session.query(Person).where(lambda p: p.name == "Alice").first()
+        >>> # Lazy load friends
+        >>> for friend in alice.friends:
+        ...     print(friend.name)
     """
     
     def __init__(self, target: str, via: str, inverse: bool = False, depth_min: int = 1, depth_max: int = 1):

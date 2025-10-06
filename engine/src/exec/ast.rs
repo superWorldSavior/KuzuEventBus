@@ -37,6 +37,13 @@ pub struct EdgePattern {
     pub properties: HashMap<String, Literal>,
     pub from_node: Box<NodePattern>,
     pub to_node: Box<NodePattern>,
+    pub depth: Option<DepthRange>,  // For variable-length paths: *min..max
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct DepthRange {
+    pub min: u32,
+    pub max: u32,
 }
 
 #[derive(Debug, Clone, PartialEq)]

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+e#!/usr/bin/env python3
 """Script to check if Kuzu creates files or directories."""
 import tempfile
 from pathlib import Path

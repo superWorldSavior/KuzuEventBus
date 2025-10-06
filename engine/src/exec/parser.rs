@@ -36,6 +36,8 @@ enum Token {
     Arrow,        // ->
     LeftArrow,    // <-
     Dash,         // -
+    Star,         // *
+    DotDot,       // ..
 
     // Operators
     Eq,
@@ -119,10 +121,22 @@ impl Lexer {
             if ch.is_ascii_digit() {
                 num.push(ch);
                 self.advance();
-            } else if ch == '.' && !is_float {
-                is_float = true;
-                num.push(ch);
-                self.advance();
+            } else if ch == '.' {
+                // Lookahead: if next char is a digit, it's a float decimal; if next is '.', it's a range '..'
+                let next = self.input.get(self.pos + 1).copied();
+                if let Some(nc) = next {
+                    if nc.is_ascii_digit() {
+                        is_float = true;
+                        num.push('.');
+                        self.advance(); // consume '.'
+                    } else if nc == '.' {
+                        break; // leave '..' to next_token
+                    } else {
+                        break;
+                    }
+                } else {
+                    break;
+                }
             } else {
                 break;
             }
@@ -150,7 +164,16 @@ impl Lexer {
             Some(']') => { self.advance(); Ok(Token::RightBracket) }
             Some(':') => { self.advance(); Ok(Token::Colon) }
             Some(',') => { self.advance(); Ok(Token::Comma) }
-            Some('.') => { self.advance(); Ok(Token::Dot) }
+            Some('.') => {
+                self.advance();
+                if self.peek() == Some('.') {
+                    self.advance();
+                    Ok(Token::DotDot)
+                } else {
+                    Ok(Token::Dot)
+                }
+            }
+            Some('*') => { self.advance(); Ok(Token::Star) }
             Some('\'') => self.read_string().map(Token::String),
             Some('<') => {
                 self.advance();
@@ -315,9 +338,10 @@ impl Parser {
             Direction::Both // will be updated if we find ->
         };
         
-        // Parse edge: [r:TYPE {props}] or [r] or [] (optional)
-        let (edge_var, edge_type, edge_props) = if *self.peek() == Token::LeftBracket {
+        // Parse edge: [r:TYPE*min..max {props}] or [r] or [] (optional)
+        let (edge_var, edge_type, edge_props, depth) = if *self.peek() == Token::LeftBracket {
             self.advance(); // consume [
+            // optional variable
             let var = if let Token::Ident(name) = self.peek() {
                 let v = Some(name.clone());
                 self.advance();
@@ -325,18 +349,25 @@ impl Parser {
             } else {
                 None
             };
-            
+
+            // optional :TYPE
             let typ = if *self.peek() == Token::Colon {
-                self.advance();
-                if let Token::Ident(t) = self.advance() {
-                    Some(t)
+                self.advance(); // consume :
+                if let Token::Ident(t) = self.peek() {
+                    let t_val = Some(t.clone());
+                    self.advance(); // consume type ident
+                    t_val
                 } else {
-                    None
+                    return Err(EngineError::InvalidArgument("expected type after :".into()));
                 }
             } else {
                 None
             };
-            
+
+            // optional *min[..max]
+            let depth = self.parse_depth_range()?;
+
+            // optional {props}
             let props = if *self.peek() == Token::LeftBrace {
                 self.advance();
                 let p = self.parse_properties()?;
@@ -345,11 +376,11 @@ impl Parser {
             } else {
                 HashMap::new()
             };
-            
+
             self.expect(Token::RightBracket)?; // consume ]
-            (var, typ, props)
+            (var, typ, props, depth)
         } else {
-            (None, None, HashMap::new())
+            (None, None, HashMap::new(), None)
         };
         
         // Now check for arrow after edge (for ->)
@@ -370,7 +401,59 @@ impl Parser {
             properties: edge_props,
             from_node: Box::new(from_node),
             to_node: Box::new(to_node),
+            depth,
         })
+    }
+
+    /// Parse optional depth range inside edge bracket: *N, *N..M, *..M, *
+    fn parse_depth_range(&mut self) -> Result<Option<DepthRange>, EngineError> {
+        // If no '*', no depth specified
+        if *self.peek() != Token::Star {
+            return Ok(None);
+        }
+        self.advance(); // consume '*'
+
+        // Handle forms: * (min=1, max=UINT_MAX), *N, *N..M, *..M, *N..
+        // Default if just '*' → 1..u32::MAX
+        match self.peek() {
+            Token::Int(n) => {
+                let min_val = *n as u32;
+                self.advance(); // consume number
+                // Check for '..'
+                if *self.peek() == Token::DotDot {
+                    self.advance(); // consume '..'
+                    match self.peek() {
+                        Token::Int(m) => {
+                            let max_val = *m as u32;
+                            self.advance();
+                            Ok(Some(DepthRange { min: min_val, max: max_val }))
+                        }
+                        _ => {
+                            // *N..  (open upper bound)
+                            Ok(Some(DepthRange { min: min_val, max: u32::MAX }))
+                        }
+                    }
+                } else {
+                    // *N shorthand => exact depth
+                    Ok(Some(DepthRange { min: min_val, max: min_val }))
+                }
+            }
+            Token::DotDot => {
+                // *..M  (0..M)
+                self.advance(); // consume '..'
+                if let Token::Int(m) = self.peek() {
+                    let max_val = *m as u32;
+                    self.advance();
+                    Ok(Some(DepthRange { min: 0, max: max_val }))
+                } else {
+                    return Err(EngineError::InvalidArgument("expected number after ..".into()));
+                }
+            }
+            _ => {
+                // bare '*' → 1..∞
+                Ok(Some(DepthRange { min: 1, max: u32::MAX }))
+            }
+        }
     }
 
     fn parse_node_pattern(&mut self) -> Result<NodePattern, EngineError> {

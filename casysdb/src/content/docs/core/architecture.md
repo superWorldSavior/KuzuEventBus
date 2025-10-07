@@ -32,7 +32,7 @@ graph LR
   App[Application] --> WAL
   WAL[Write-Ahead Log] -->|fsync| PUB[Publish]
   PUB --> SEG[Segments immuables]
-  SEG --> MAN[Manifests (snapshots)]
+  SEG --> MAN[Manifests / snapshots]
   MAN --> CAT[Catalog]
   CAT --> BR[Branches]
   MAN --> PITR[PITR]

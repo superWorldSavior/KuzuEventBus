@@ -56,12 +56,21 @@
         const figure = pre.closest('figure');
         if (!figure) continue;
 
-        // Récupérer le code brut depuis le bouton de copie
-        const copyButton = figure.querySelector('button[data-code]');
-        let graph = copyButton?.getAttribute('data-code') || pre.textContent || '';
+        // Récupérer le code depuis le <code> directement (plus fiable que data-code)
+        const code = pre.querySelector('code');
+        let graph = '';
         
-        // Nettoyer le texte (supprimer les caractères invisibles et normaliser les espaces)
-        graph = graph.trim().replace(/\s+/g, ' ').replace(/ /g, '\n');
+        if (code) {
+          // Extraire le texte brut de chaque ligne
+          const lines = code.querySelectorAll('.ec-line .code');
+          graph = Array.from(lines).map(line => line.textContent?.trim() || '').join('\n');
+        }
+        
+        // Fallback sur data-code si extraction échoue
+        if (!graph) {
+          const copyButton = figure.querySelector('button[data-code]');
+          graph = copyButton?.getAttribute('data-code') || '';
+        }
         
         const id = `mermaid-${i}-${Date.now()}`;
 

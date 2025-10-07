@@ -79,6 +79,7 @@ pub enum Expr {
     BinaryOp(Box<Expr>, BinOp, Box<Expr>),
     UnaryOp(UnOp, Box<Expr>),
     Aggregate(AggFunc, Box<Expr>),
+    FunctionCall(String, Vec<Expr>), // Generic function calls (ID, etc.)
     IsNull(Box<Expr>),        // expr IS NULL
     IsNotNull(Box<Expr>),     // expr IS NOT NULL
     Exists(Box<Query>),       // EXISTS { subquery } - returns true if subquery has results

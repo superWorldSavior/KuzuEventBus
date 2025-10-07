@@ -1,0 +1,282 @@
+---
+const locale = (Astro as any).currentLocale ?? 'en';
+const t = locale === 'fr'
+  ? {
+      title: 'Branches & Voyage dans le Temps',
+      subtitle: 'Point-in-Time Recovery et branches Git-like pour vos données graphe',
+      tab1: 'Créer des Branches',
+      tab2: 'PITR',
+      tab3: 'Snapshots',
+      vizTitle: 'Système de Branches',
+      vizSubtitle: 'Comme Git, mais pour vos données graphe',
+    }
+  : {
+      title: 'Branching & Time Travel',
+      subtitle: 'Point-in-Time Recovery and Git-like branches for your graph data',
+      tab1: 'Create Branches',
+      tab2: 'PITR',
+      tab3: 'Snapshots',
+      vizTitle: 'Branch System',
+      vizSubtitle: 'Like Git, but for your graph data',
+    };
+---
+
+<section id="branching" class="py-20 relative" style="background: var(--bg-main);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-12 items-center">
+      <!-- Left: Visualization -->
+      <div>
+        <h3 class="text-2xl font-bold mb-4 text-center" style="color: var(--text-primary);">{t.vizTitle}</h3>
+        <p class="text-center mb-6" style="color: var(--text-secondary);">{t.vizSubtitle}</p>
+        
+        <!-- Git-like Branch Diagram -->
+        <svg viewBox="0 0 600 400" class="w-full h-auto" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 2rem;">
+          <!-- Main branch -->
+          <g id="main-branch">
+            <line x1="50" y1="200" x2="550" y2="200" stroke="var(--acc)" stroke-width="3"/>
+            <circle cx="50" cy="200" r="8" fill="var(--acc)"/>
+            <circle cx="150" cy="200" r="8" fill="var(--acc)"/>
+            <circle cx="250" cy="200" r="8" fill="var(--acc)"/>
+            <circle cx="350" cy="200" r="8" fill="var(--acc)"/>
+            <circle cx="450" cy="200" r="8" fill="var(--acc)"/>
+            <circle cx="550" cy="200" r="8" fill="var(--acc-strong)"/>
+            <text x="50" y="230" text-anchor="middle" fill="var(--text-primary)" font-size="12" font-weight="600">main</text>
+            <text x="550" y="230" text-anchor="middle" fill="var(--text-primary)" font-size="12">HEAD</text>
+          </g>
+
+          <!-- Experiment branch -->
+          <g id="experiment-branch">
+            <line x1="250" y1="200" x2="250" y2="100" stroke="var(--acc-soft)" stroke-width="2" stroke-dasharray="5,5"/>
+            <line x1="250" y1="100" x2="450" y2="100" stroke="#10b981" stroke-width="3"/>
+            <circle cx="250" cy="100" r="8" fill="#10b981"/>
+            <circle cx="350" cy="100" r="8" fill="#10b981"/>
+            <circle cx="450" cy="100" r="8" fill="#059669"/>
+            <text x="450" y="80" text-anchor="middle" fill="var(--text-primary)" font-size="12" font-weight="600">experiment</text>
+          </g>
+
+          <!-- Dev branch -->
+          <g id="dev-branch">
+            <line x1="350" y1="200" x2="350" y2="300" stroke="var(--acc-soft)" stroke-width="2" stroke-dasharray="5,5"/>
+            <line x1="350" y1="300" x2="550" y2="300" stroke="#f59e0b" stroke-width="3"/>
+            <circle cx="350" cy="300" r="8" fill="#f59e0b"/>
+            <circle cx="450" cy="300" r="8" fill="#f59e0b"/>
+            <circle cx="550" cy="300" r="8" fill="#d97706"/>
+            <text x="550" y="330" text-anchor="middle" fill="var(--text-primary)" font-size="12" font-weight="600">dev</text>
+          </g>
+
+          <!-- Labels -->
+          <text x="150" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">commit 1</text>
+          <text x="250" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">commit 2</text>
+          <text x="350" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">commit 3</text>
+          <text x="450" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">commit 4</text>
+        </svg>
+      </div>
+
+      <!-- Right: Code Examples with Tabs -->
+      <div>
+        <!-- Tabs -->
+        <div class="flex gap-2 mb-6 flex-wrap">
+          <button class="branch-tab active px-6 py-3 rounded-lg font-semibold transition-all" data-tab="branch">
+            {t.tab1}
+          </button>
+          <button class="branch-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="pitr">
+            {t.tab2}
+          </button>
+          <button class="branch-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="snapshot">
+            {t.tab3}
+          </button>
+        </div>
+
+        <!-- Code blocks -->
+        <div class="branch-content-wrapper">
+          <!-- Create Branches -->
+          <div class="branch-content active" data-content="branch">
+            <pre class="code-block"><code class="language-python"><span class="comment"># Créer une branche depuis main</span>
+<span class="keyword">import</span> casys_db
+
+engine = casys_db.CasysEngine(data_dir=<span class="string">"~/.casys_db"</span>)
+db = engine.open_database(<span class="string">"social"</span>)
+
+<span class="comment"># Créer une branche "main" si elle n'existe pas</span>
+engine.create_branch(<span class="string">"social"</span>, <span class="string">"main"</span>)
+
+<span class="comment"># Créer une branche expérimentale depuis main</span>
+engine.create_branch(<span class="string">"social"</span>, <span class="string">"experiment"</span>)
+
+<span class="comment"># Travailler sur experiment sans affecter main</span>
+exp_branch = engine.open_branch(<span class="string">"social"</span>, <span class="string">"experiment"</span>)
+result = exp_branch.query(<span class="string">"""
+  CREATE (p:Person {'{'} name: 'Test User' {'}'})
+  RETURN p
+"""</span>)
+
+<span class="comment"># main reste inchangé !</span>
+</code></pre>
+          </div>
+
+          <!-- PITR -->
+          <div class="branch-content" data-content="pitr">
+            <pre class="code-block"><code class="language-python"><span class="comment"># Point-in-Time Recovery</span>
+<span class="keyword">from</span> casys_db <span class="keyword">import</span> Database
+
+db = Database(<span class="string">"social.db"</span>)
+
+<span class="comment"># Voir l'historique des modifications</span>
+history = db.history(from_time=<span class="string">"yesterday"</span>)
+<span class="keyword">for</span> event <span class="keyword">in</span> history:
+    <span class="function">print</span>(f<span class="string">"{'{'} event.timestamp {'}'}: {'{'} event.type {'}'}"</span>)
+
+<span class="comment"># Créer une branche depuis un point dans le passé</span>
+recovery = db.branch_at(
+    name=<span class="string">"recovery"</span>,
+    timestamp=<span class="string">"2 hours ago"</span>
+)
+
+<span class="comment"># Explorer cet état passé (lecture seule)</span>
+result = recovery.query(<span class="string">"MATCH (u:User) RETURN count(u)"</span>)
+<span class="function">print</span>(f<span class="string">"Utilisateurs à ce moment: {'{'} result {'}'}"</span>)
+</code></pre>
+          </div>
+
+          <!-- Snapshots -->
+          <div class="branch-content" data-content="snapshot">
+            <pre class="code-block"><code class="language-python"><span class="comment"># Snapshots et persistence</span>
+<span class="keyword">import</span> casys_db
+
+engine = casys_db.CasysEngine(data_dir=<span class="string">"~/.casys_db"</span>)
+db = engine.open_database(<span class="string">"social"</span>)
+branch = engine.open_branch(<span class="string">"social"</span>, <span class="string">"main"</span>)
+
+<span class="comment"># Créer des données</span>
+branch.query(<span class="string">"""
+  CREATE (u:User {'{'} name: 'Alice', age: 30 {'}'})
+"""</span>)
+
+<span class="comment"># Persister les changements sur disque</span>
+branch.flush()  <span class="comment"># → Write segments + WAL</span>
+
+<span class="comment"># Créer un snapshot explicite</span>
+timestamp = engine.snapshot(branch, <span class="keyword">None</span>)
+<span class="function">print</span>(f<span class="string">"Snapshot créé: {'{'} timestamp {'}'}"</span>)
+
+<span class="comment"># Recharger depuis le disque</span>
+branch.load()
+</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features Grid -->
+    <div class="grid md:grid-cols-3 gap-6 mt-16">
+      <div class="text-center p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-3">🌳</div>
+        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
+          {locale === 'fr' ? 'Branches Isolées' : 'Isolated Branches'}
+        </h3>
+        <p class="text-sm" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Testez des changements sans risque. Chaque branche est complètement isolée.'
+            : 'Test changes safely. Each branch is completely isolated.'}
+        </p>
+      </div>
+
+      <div class="text-center p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-3">⏰</div>
+        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
+          {locale === 'fr' ? 'Voyage dans le Temps' : 'Time Travel'}
+        </h3>
+        <p class="text-sm" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Créez une branche depuis n\'importe quel commit passé. Débugguez facilement.'
+            : 'Create a branch from any past commit. Debug easily.'}
+        </p>
+      </div>
+
+      <div class="text-center p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-3">📸</div>
+        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
+          {locale === 'fr' ? 'Snapshots Auto' : 'Auto Snapshots'}
+        </h3>
+        <p class="text-sm" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Chaque commit = snapshot. Aucune perte de données, historique complet.'
+            : 'Each commit = snapshot. No data loss, complete history.'}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.branch-tab {
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.branch-tab.active {
+  background: linear-gradient(90deg, var(--acc), var(--acc-strong));
+  color: white;
+  border-color: var(--acc);
+}
+
+.branch-tab:hover:not(.active) {
+  border-color: var(--acc);
+  transform: translateY(-2px);
+}
+
+.code-block {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  overflow-x: auto;
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.branch-content {
+  display: none;
+}
+
+.branch-content.active {
+  display: block;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Syntax highlighting */
+.keyword { color: #c678dd; font-weight: 600; }
+.string { color: #98c379; }
+.comment { color: #5c6370; font-style: italic; }
+.function { color: #61afef; }
+.type { color: #e5c07b; }
+.number { color: #d19a66; }
+</style>
+
+<script>
+document.querySelectorAll('.branch-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const targetTab = tab.getAttribute('data-tab');
+    
+    // Update tabs
+    document.querySelectorAll('.branch-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    
+    // Update content
+    document.querySelectorAll('.branch-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[data-content="${targetTab}"]`)?.classList.add('active');
+  });
+});
+</script>

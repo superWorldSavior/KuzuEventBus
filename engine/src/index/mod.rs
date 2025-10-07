@@ -33,6 +33,7 @@ pub trait GraphStore {
     fn add_node(&mut self, labels: Vec<String>, properties: HashMap<String, Value>) -> Result<NodeId, EngineError>;
     fn add_edge(&mut self, from: NodeId, to: NodeId, edge_type: String, properties: HashMap<String, Value>) -> Result<EdgeId, EngineError>;
     fn get_neighbors(&self, node_id: NodeId, edge_type: Option<&str>) -> Result<Vec<(Edge, Node)>, EngineError>;
+    fn get_neighbors_incoming(&self, node_id: NodeId, edge_type: Option<&str>) -> Result<Vec<(Edge, Node)>, EngineError>;
 }
 
 /// In-memory graph store with indexes
@@ -126,6 +127,27 @@ impl GraphStore for InMemoryGraphStore {
                         }
                     }
                     if let Some(node) = self.nodes.get(&edge.to_node) {
+                        result.push((edge.clone(), node.clone()));
+                    }
+                }
+            }
+        }
+
+        Ok(result)
+    }
+
+    fn get_neighbors_incoming(&self, node_id: NodeId, edge_type: Option<&str>) -> Result<Vec<(Edge, Node)>, EngineError> {
+        let mut result = Vec::new();
+
+        if let Some(edge_ids) = self.adjacency_in.get(&node_id) {
+            for edge_id in edge_ids {
+                if let Some(edge) = self.edges.get(edge_id) {
+                    if let Some(et) = edge_type {
+                        if edge.edge_type != et {
+                            continue;
+                        }
+                    }
+                    if let Some(node) = self.nodes.get(&edge.from_node) {
                         result.push((edge.clone(), node.clone()));
                     }
                 }

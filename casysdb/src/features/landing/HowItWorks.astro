@@ -1,0 +1,60 @@
+---
+const locale = (Astro as any).currentLocale ?? 'en';
+const t = locale === 'fr'
+  ? {
+      h2: '3 étapes vers un contenu autonome',
+      sub: 'Préparez, publiez, rafraîchissez — sans friction',
+      s1n: '1', s1t: 'Pré‑SEO automatisé', s1d: 'Recherche mots‑clés, analyse concurrents, SERP et sources — pour viser les bons sujets.',
+      s2n: '2', s2t: 'Génération & publication', s2d: 'Rédaction assistée puis publication directe vers WordPress, Webflow, Medium, Substack, GitHub, Lovable…',
+      s3n: '3', s3t: 'Monitoring & refresh', s3d: 'Indexation, détection des content gaps et mises à jour selon les tendances.',
+    }
+  : {
+      h2: '3 Steps to Content Freedom',
+      sub: 'Prepare, publish, refresh — without friction',
+      s1n: '1', s1t: 'Pre‑SEO automation', s1d: 'Keyword research, competitor analysis, SERP & sources — to target the right topics.',
+      s2n: '2', s2t: 'Generation & publishing', s2d: 'Assisted writing then direct publishing to WordPress, Webflow, Medium, Substack, GitHub, Lovable…',
+      s3n: '3', s3t: 'Monitoring & refresh', s3d: 'Indexing, content gap detection and updates as trends evolve.',
+    };
+---
+
+<section id="how-it-works" class="py-20 sm:py-24 relative overflow-hidden" style="background: transparent; color: var(--text-primary);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-4" style="color: var(--text-primary);">{t.h2}</h2>
+      <p class="text-lg" style="color: var(--text-secondary);">{t.sub}</p>
+    </div>
+
+    <div class="relative mt-16">
+      <!-- Dashed connector line -->
+      <div class="absolute left-0 right-0 top-1/2 -translate-y-1/2 hidden md:block">
+        <div class="w-full border-t-2 border-dashed" style="border-color: var(--card-border);"></div>
+      </div>
+      <div class="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 md:hidden">
+        <div class="h-full border-l-2 border-dashed" style="border-color: var(--card-border);"></div>
+      </div>
+
+      <div class="grid md:grid-cols-3 gap-y-12 md:gap-x-8 relative">
+        <!-- Step 1 -->
+        <div class="text-center relative z-10 px-4">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full font-bold text-xl mx-auto text-white bg-[linear-gradient(90deg,#000,#dbbddb)]">{t.s1n}</div>
+          <h3 class="mt-4 text-xl font-bold" style="color: var(--text-primary);">{t.s1t}</h3>
+          <p class="mt-3" style="color: var(--text-secondary);">{t.s1d}</p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="text-center relative z-10 px-4">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full font-bold text-xl mx-auto text-white bg-[linear-gradient(90deg,#000,#dbbddb)]">{t.s2n}</div>
+          <h3 class="mt-4 text-xl font-bold" style="color: var(--text-primary);">{t.s2t}</h3>
+          <p class="mt-3" style="color: var(--text-secondary);">{t.s2d}</p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="text-center relative z-10 px-4">
+          <div class="inline-flex items-center justify-center w-16 h-16 rounded-full font-bold text-xl mx-auto text-white bg-[linear-gradient(90deg,#000,#dbbddb)]">{t.s3n}</div>
+          <h3 class="mt-4 text-xl font-bold" style="color: var(--text-primary);">{t.s3t}</h3>
+          <p class="mt-3" style="color: var(--text-secondary);">{t.s3d}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

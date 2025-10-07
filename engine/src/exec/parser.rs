@@ -43,6 +43,7 @@ enum Token {
     Dash,         // -
     Star,         // *
     DotDot,       // ..
+    Pipe,         // |
 
     // Operators
     Eq,
@@ -186,6 +187,7 @@ impl Lexer {
             Some('$') => { self.advance(); Ok(Token::Dollar) }
             Some('+') => { self.advance(); Ok(Token::Plus) }
             Some('/') => { self.advance(); Ok(Token::Slash) }
+            Some('|') => { self.advance(); Ok(Token::Pipe) }
             Some('\'') => self.read_string().map(Token::String),
             Some('<') => {
                 self.advance();
@@ -382,13 +384,26 @@ impl Parser {
                 None
             };
 
-            // optional :TYPE
+            // optional :TYPE or :TYPE1|TYPE2|...
             let typ = if *self.peek() == Token::Colon {
                 self.advance(); // consume :
+                let mut types = Vec::new();
                 if let Token::Ident(t) = self.peek() {
-                    let t_val = Some(t.clone());
+                    types.push(t.clone());
                     self.advance(); // consume type ident
-                    t_val
+                    
+                    // Check for union types (|)
+                    while *self.peek() == Token::Pipe {
+                        self.advance(); // consume |
+                        if let Token::Ident(t) = self.peek() {
+                            types.push(t.clone());
+                            self.advance(); // consume type ident
+                        } else {
+                            return Err(EngineError::InvalidArgument("expected type after |".into()));
+                        }
+                    }
+                    
+                    Some(types.join("|"))
                 } else {
                     return Err(EngineError::InvalidArgument("expected type after :".into()));
                 }
@@ -419,6 +434,10 @@ impl Parser {
         let final_direction = if direction == Direction::Both && *self.peek() == Token::Arrow {
             self.advance(); // consume ->
             Direction::Right
+        } else if direction == Direction::Both && *self.peek() == Token::Minus {
+            // Pattern non-orienté: -[r]- consume le - final
+            self.advance(); // consume -
+            Direction::Both
         } else {
             direction
         };
@@ -686,23 +705,46 @@ impl Parser {
             Token::Ident(name) => {
                 self.advance();
                 
-                // Check for function call (aggregate functions)
+                // Check for function call
                 if *self.peek() == Token::LeftParen {
                     let upper = name.to_uppercase();
+                    
+                    // Try aggregate functions first
                     let agg_func = match upper.as_str() {
-                        "COUNT" => AggFunc::Count,
-                        "SUM" => AggFunc::Sum,
-                        "AVG" => AggFunc::Avg,
-                        "MIN" => AggFunc::Min,
-                        "MAX" => AggFunc::Max,
-                        _ => return Err(EngineError::InvalidArgument(format!("unknown function: {}", name))),
+                        "COUNT" => Some(AggFunc::Count),
+                        "SUM" => Some(AggFunc::Sum),
+                        "AVG" => Some(AggFunc::Avg),
+                        "MIN" => Some(AggFunc::Min),
+                        "MAX" => Some(AggFunc::Max),
+                        _ => None,
                     };
                     
-                    self.advance(); // consume (
-                    let arg = self.parse_expr()?;
-                    self.expect(Token::RightParen)?;
-                    
-                    return Ok(Expr::Aggregate(agg_func, Box::new(arg)));
+                    if let Some(func) = agg_func {
+                        // Aggregate function
+                        self.advance(); // consume (
+                        let arg = self.parse_expr()?;
+                        self.expect(Token::RightParen)?;
+                        return Ok(Expr::Aggregate(func, Box::new(arg)));
+                    } else {
+                        // Generic function call (ID, etc.)
+                        self.advance(); // consume (
+                        let mut args = Vec::new();
+                        
+                        // Parse arguments (comma-separated)
+                        if *self.peek() != Token::RightParen {
+                            loop {
+                                args.push(self.parse_expr()?);
+                                if *self.peek() == Token::Comma {
+                                    self.advance();
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        self.expect(Token::RightParen)?;
+                        return Ok(Expr::FunctionCall(name, args));
+                    }
                 }
                 
                 if *self.peek() == Token::Dot {

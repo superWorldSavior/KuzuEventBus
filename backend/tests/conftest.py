@@ -20,3 +20,18 @@ def client(tmp_path, monkeypatch):
 def anyio_backend():
     """Pin pytest-anyio backend to asyncio to avoid trio dependency."""
     return "asyncio"
+
+
+def pytest_collection_modifyitems(config, items):
+    """Auto-marque les tests selon leur localisation dans le filesystem."""
+    for item in items:
+        # Récupère le chemin relatif du test
+        rel_path = os.path.relpath(str(item.fspath), start=config.rootdir)
+        
+        # Auto-marque les tests d'intégration
+        if "/integration/" in rel_path or "/tests/integration/" in rel_path:
+            item.add_marker(pytest.mark.integration)
+        
+        # Auto-marque les tests e2e
+        if "/e2e/" in rel_path or "/tests/e2e/" in rel_path:
+            item.add_marker(pytest.mark.e2e)

@@ -1,0 +1,138 @@
+---
+const locale = (Astro as any).currentLocale ?? 'en';
+const t = locale === 'fr'
+  ? {
+      title: 'CasysDB vs Alternatives',
+      subtitle: 'Pourquoi choisir CasysDB pour vos données graphe',
+    }
+  : {
+      title: 'CasysDB vs Alternatives',
+      subtitle: 'Why choose CasysDB for your graph data',
+    };
+---
+
+<section class="py-20 relative" style="background: var(--bg-main);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+    </div>
+
+    <div class="overflow-x-auto">
+      <table class="w-full comparison-table">
+        <thead>
+          <tr style="border-bottom: 2px solid var(--border);">
+            <th class="p-4 text-left" style="color: var(--text-primary);"></th>
+            <th class="p-4 text-center font-bold" style="color: var(--acc);">CasysDB</th>
+            <th class="p-4 text-center" style="color: var(--text-secondary);">Neo4j</th>
+            <th class="p-4 text-center" style="color: var(--text-secondary);">SQLite</th>
+            <th class="p-4 text-center" style="color: var(--text-secondary);">PostgreSQL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Embarquée (no server)' : 'Embedded (no server)'}
+            </td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Requêtes Graphe Natives' : 'Native Graph Queries'}
+            </td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Langage Standard (ISO GQL)' : 'Standard Language (ISO GQL)'}
+            </td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+              MVCC Transactions
+            </td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Voyage dans le temps (PITR)' : 'Time Travel (PITR)'}
+            </td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'ORM Type-Safe' : 'Type-Safe ORM'}
+            </td>
+            <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
+            <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border);">
+            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Dépendances' : 'Dependencies'}
+            </td>
+            <td class="p-4 text-center"><span class="font-bold" style="color: var(--acc);">0</span></td>
+            <td class="p-4 text-center" style="color: var(--text-secondary);">JVM</td>
+            <td class="p-4 text-center"><span class="font-bold" style="color: var(--acc);">0</span></td>
+            <td class="p-4 text-center" style="color: var(--text-secondary);">Server</td>
+          </tr>
+          <tr>
+            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Licence' : 'License'}
+            </td>
+            <td class="p-4 text-center font-bold" style="color: var(--acc);">MIT</td>
+            <td class="p-4 text-center" style="color: var(--text-secondary);">GPL/Commercial</td>
+            <td class="p-4 text-center" style="color: var(--text-secondary);">Public Domain</td>
+            <td class="p-4 text-center" style="color: var(--text-secondary);">PostgreSQL</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="mt-12 p-6 rounded-xl" style="background: var(--acc-soft); border: 2px solid var(--acc);">
+      <p class="text-center text-lg font-semibold" style="color: var(--text-primary);">
+        {locale === 'fr' 
+          ? '🚀 CasysDB combine la simplicité de SQLite avec la puissance des bases graphe, le tout avec MVCC et Time Travel'
+          : '🚀 CasysDB combines SQLite\'s simplicity with graph database power, plus MVCC and Time Travel'}
+      </p>
+    </div>
+  </div>
+</section>
+
+<style>
+.comparison-table {
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.comparison-table td, .comparison-table th {
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .comparison-table {
+    font-size: 0.85rem;
+  }
+  
+  .comparison-table td, .comparison-table th {
+    padding: 0.75rem 0.5rem;
+  }
+}
+</style>

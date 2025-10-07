@@ -1,0 +1,216 @@
+---
+const locale = (Astro as any).currentLocale ?? 'en';
+const t = locale === 'fr'
+  ? {
+      title: 'CasysDB en action',
+      subtitle: 'Requêtes graphe puissantes avec ISO GQL, ORM fluent en Python',
+      tab1: 'Créer un graphe',
+      tab2: 'Query GQL',
+      tab3: 'ORM Python',
+      tab4: 'Relationships',
+    }
+  : {
+      title: 'CasysDB in Action',
+      subtitle: 'Powerful graph queries with ISO GQL, fluent Python ORM',
+      tab1: 'Create Graph',
+      tab2: 'GQL Query',
+      tab3: 'Python ORM',
+      tab4: 'Relationships',
+    };
+---
+
+<section id="examples" class="py-20 relative" style="background: var(--bg-benefits);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12">
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex justify-center gap-2 mb-6 flex-wrap">
+      <button class="code-tab active px-6 py-3 rounded-lg font-semibold transition-all" data-tab="create">
+        {t.tab1}
+      </button>
+      <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="query">
+        {t.tab2}
+      </button>
+      <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="orm">
+        {t.tab3}
+      </button>
+      <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="relations">
+        {t.tab4}
+      </button>
+    </div>
+
+    <!-- Code blocks -->
+    <div class="code-content-wrapper max-w-4xl mx-auto">
+      <!-- Create Graph -->
+      <div class="code-content active" data-content="create">
+        <pre class="code-block"><code class="language-python"><span class="comment"># Create nodes and relationships</span>
+<span class="keyword">from</span> casys_db <span class="keyword">import</span> Database
+
+db = Database(<span class="string">"social_network.db"</span>)
+session = db.default_branch().session()
+
+<span class="comment"># Create Person nodes</span>
+session.execute(<span class="string">"""
+  CREATE (alice:Person {'{'} name: 'Alice', age: 30 {'}'})
+  CREATE (bob:Person {'{'} name: 'Bob', age: 25 {'}'})
+  CREATE (carol:Person {'{'} name: 'Carol', age: 28 {'}'})
+  
+  CREATE (alice)-[:KNOWS {'{'} since: 2020 {'}'} ]->(bob)
+  CREATE (alice)-[:KNOWS {'{'} since: 2019 {'}'} ]->(carol)
+  CREATE (bob)-[:KNOWS {'{'} since: 2021 {'}'} ]->(carol)
+  RETURN alice, bob, carol
+"""</span>)
+
+session.commit()
+</code></pre>
+      </div>
+
+      <!-- GQL Query -->
+      <div class="code-content" data-content="query">
+        <pre class="code-block"><code class="language-sql"><span class="comment">-- Find friends of friends (2-hop path)</span>
+<span class="keyword">MATCH</span> (person:<span class="type">Person</span>)-[:<span class="type">KNOWS</span>*<span class="number">2</span>]->(friend_of_friend:<span class="type">Person</span>)
+<span class="keyword">WHERE</span> person.name = <span class="string">'Alice'</span>
+  <span class="keyword">AND</span> person &lt;&gt; friend_of_friend
+<span class="keyword">RETURN</span> friend_of_friend.name, 
+       <span class="function">COUNT</span>(*) <span class="keyword">AS</span> paths
+<span class="keyword">GROUP BY</span> friend_of_friend.name
+<span class="keyword">ORDER BY</span> paths <span class="keyword">DESC</span>;
+
+<span class="comment">-- Find people who know each other (mutual connections)</span>
+<span class="keyword">MATCH</span> (p1:<span class="type">Person</span>)-[:<span class="type">KNOWS</span>]->(p2:<span class="type">Person</span>)-[:<span class="type">KNOWS</span>]->(p1)
+<span class="keyword">WHERE</span> p1.name &lt; p2.name
+<span class="keyword">RETURN</span> p1.name, p2.name;
+</code></pre>
+      </div>
+
+      <!-- Python ORM -->
+      <div class="code-content" data-content="orm">
+        <pre class="code-block"><code class="language-python"><span class="comment"># Fluent query builder (ORM-style)</span>
+<span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, Session
+
+<span class="keyword">class</span> <span class="type">Person</span>(NodeEntity):
+    <span class="keyword">pass</span>
+
+session = Session(db.default_branch())
+
+<span class="comment"># Find all adults</span>
+adults = session.Person.where(<span class="keyword">lambda</span> p: p.age >= <span class="number">18</span>).all()
+
+<span class="comment"># Complex filtering with projections</span>
+results = (
+    session.Person
+    .where(<span class="keyword">lambda</span> p: p.age > <span class="number">25</span>)
+    .select_fields(<span class="string">'name'</span>, <span class="string">'age'</span>)
+    .order_by(<span class="keyword">lambda</span> p: p.age, desc=<span class="keyword">True</span>)
+    .limit(<span class="number">10</span>)
+    .all()
+)
+
+<span class="keyword">for</span> person <span class="keyword">in</span> results:
+    <span class="function">print</span>(f<span class="string">"{'{'} person['name'] {'}'}: {'{'} person['age'] {'}'}"</span>)
+</code></pre>
+      </div>
+
+      <!-- Relationships -->
+      <div class="code-content" data-content="relations">
+        <pre class="code-block"><code class="language-python"><span class="comment"># Define entity relationships</span>
+<span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, HasMany, HasOne
+<span class="keyword">from</span> typing <span class="keyword">import</span> Self
+
+<span class="keyword">class</span> <span class="type">Person</span>(NodeEntity):
+    knows = HasMany(Self)  <span class="comment"># Self-referential relationship</span>
+    lives_in = HasOne(<span class="string">'City'</span>)
+
+<span class="keyword">class</span> <span class="type">City</span>(NodeEntity):
+    <span class="keyword">pass</span>
+
+<span class="comment"># Query with joins</span>
+results = (
+    session.Person
+    .where(<span class="keyword">lambda</span> p: p.name == <span class="string">'Alice'</span>)
+    .join_out(<span class="keyword">lambda</span> p: p.knows)  <span class="comment"># Follow KNOWS relationship</span>
+    .select(
+        person=<span class="keyword">lambda</span> p: p.name,
+        friend=<span class="keyword">lambda</span> f: f.name
+    )
+    .all()
+)
+
+<span class="keyword">for</span> row <span class="keyword">in</span> results:
+    <span class="function">print</span>(f<span class="string">"{'{'} row['person'] {'}'} knows {'{'} row['friend'] {'}'}"</span>)
+</code></pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.code-tab {
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.code-tab.active {
+  background: linear-gradient(90deg, var(--acc), var(--acc-strong));
+  color: white;
+  border-color: var(--acc);
+}
+
+.code-tab:hover:not(.active) {
+  border-color: var(--acc);
+  transform: translateY(-2px);
+}
+
+.code-block {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  overflow-x: auto;
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.code-content {
+  display: none;
+}
+
+.code-content.active {
+  display: block;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Syntax highlighting */
+.keyword { color: #c678dd; font-weight: 600; }
+.string { color: #98c379; }
+.comment { color: #5c6370; font-style: italic; }
+.function { color: #61afef; }
+.type { color: #e5c07b; }
+.number { color: #d19a66; }
+</style>
+
+<script>
+document.querySelectorAll('.code-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const targetTab = tab.getAttribute('data-tab');
+    
+    // Update tabs
+    document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    
+    // Update content
+    document.querySelectorAll('.code-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[data-content="${targetTab}"]`)?.classList.add('active');
+  });
+});
+</script>

@@ -11,20 +11,33 @@ try:  # runtime when installed via maturin
 except Exception:  # dev/type-checker path
     from .casys_engine import CasysEngine, CasysBranch  # type: ignore
 
-# ORM (Entity Framework-style)
-from .orm import NodeEntity, RelEntity, HasMany, HasOne
+# High-level API (simple wrapper over Rust bindings)
+from .database import Database, Branch
+
+# ORM (Entity Framework-style) - nouvelle API
+from .orm import NodeEntity, Label, Relation, to, from_, both, AnyOf
 from .session import Session
 from .query import QueryBuilder
 
 __version__ = "0.1.0"
 
 __all__ = [
+    # High-level API (recommended for most users)
+    "Database",
+    "Branch",
+    
+    # Low-level bindings (advanced usage)
     "CasysEngine",
     "CasysBranch",
+    
+    # ORM
     "NodeEntity",
-    "RelEntity",
-    "HasMany",
-    "HasOne",
+    "Label",
+    "Relation",
+    "to",
+    "from_",
+    "both",
+    "AnyOf",
     "Session",
     "QueryBuilder",
 ]

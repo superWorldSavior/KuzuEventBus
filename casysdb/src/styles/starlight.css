@@ -1,0 +1,32 @@
+/* Import global theme first to get all Cassis brand variables */
+@import './theme.css';
+
+/* 
+ * Map Starlight CSS variables to existing Cassis theme
+ * Starlight doc: https://starlight.astro.build/guides/css-and-tailwind/
+ */
+
+:root {
+  /* Brand accent (links, buttons, highlights) */
+  --sl-color-accent-low: var(--acc-soft);
+  --sl-color-accent: var(--acc);
+  --sl-color-accent-high: var(--acc-strong);
+  
+  /* Text colors */
+  --sl-color-text: var(--ink);
+  --sl-color-text-accent: var(--muted);
+  
+  /* Borders */
+  --sl-color-gray-5: var(--border);
+  --sl-color-gray-6: var(--border-strong);
+  
+  /* Background surfaces */
+  --sl-color-bg: var(--surface);
+  
+  /* Fonts (optional override) */
+  --sl-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --sl-font-mono: 'Fira Code', 'JetBrains Mono', Consolas, Monaco, monospace;
+}
+
+/* Dark mode inherits from :root.dark in theme.css automatically */
+/* No need to redefine - Starlight will pick up the updated CSS variables */

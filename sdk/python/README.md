@@ -27,6 +27,27 @@ maturin build --release  # Production wheel
 
 ## Quick Start
 
+### Simple API (Recommended)
+
+```python
+from casys_db import Database
+
+# Open or create database
+db = Database("social.db")
+
+# Execute query
+result = db.query("MATCH (n:Person) WHERE n.age > 25 RETURN n.name, n.age ORDER BY n.age DESC LIMIT 10")
+
+print(f"Columns: {result['columns']}")
+for row in result['rows']:
+    print(row)
+
+# Persist changes
+db.commit()
+```
+
+### Low-level API (Advanced)
+
 ```python
 import casys_db
 
@@ -52,7 +73,38 @@ branch.load()   # Load from disk
 
 ## API Reference
 
-### Engine
+### High-Level API
+
+#### Database
+
+```python
+from casys_db import Database
+
+db = Database(path: str, data_dir: Optional[str] = None)
+```
+
+- `query(gql: str, params: Optional[Dict] = None) -> dict`: Execute ISO GQL query
+- `commit()`: Persist changes to disk
+- `create_branch(name: str) -> Branch`: Create new branch
+- `branch(name: str) -> Branch`: Switch to existing branch
+- `branch_at(name: str, timestamp: str) -> Branch`: Create branch from point in time (PITR)
+- `history(from_time: Optional[str] = None) -> List[dict]`: View database history
+- `snapshots() -> List[dict]`: List all snapshots
+
+#### Branch
+
+```python
+branch = db.branch("experiment")
+```
+
+- `query(gql: str, params: Optional[Dict] = None) -> dict`: Execute query on branch
+- `commit()`: Persist changes
+- `load()`: Load data from disk
+- `name: str`: Branch name property
+
+### Low-Level API (Advanced)
+
+#### Engine
 
 ```python
 engine = casys_db.CasysEngine(data_dir: str)
@@ -62,7 +114,7 @@ engine = casys_db.CasysEngine(data_dir: str)
 - `create_branch(db_name: str, branch_name: str)`: Create a new branch
 - `open_branch(db_name: str, branch_name: str) -> CasysBranch`: Open a branch
 
-### Branch
+#### CasysBranch
 
 ```python
 branch = engine.open_branch("mydb", "main")
@@ -72,75 +124,66 @@ branch = engine.open_branch("mydb", "main")
 - `flush()`: Persist in-memory data to disk (segments)
 - `load()`: Load data from disk into memory
 
-## Supported ISO GQL Features
+## Supported GQL Features
 
-- **MATCH**: Node and edge patterns with labels and properties
-- **WHERE**: Filtering with boolean expressions
-- **RETURN**: Projection with aliases
+- **MATCH**: Node/edge patterns with labels and properties
+- **WHERE**: Filtering with comparisons, `IS NULL`, `AND`/`OR`
+- **WITH**: Pipeline transformations
+- **EXISTS**: Correlated subqueries
+- **RETURN**: Projections with aliases
 - **ORDER BY**: Sorting (ASC/DESC)
 - **LIMIT**: Result limiting
-- **Aggregates**: COUNT, SUM, AVG, MIN, MAX with GROUP BY
+- **Variable-length paths**: `*min..max` syntax
+- **Named parameters**: `$variable` binding
 
-Example:
 ```python
+# Variable-length paths
+result = branch.query(
+    "MATCH (a:Person)-[:KNOWS*1..3]->(p) WHERE a.name = $name RETURN p.name",
+    {"name": "Alice"}
+)
+
+# WITH clause pipeline
 result = branch.query("""
-    MATCH (a:Person)-[r:KNOWS]->(b:Person)
-    WHERE a.age > 20 AND b.city = 'Paris'
-    RETURN a.name, COUNT(b) AS friend_count
-    ORDER BY friend_count DESC
-    LIMIT 5
+    MATCH (p:Person)-[:LIVES_IN]->(c:City)
+    WITH p.name AS person, c.name AS city
+    WHERE city = 'Paris'
+    RETURN person, city
 """)
-
-### Variable-Length Paths (ISO GQL `*min..max`)
-
-Casys supports bounded multi-hop traversals:
-
-- `*`       → 1 to ∞ hops
-- `*n`      → exactly n hops
-- `*n..m`   → n to m hops
-- `*..m`    → 0 to m hops (includes starting node)
-- `*n..`    → n to ∞ hops
-
-Examples:
-
-```python
-res1 = branch.query("MATCH (a:Person)-[:KNOWS*2]->(p:Person) WHERE a.name = 'Alice' RETURN p.name")
-res2 = branch.query("MATCH (a:Person)-[:KNOWS*1..3]->(p:Person) WHERE a.name = 'Alice' RETURN p.name")
-res3 = branch.query("MATCH (a:Person)-[:KNOWS*..2]->(p:Person) WHERE a.name = 'Alice' RETURN p.name")
 ```
 
-## ORM (Coming Soon)
+## ORM
 
-Entity Framework-style ORM for Python:
-### ORM: Variable-Length Traversals via `depth()`
-
-Use `depth()` on relationships to control traversal length:
+LINQ-style fluent API with lambda expressions:
 
 ```python
+from casys_db import Session, NodeEntity, HasMany, HasOne
+from typing import Self
+
+class City(NodeEntity):
+    pass  # Label implicite: "City"
+
 class Person(NodeEntity):
-    labels = ["Person"]
-    # direct friends (1 hop)
-    friends = HasMany("Person", via="KNOWS")
-    # friends of friends (exactly 2 hops)
-    friends_of_friends = HasMany("Person", via="KNOWS").depth(2)
-    # extended network (1..3 hops)
-    network = HasMany("Person", via="KNOWS").depth(1, 3)
-    # up to 3 hops
-    up_to_three = HasMany("Person", via="KNOWS").depth(max=3)
-    # at least 2 hops
-    two_or_more = HasMany("Person", via="KNOWS").depth(min=2)
-    # include starting node (0..2)
-    include_start = HasMany("Person", via="KNOWS").depth(0, 2)
+    lives_in = HasOne(City)              # via auto: LIVES_IN
+    friends = HasMany(Self)              # Self-ref avec typing.Self
+
+session = Session(branch)
+
+# Fluent queries with lambdas
+adults = session.Person.where(lambda p: p.age >= 18).all()
+
+# Joins + projections
+results = (session.Person
+    .join_out(lambda p: p.lives_in)
+    .select(name=lambda p: p.name, city=lambda c: c.name)
+    .all())
 ```
 
-Semantics:
-
-- `depth(n)` → `*n`
-- `depth(n, m)` → `*n..m`
-- `depth(max=m)` → `*1..m`
-- `depth(min=n)` → `*n..`
-- `depth()` → `*`
-- `depth(0, m)` → `*0..m`
+**📚 Complete ORM reference**: See [`examples/orm_cheatsheet.md`](examples/orm_cheatsheet.md) for:
+- Variable-length traversals with `depth()`
+- Advanced projections and aggregations
+- Relationship patterns
+- Query optimization tips
 
 ## Architecture
 

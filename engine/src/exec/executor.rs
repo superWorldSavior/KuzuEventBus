@@ -289,7 +289,9 @@ impl<'a> Executor<'a> {
                 let tuples = self.execute_node_with_context(input, parent_tuple)?;
                 Ok(tuples.into_iter().take(*count as usize).collect())
             }
-            PlanNode::Expand { input, from_var, edge_var, to_var, edge_type, depth } => {
+            PlanNode::Expand { input, from_var, edge_var, to_var, edge_type, direction, depth } => {
+                use super::ast::Direction;
+                
                 let input_tuples = self.execute_node_with_context(input, parent_tuple)?;
                 let mut result = Vec::new();
 
@@ -316,8 +318,36 @@ impl<'a> Executor<'a> {
                                 result.push(new_tuple);
                             }
                         } else {
-                            // Single-hop traversal (original behavior)
-                            let neighbors = self.store.get_neighbors(*from_id, edge_type.as_deref())?;
+                            // Single-hop traversal with direction support
+                            // Check for union types (e.g., [:BOSS|FRIEND])
+                            let edge_types: Vec<&str> = if let Some(et) = edge_type {
+                                et.split('|').map(|s| s.trim()).collect()
+                            } else {
+                                vec![]
+                            };
+                            
+                            let mut neighbors = match direction {
+                                Direction::Right => {
+                                    // Outgoing: (from)-[:REL]->(to)
+                                    self.store.get_neighbors(*from_id, None)?
+                                }
+                                Direction::Left => {
+                                    // Incoming: (to)-[:REL]->(from) donc on cherche incoming
+                                    self.store.get_neighbors_incoming(*from_id, None)?
+                                }
+                                Direction::Both => {
+                                    // Both directions: combine outgoing + incoming
+                                    let mut out = self.store.get_neighbors(*from_id, None)?;
+                                    let incoming = self.store.get_neighbors_incoming(*from_id, None)?;
+                                    out.extend(incoming);
+                                    out
+                                }
+                            };
+                            
+                            // Filter by edge types if union specified
+                            if !edge_types.is_empty() {
+                                neighbors.retain(|(edge, _)| edge_types.contains(&edge.edge_type.as_str()));
+                            }
                             
                             for (edge, to_node) in neighbors {
                                 let mut new_tuple = tuple.clone();
@@ -332,6 +362,9 @@ impl<'a> Executor<'a> {
                                 // Add edge to tuple if variable specified
                                 if let Some(ref ev) = edge_var {
                                     new_tuple.insert(ev.clone(), Value::Int(edge.id as i64));
+                                    // Add edge type for union type support
+                                    let edge_type_key = format!("{}.edge_type", ev);
+                                    new_tuple.insert(edge_type_key, Value::String(edge.edge_type.clone()));
                                     for (k, v) in &edge.properties {
                                         let prop_key = format!("{}.{}", ev, k);
                                         new_tuple.insert(prop_key, v.clone());
@@ -446,32 +479,51 @@ impl<'a> Executor<'a> {
                 let val = self.eval_expr(expr, tuple)?;
                 Ok(Value::Bool(!matches!(val, Value::Null)))
             }
+            Expr::FunctionCall(name, args) => {
+                match name.to_uppercase().as_str() {
+                    "ID" => {
+                        // ID(node) - extract node ID from node reference
+                        if args.len() != 1 {
+                            return Err(EngineError::InvalidArgument("ID() requires exactly 1 argument".into()));
+                        }
+                        let arg_val = self.eval_expr(&args[0], tuple)?;
+                        match arg_val {
+                            Value::NodeId(id) => Ok(Value::Int(id as i64)),
+                            _ => Err(EngineError::InvalidArgument("ID() requires a node argument".into())),
+                        }
+                    }
+                    _ => Err(EngineError::InvalidArgument(format!("unknown function: {}", name))),
+                }
+            }
             Expr::Exists(subquery) => {
-                // Fast-path: if subquery is a simple edge pattern starting from a variable
-                if let Some(first_pat) = subquery.match_clause.patterns.get(0) {
-                    if let super::ast::Pattern::Edge(edge) = first_pat {
-                        if let Some(ref from_var) = edge.from_node.variable {
-                            if let Some(Value::NodeId(from_id)) = tuple.get(from_var) {
-                                // Optional target labels to enforce
-                                let target_labels = &edge.to_node.labels;
-                                let label_matches = |node: &crate::index::Node| -> bool {
-                                    if target_labels.is_empty() { return true; }
-                                    target_labels.iter().any(|lbl| node.labels.contains(lbl))
-                                };
-                                // Handle variable-length or single-hop
-                                let has_any = if let Some(depth_range) = &edge.depth {
-                                    let reachable = self.traverse_variable_length(
-                                        *from_id,
-                                        edge.edge_type.as_deref(),
-                                        depth_range.min,
-                                        depth_range.max,
-                                    )?;
-                                    reachable.into_iter().any(|n| label_matches(&n))
-                                } else {
-                                    let neighbors = self.store.get_neighbors(*from_id, edge.edge_type.as_deref())?;
-                                    neighbors.into_iter().any(|(_e, to)| label_matches(&to))
-                                };
-                                return Ok(Value::Bool(has_any));
+                // Only use fast-path if there is no WHERE clause inside the subquery
+                if subquery.where_clause.is_none() {
+                    // Fast-path: if subquery is a simple edge pattern starting from a variable
+                    if let Some(first_pat) = subquery.match_clause.patterns.get(0) {
+                        if let super::ast::Pattern::Edge(edge) = first_pat {
+                            if let Some(ref from_var) = edge.from_node.variable {
+                                if let Some(Value::NodeId(from_id)) = tuple.get(from_var) {
+                                    // Optional target labels to enforce
+                                    let target_labels = &edge.to_node.labels;
+                                    let label_matches = |node: &crate::index::Node| -> bool {
+                                        if target_labels.is_empty() { return true; }
+                                        target_labels.iter().any(|lbl| node.labels.contains(lbl))
+                                    };
+                                    // Handle variable-length or single-hop
+                                    let has_any = if let Some(depth_range) = &edge.depth {
+                                        let reachable = self.traverse_variable_length(
+                                            *from_id,
+                                            edge.edge_type.as_deref(),
+                                            depth_range.min,
+                                            depth_range.max,
+                                        )?;
+                                        reachable.into_iter().any(|n| label_matches(&n))
+                                    } else {
+                                        let neighbors = self.store.get_neighbors(*from_id, edge.edge_type.as_deref())?;
+                                        neighbors.into_iter().any(|(_e, to)| label_matches(&to))
+                                    };
+                                    return Ok(Value::Bool(has_any));
+                                }
                             }
                         }
                     }

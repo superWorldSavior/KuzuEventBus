@@ -1,0 +1,121 @@
+---
+const locale = (Astro as any).currentLocale ?? 'en';
+const t = locale === 'fr'
+  ? {
+      title: 'Cas d\'usage',
+      subtitle: 'CasysDB excelle là où les données sont connectées',
+    }
+  : {
+      title: 'Use Cases',
+      subtitle: 'CasysDB excels where data is connected',
+    };
+---
+
+<section id="use-cases" class="py-20 relative" style="background: var(--bg-social);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+      <!-- Social Networks -->
+      <div class="use-case-card p-8 rounded-xl" style="background: var(--card-bg); border: 2px solid var(--border);">
+        <div class="flex items-start gap-4">
+          <div class="text-5xl">👥</div>
+          <div>
+            <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Réseaux Sociaux' : 'Social Networks'}
+            </h3>
+            <p class="mb-4" style="color: var(--text-secondary);">
+              {locale === 'fr' 
+                ? 'Trouvez des amis d\'amis, recommandations, détection de communautés. Queries 2-3 hops en millisecondes.'
+                : 'Find friends-of-friends, recommendations, community detection. 2-3 hop queries in milliseconds.'}
+            </p>
+            <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (user:Person)-[:KNOWS*2..3]->(friend)
+WHERE user.id = $userId
+RETURN DISTINCT friend</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Knowledge Graphs -->
+      <div class="use-case-card p-8 rounded-xl" style="background: var(--card-bg); border: 2px solid var(--border);">
+        <div class="flex items-start gap-4">
+          <div class="text-5xl">🧠</div>
+          <div>
+            <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Knowledge Graphs' : 'Knowledge Graphs'}
+            </h3>
+            <p class="mb-4" style="color: var(--text-secondary);">
+              {locale === 'fr' 
+                ? 'Ontologies, RAG, semantic search. Relationships complexes entre entités, attributs, concepts.'
+                : 'Ontologies, RAG, semantic search. Complex relationships between entities, attributes, concepts.'}
+            </p>
+            <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (concept)-[:RELATED_TO*]->(topic)
+WHERE concept.name = 'Machine Learning'
+RETURN topic.name, COUNT(*) AS relevance</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recommendation Engines -->
+      <div class="use-case-card p-8 rounded-xl" style="background: var(--card-bg); border: 2px solid var(--border);">
+        <div class="flex items-start gap-4">
+          <div class="text-5xl">🎯</div>
+          <div>
+            <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Moteurs de Recommandation' : 'Recommendation Engines'}
+            </h3>
+            <p class="mb-4" style="color: var(--text-secondary);">
+              {locale === 'fr' 
+                ? 'Collaborative filtering, content-based recommendations. Trouvez des patterns dans les interactions utilisateurs.'
+                : 'Collaborative filtering, content-based recommendations. Find patterns in user interactions.'}
+            </p>
+            <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (u:User)-[:LIKES]->(i:Item)<-[:LIKES]-(similar:User)
+WHERE u.id = $userId
+RETURN i.name, COUNT(similar) AS score</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Network Analysis -->
+      <div class="use-case-card p-8 rounded-xl" style="background: var(--card-bg); border: 2px solid var(--border);">
+        <div class="flex items-start gap-4">
+          <div class="text-5xl">🕸️</div>
+          <div>
+            <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
+              {locale === 'fr' ? 'Analyse de Réseaux' : 'Network Analysis'}
+            </h3>
+            <p class="mb-4" style="color: var(--text-secondary);">
+              {locale === 'fr' 
+                ? 'Détection de fraude, supply chain, dependency tracking. Visualisez et explorez les connections.'
+                : 'Fraud detection, supply chain, dependency tracking. Visualize and explore connections.'}
+            </p>
+            <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH path = (start)-[:DEPENDS_ON*]->(end)
+WHERE start.type = 'Service'
+RETURN path, LENGTH(path) AS depth</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.use-case-card {
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.use-case-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--acc);
+}
+
+pre {
+  font-family: 'Fira Code', 'JetBrains Mono', monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  overflow-x: auto;
+}
+</style>

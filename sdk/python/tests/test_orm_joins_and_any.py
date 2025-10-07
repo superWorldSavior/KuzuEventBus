@@ -1,15 +1,17 @@
-from casys_db import Session, NodeEntity, HasMany, HasOne
+from casys_db import Session, NodeEntity, Relation
+
+
+class HAS_TAG(Relation):
+    pass
 
 
 class Article(NodeEntity):
     labels = ["Article"]
-    tags = HasMany("Tag", via="HAS_TAG")
+    tags = HAS_TAG.to("Tag")
 
 
 class Person(NodeEntity):
     labels = ["Person"]
-    lives_in = HasOne("City", via="LIVES_IN")
-    friends = HasMany("Person", via="KNOWS").depth(1, 2)
 
 
 class City(NodeEntity):

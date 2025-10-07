@@ -1,0 +1,1794 @@
+---
+// Galerie infinie massive avec tous types de composants web possibles
+---
+
+<div class="component-gallery-wrapper">
+  <!-- Ligne 1 - Charts & Analytics -->
+  <div class="component-row scroll-left">
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="mini-chart">
+          <div class="chart-bar" style="height: 60%"></div>
+          <div class="chart-bar" style="height: 80%"></div>
+          <div class="chart-bar" style="height: 45%"></div>
+          <div class="chart-bar" style="height: 70%"></div>
+        </div>
+      </div>
+      <span class="component-label">Bar Charts</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="line-chart">
+          <svg viewBox="0 0 60 40" class="mini-svg">
+            <polyline points="5,35 15,25 25,30 35,15 45,20 55,10" stroke="#8b5a87" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+      </div>
+      <span class="component-label">Line Charts</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="pie-chart-mini">
+          <div class="pie-slice" style="--color: #8b5a87; --angle: 120deg;"></div>
+          <div class="pie-slice" style="--color: #2d1b69; --angle: 240deg;"></div>
+        </div>
+      </div>
+      <span class="component-label">Pie Charts</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="scatter-chart">
+          <div class="scatter-dot" style="left: 20%; top: 30%;"></div>
+          <div class="scatter-dot" style="left: 40%; top: 60%;"></div>
+          <div class="scatter-dot" style="left: 70%; top: 20%;"></div>
+          <div class="scatter-dot" style="left: 80%; top: 70%;"></div>
+        </div>
+      </div>
+      <span class="component-label">Scatter Plot</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="heatmap-mini">
+          <div class="heat-cell" style="--intensity: 0.8;"></div>
+          <div class="heat-cell" style="--intensity: 0.3;"></div>
+          <div class="heat-cell" style="--intensity: 0.9;"></div>
+          <div class="heat-cell" style="--intensity: 0.5;"></div>
+        </div>
+      </div>
+      <span class="component-label">Heatmaps</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="radar-chart">
+          <svg viewBox="0 0 60 60" class="mini-svg">
+            <polygon points="30,5 50,20 45,45 15,45 10,20" stroke="#8b5a87" stroke-width="1.5" fill="rgba(139,90,135,0.2)"/>
+          </svg>
+        </div>
+      </div>
+      <span class="component-label">Radar Charts</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="gauge-mini">
+          <div class="gauge-arc"></div>
+          <div class="gauge-needle"></div>
+        </div>
+      </div>
+      <span class="component-label">Gauges</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="treemap-mini">
+          <div class="tree-rect" style="width: 40%; height: 60%; background: #8b5a87;"></div>
+          <div class="tree-rect" style="width: 35%; height: 40%; background: #2d1b69;"></div>
+          <div class="tree-rect" style="width: 25%; height: 100%; background: #a67c9a;"></div>
+        </div>
+      </div>
+      <span class="component-label">Treemaps</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="journey-icon">
+        <div class="journey-step"></div>
+        <div class="journey-step"></div>
+        <div class="journey-step"></div>
+      </div>
+      <span class="component-label">Journey</span>
+    </div>
+    
+    <div class="component-card audio-card">
+      <div class="audio-icon">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+      </div>
+      <span class="component-label">Audio</span>
+    </div>
+    
+    <div class="component-card writing-card">
+      <div class="writing-icon">✍️</div>
+      <span class="component-label">Écriture</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="pie-chart">
+        <div class="pie-slice" style="--angle: 120deg; --color: #3B82F6;"></div>
+        <div class="pie-slice" style="--angle: 90deg; --color: #EF4444;"></div>
+        <div class="pie-slice" style="--angle: 150deg; --color: #10B981;"></div>
+      </div>
+      <span class="component-label">Pie Chart</span>
+    </div>
+
+    <!-- Dupliquer pour l'effet infini -->
+    <div class="component-card">
+      <div class="mini-chart">
+        <div class="chart-bar" style="height: 60%"></div>
+        <div class="chart-bar" style="height: 80%"></div>
+        <div class="chart-bar" style="height: 45%"></div>
+        <div class="chart-bar" style="height: 70%"></div>
+      </div>
+      <span class="component-label">Analytics</span>
+    </div>
+    
+    <div class="component-card media-card">
+      <div class="video-icon">🎥</div>
+      <span class="component-label">Vidéo</span>
+    </div>
+    
+    <div class="component-card map-card">
+      <div class="network-icon">
+        <div class="network-node"></div>
+        <div class="network-node"></div>
+        <div class="network-node"></div>
+        <div class="network-connection"></div>
+      </div>
+      <span class="component-label">Network</span>
+    </div>
+  </div>
+
+  <!-- Ligne 2 - Media & Content -->
+  <div class="component-row scroll-right">
+    <div class="component-card media-card">
+      <div class="icon-container">
+        <div class="video-icon">🎥</div>
+      </div>
+      <span class="component-label">Vidéo Player</span>
+    </div>
+    
+    <div class="component-card media-card">
+      <div class="icon-container">
+        <div class="audio-icon">
+          <div class="audio-wave"></div>
+          <div class="audio-wave"></div>
+          <div class="audio-wave"></div>
+        </div>
+      </div>
+      <span class="component-label">Audio Player</span>
+    </div>
+    
+    <div class="component-card media-card">
+      <div class="icon-container">
+        <div class="image-icon">🖼️</div>
+      </div>
+      <span class="component-label">Image Gallery</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="carousel-mini">
+          <div class="carousel-slide active"></div>
+          <div class="carousel-slide"></div>
+          <div class="carousel-slide"></div>
+          <div class="carousel-dots">
+            <div class="dot active"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">Carousel</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="pdf-icon">📄</div>
+      </div>
+      <span class="component-label">PDF Viewer</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="markdown-icon">
+          <div class="md-line"></div>
+          <div class="md-line short"></div>
+          <div class="md-line"></div>
+        </div>
+      </div>
+      <span class="component-label">Markdown</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="code-icon">
+          <div class="code-line">&lt;div&gt;</div>
+          <div class="code-line">  &lt;p&gt;</div>
+          <div class="code-line">&lt;/div&gt;</div>
+        </div>
+      </div>
+      <span class="component-label">Code Block</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="presentation-icon">
+          <div class="slide-preview"></div>
+          <div class="slide-nav">
+            <div class="slide-thumb"></div>
+            <div class="slide-thumb active"></div>
+            <div class="slide-thumb"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">Presentations</span>
+    </div>
+    
+    <!-- Composants CMS & BI originaux -->
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="cms-editor-icon">
+          <div class="editor-toolbar"></div>
+          <div class="editor-content"></div>
+          <div class="editor-cursor"></div>
+        </div>
+      </div>
+      <span class="component-label">CMS Editor</span>
+    </div>
+    
+    <div class="component-card forms-card">
+      <div class="icon-container">
+        <div class="workflow-icon">
+          <div class="workflow-step active"></div>
+          <div class="workflow-arrow"></div>
+          <div class="workflow-step"></div>
+          <div class="workflow-arrow"></div>
+          <div class="workflow-step"></div>
+        </div>
+      </div>
+      <span class="component-label">Workflow</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="kpi-dashboard">
+          <div class="kpi-card">
+            <div class="kpi-value">87%</div>
+            <div class="kpi-trend up"></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-value">2.4K</div>
+            <div class="kpi-trend down"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">KPI Dashboard</span>
+    </div>
+    
+    <div class="component-card media-card">
+      <div class="icon-container">
+        <div class="media-library">
+          <div class="media-grid">
+            <div class="media-item image"></div>
+            <div class="media-item video"></div>
+            <div class="media-item doc"></div>
+            <div class="media-item audio"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">Media Library</span>
+    </div>
+    
+    <div class="component-card search-card">
+      <div class="icon-container">
+        <div class="analytics-funnel">
+          <div class="funnel-stage" style="width: 100%;"></div>
+          <div class="funnel-stage" style="width: 75%;"></div>
+          <div class="funnel-stage" style="width: 45%;"></div>
+          <div class="funnel-stage" style="width: 25%;"></div>
+        </div>
+      </div>
+      <span class="component-label">Funnel Analysis</span>
+    </div>
+    
+    <div class="component-card audio-card">
+      <div class="icon-container">
+        <div class="user-permissions">
+          <div class="permission-user">
+            <div class="user-avatar"></div>
+            <div class="permission-level admin"></div>
+          </div>
+          <div class="permission-user">
+            <div class="user-avatar"></div>
+            <div class="permission-level editor"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">User Permissions</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="content-calendar">
+          <div class="calendar-grid">
+            <div class="calendar-day"></div>
+            <div class="calendar-day active"></div>
+            <div class="calendar-day scheduled"></div>
+            <div class="calendar-day"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">Content Calendar</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="ab-test">
+          <div class="test-variant a">A</div>
+          <div class="test-vs">vs</div>
+          <div class="test-variant b">B</div>
+          <div class="test-result">
+            <div class="result-bar a" style="width: 60%;"></div>
+            <div class="result-bar b" style="width: 40%;"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">A/B Testing</span>
+    </div>
+
+    <!-- Plus de composants CMS/BI originaux -->
+    <div class="component-card social-card">
+      <div class="icon-container">
+        <div class="seo-optimizer">
+          <div class="seo-score">92</div>
+          <div class="seo-indicators">
+            <div class="seo-indicator good"></div>
+            <div class="seo-indicator good"></div>
+            <div class="seo-indicator warning"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">SEO Optimizer</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="version-control">
+          <div class="commit-history">
+            <div class="commit active"></div>
+            <div class="commit-line"></div>
+            <div class="commit"></div>
+            <div class="commit-line"></div>
+            <div class="commit"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">Version Control</span>
+    </div>
+    
+    <div class="component-card forms-card">
+      <div class="icon-container">
+        <div class="lead-scoring">
+          <div class="lead-profile">
+            <div class="lead-avatar"></div>
+            <div class="lead-score">85</div>
+          </div>
+          <div class="scoring-bars">
+            <div class="score-bar" style="width: 85%;"></div>
+            <div class="score-bar" style="width: 60%;"></div>
+            <div class="score-bar" style="width: 90%;"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">Lead Scoring</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="heat-analytics">
+          <div class="heatmap-screen">
+            <div class="heat-point hot" style="top: 20%; left: 30%;"></div>
+            <div class="heat-point warm" style="top: 60%; left: 70%;"></div>
+            <div class="heat-point cool" style="top: 80%; left: 20%;"></div>
+          </div>
+        </div>
+      </div>
+      <span class="component-label">Heat Analytics</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="inventory-management">
+          <div class="inventory-items">
+            <div class="inventory-item in-stock"></div>
+            <div class="inventory-item low-stock"></div>
+            <div class="inventory-item out-stock"></div>
+          </div>
+          <div class="inventory-alert">!</div>
+        </div>
+      </div>
+      <span class="component-label">Inventory</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="customer-journey">
+          <div class="journey-touchpoint awareness"></div>
+          <div class="journey-path"></div>
+          <div class="journey-touchpoint consideration"></div>
+          <div class="journey-path"></div>
+          <div class="journey-touchpoint conversion"></div>
+        </div>
+      </div>
+      <span class="component-label">Customer Journey</span>
+    </div>
+  </div>
+
+  <!-- Ligne 3 - Défilement vers la gauche -->
+  <div class="component-row scroll-left">
+    <div class="component-card writing-card">
+      <div class="icon-container">
+        <div class="heatmap-icon">
+          <div class="heat-cell"></div>
+          <div class="heat-cell"></div>
+          <div class="heat-cell"></div>
+          <div class="heat-cell"></div>
+        </div>
+      </div>
+      <span class="component-label">Heatmap</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="scatter-icon">
+          <div class="scatter-dot"></div>
+          <div class="scatter-dot"></div>
+          <div class="scatter-dot"></div>
+        </div>
+      </div>
+      <span class="component-label">Scatter</span>
+    </div>
+    
+    <div class="component-card map-card">
+      <div class="icon-container">
+        <div class="map-icon">🗺️</div>
+      </div>
+      <span class="component-label">Cartes</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="tree-icon">
+          <div class="tree-node"></div>
+          <div class="tree-branch"></div>
+          <div class="tree-node"></div>
+        </div>
+      </div>
+      <span class="component-label">Arbre</span>
+    </div>
+
+    <!-- Dupliquer pour l'effet infini -->
+    <div class="component-card writing-card">
+      <div class="icon-container">
+        <div class="heatmap-icon">
+          <div class="heat-cell"></div>
+          <div class="heat-cell"></div>
+          <div class="heat-cell"></div>
+          <div class="heat-cell"></div>
+        </div>
+      </div>
+      <span class="component-label">Heatmap</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="scatter-icon">
+          <div class="scatter-dot"></div>
+          <div class="scatter-dot"></div>
+          <div class="scatter-dot"></div>
+        </div>
+      </div>
+      <span class="component-label">Scatter</span>
+    </div>
+    
+    <!-- DUPLICATION MASSIVE pour éliminer les trous -->
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="mini-chart">
+          <div class="chart-bar" style="height: 60%"></div>
+          <div class="chart-bar" style="height: 80%"></div>
+          <div class="chart-bar" style="height: 45%"></div>
+          <div class="chart-bar" style="height: 70%"></div>
+        </div>
+      </div>
+      <span class="component-label">Bar Charts</span>
+    </div>
+    
+    <div class="component-card media-card">
+      <div class="icon-container">
+        <div class="video-icon">🎥</div>
+      </div>
+      <span class="component-label">Vidéo Player</span>
+    </div>
+    
+    <div class="component-card map-card">
+      <div class="icon-container">
+        <div class="network-icon">
+          <div class="network-node"></div>
+          <div class="network-node"></div>
+          <div class="network-node"></div>
+          <div class="network-connection"></div>
+        </div>
+      </div>
+      <span class="component-label">Network Graph</span>
+    </div>
+    
+    <div class="component-card search-card">
+      <div class="icon-container">
+        <div class="search-icon">🔍</div>
+      </div>
+      <span class="component-label">Search</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="line-chart">
+          <svg viewBox="0 0 60 40" class="mini-svg">
+            <polyline points="5,35 15,25 25,30 35,15 45,20 55,10" stroke="#8b5a87" stroke-width="2" fill="none"/>
+          </svg>
+        </div>
+      </div>
+      <span class="component-label">Line Charts</span>
+    </div>
+    
+    <div class="component-card social-card">
+      <div class="icon-container">
+        <div class="social-icon">👥</div>
+      </div>
+      <span class="component-label">Social Feed</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="pie-chart-mini">
+          <div class="pie-slice" style="--color: #8b5a87; --angle: 120deg;"></div>
+          <div class="pie-slice" style="--color: #2d1b69; --angle: 240deg;"></div>
+        </div>
+      </div>
+      <span class="component-label">Pie Charts</span>
+    </div>
+    
+    <div class="component-card forms-card">
+      <div class="icon-container">
+        <div class="form-icon">📝</div>
+      </div>
+      <span class="component-label">Forms</span>
+    </div>
+    
+    <div class="component-card">
+      <div class="icon-container">
+        <div class="ai-icon">🤖</div>
+      </div>
+      <span class="component-label">AI Assistant</span>
+    </div>
+    
+    <div class="component-card map-card">
+      <div class="icon-container">
+        <div class="map-icon">🗺️</div>
+      </div>
+      <span class="component-label">Maps</span>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Galerie de composants avec défilement infini */
+.component-gallery-wrapper {
+  position: relative;
+  width: 100vw;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  margin-top: 2rem;
+  padding: 1rem 0;
+  overflow: hidden;
+  opacity: 0.95;
+}
+
+.component-row {
+  display: flex;
+  gap: 2rem;
+  padding: 1rem 0;
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+  width: max-content;
+}
+
+.scroll-right {
+  animation: scrollRight 60s linear infinite;
+}
+
+.scroll-left {
+  animation: scrollLeft 60s linear infinite;
+}
+
+@keyframes scrollRight {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scrollLeft {
+  0% {
+    transform: translateX(-50%);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.component-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 0.6rem;
+  text-align: center;
+  transition: transform 0.3s ease, background 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  width: 100px;
+  height: 100px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.component-card .icon-container {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.component-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Cartes spécialisées par catégorie */
+.media-card {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.search-card {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.audio-card {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.writing-card {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.map-card {
+  background: rgba(34, 197, 94, 0.15);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.social-card {
+  background: rgba(236, 72, 153, 0.15);
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+.forms-card {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.component-label {
+  font-size: 0.65rem;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  line-height: 1.1;
+  margin-top: auto;
+  text-align: center;
+  width: 100%;
+}
+
+/* Icônes et visualisations - Tailles standardisées */
+.mini-chart {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 2px;
+  height: 30px;
+  width: 40px;
+}
+
+.chart-bar {
+  width: 6px;
+  background: linear-gradient(to top, #8b5a87, #a67c9a);
+  border-radius: 2px;
+  animation: chartPulse 2s ease-in-out infinite;
+}
+
+@keyframes chartPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Icônes emoji standardisées */
+.video-icon, .image-icon, .search-icon, .social-icon, .form-icon, .calendar-icon, .map-icon, .writing-icon, .pdf-icon, .newsletter-icon, .certification-icon, .ai-icon, .share-icon {
+  font-size: 1.8rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* Conteneurs d'icônes complexes */
+.line-chart, .pie-chart-mini, .scatter-chart, .heatmap-mini, .radar-chart, .gauge-mini, .treemap-mini {
+  width: 40px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.network-icon {
+  position: relative;
+  width: 40px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.network-node {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #10B981;
+  border-radius: 50%;
+}
+
+.network-node:nth-child(1) { top: 0; left: 0; }
+.network-node:nth-child(2) { top: 0; right: 0; }
+.network-node:nth-child(3) { bottom: 0; left: 50%; transform: translateX(-50%); }
+
+.network-connection {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, transparent 48%, #10B981 48%, #10B981 52%, transparent 52%);
+}
+
+.matrix-icon {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 0.25rem;
+}
+
+.matrix-grid {
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(90deg, #8B5CF6 1px, transparent 1px),
+    linear-gradient(180deg, #8B5CF6 1px, transparent 1px);
+  background-size: 6px 6px;
+}
+
+.journey-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 0.25rem;
+}
+
+.journey-step {
+  width: 6px;
+  height: 6px;
+  background: #F59E0B;
+  border-radius: 50%;
+  animation: journeyPulse 1.5s ease-in-out infinite;
+}
+
+.journey-step:nth-child(2) { animation-delay: 0.3s; }
+.journey-step:nth-child(3) { animation-delay: 0.6s; }
+
+@keyframes journeyPulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.3); opacity: 1; }
+}
+
+.audio-icon {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 2px;
+  height: 24px;
+  margin-bottom: 0.25rem;
+}
+
+.wave {
+  width: 3px;
+  background: #8B5CF6;
+  border-radius: 1px;
+  animation: waveform 1s ease-in-out infinite;
+}
+
+.wave:nth-child(1) { height: 60%; animation-delay: 0s; }
+.wave:nth-child(2) { height: 90%; animation-delay: 0.2s; }
+.wave:nth-child(3) { height: 40%; animation-delay: 0.4s; }
+.wave:nth-child(4) { height: 70%; animation-delay: 0.6s; }
+
+@keyframes waveform {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+.pie-chart {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  margin: 0 auto 0.25rem;
+  overflow: hidden;
+}
+
+.pie-slice {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: conic-gradient(var(--color) var(--angle), transparent var(--angle));
+  border-radius: 50%;
+}
+
+.radar-icon {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 0.25rem;
+}
+
+.radar-grid {
+  width: 100%;
+  height: 100%;
+  border: 2px solid #8B5CF6;
+  border-radius: 50%;
+  position: relative;
+}
+
+.radar-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #8B5CF6;
+  border-radius: 50%;
+  top: 30%;
+  left: 60%;
+  animation: radarPulse 2s ease-in-out infinite;
+}
+
+@keyframes radarPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+.sankey-icon {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 0.25rem;
+}
+
+.sankey-flow {
+  width: 100%;
+  height: 16px;
+  background: linear-gradient(90deg, #3B82F6 0%, #10B981 50%, #F59E0B 100%);
+  border-radius: 8px;
+  opacity: 0.8;
+}
+
+.table-icon {
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 0.25rem;
+}
+
+.table-row {
+  width: 100%;
+  height: 4px;
+  background: #10B981;
+  margin-bottom: 2px;
+  border-radius: 1px;
+}
+
+.timeline-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+}
+
+.timeline-dot {
+  width: 6px;
+  height: 6px;
+  background: #8B5CF6;
+  border-radius: 50%;
+}
+
+.timeline-line {
+  width: 12px;
+  height: 2px;
+  background: #8B5CF6;
+  margin: 0 2px;
+}
+
+.heatmap-icon {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  width: 20px;
+  height: 20px;
+  margin: 0 auto 0.25rem;
+}
+
+.heat-cell {
+  background: #EF4444;
+  border-radius: 2px;
+}
+
+.heat-cell:nth-child(1) { opacity: 0.4; }
+.heat-cell:nth-child(2) { opacity: 0.8; }
+.heat-cell:nth-child(3) { opacity: 1; }
+.heat-cell:nth-child(4) { opacity: 0.6; }
+
+/* Nouveaux styles pour composants enrichis */
+.mini-svg {
+  width: 40px;
+  height: 30px;
+}
+
+.pie-chart-mini {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.scatter-dot {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: #8b5a87;
+  border-radius: 50%;
+}
+
+.heatmap-mini {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  width: 20px;
+  height: 20px;
+}
+
+.heat-cell {
+  background: linear-gradient(45deg, #8b5a87, #a67c9a);
+  border-radius: 2px;
+  opacity: var(--intensity, 0.5);
+}
+
+.gauge-mini {
+  position: relative;
+  width: 30px;
+  height: 15px;
+}
+
+.gauge-arc {
+  width: 100%;
+  height: 100%;
+  border: 2px solid #8b5a87;
+  border-bottom: none;
+  border-radius: 15px 15px 0 0;
+}
+
+.gauge-needle {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  height: 10px;
+  background: #2d1b69;
+  transform-origin: bottom;
+  transform: translateX(-50%) rotate(30deg);
+}
+
+.treemap-mini {
+  display: flex;
+  gap: 1px;
+  width: 30px;
+  height: 20px;
+}
+
+.tree-rect {
+  border-radius: 1px;
+}
+
+/* Audio waves */
+.audio-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.audio-wave {
+  width: 3px;
+  background: #8b5a87;
+  border-radius: 2px;
+  animation: audioWave 1.5s ease-in-out infinite;
+}
+
+.audio-wave:nth-child(1) { height: 15px; animation-delay: 0s; }
+.audio-wave:nth-child(2) { height: 25px; animation-delay: 0.2s; }
+.audio-wave:nth-child(3) { height: 20px; animation-delay: 0.4s; }
+
+@keyframes audioWave {
+  0%, 100% { transform: scaleY(0.5); }
+  50% { transform: scaleY(1); }
+}
+
+/* Carousel */
+.carousel-mini {
+  width: 35px;
+  height: 25px;
+  position: relative;
+  margin: 0 auto;
+}
+
+.carousel-slide {
+  position: absolute;
+  width: 100%;
+  height: 15px;
+  background: rgba(139, 90, 135, 0.3);
+  border-radius: 2px;
+  border: 1px solid #8b5a87;
+}
+
+.carousel-slide.active {
+  background: rgba(139, 90, 135, 0.8);
+}
+
+.carousel-dots {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2px;
+}
+
+.dot {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: rgba(139, 90, 135, 0.5);
+}
+
+.dot.active {
+  background: #8b5a87;
+}
+
+/* Markdown */
+.markdown-icon {
+  width: 30px;
+  height: 25px;
+  margin: 0 auto;
+}
+
+.md-line {
+  width: 100%;
+  height: 3px;
+  background: #8b5a87;
+  margin-bottom: 2px;
+  border-radius: 1px;
+}
+
+.md-line.short {
+  width: 60%;
+}
+
+/* Code */
+.code-icon {
+  width: 35px;
+  height: 25px;
+  font-family: monospace;
+  font-size: 0.4rem;
+  line-height: 1.2;
+  color: #8b5a87;
+  text-align: left;
+  margin: 0 auto;
+}
+
+.code-line {
+  display: block;
+}
+
+/* Presentation */
+.presentation-icon {
+  width: 35px;
+  height: 25px;
+  position: relative;
+  margin: 0 auto;
+}
+
+.slide-preview {
+  width: 100%;
+  height: 15px;
+  background: rgba(139, 90, 135, 0.3);
+  border: 1px solid #8b5a87;
+  border-radius: 2px;
+}
+
+.slide-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  gap: 1px;
+}
+
+.slide-thumb {
+  width: 8px;
+  height: 6px;
+  background: rgba(139, 90, 135, 0.4);
+  border-radius: 1px;
+}
+
+.slide-thumb.active {
+  background: #8b5a87;
+}
+
+/* Nouveaux composants CMS/BI */
+/* CMS Editor */
+.cms-editor-icon {
+  width: 35px;
+  height: 25px;
+  position: relative;
+  margin: 0 auto;
+}
+
+.editor-toolbar {
+  width: 100%;
+  height: 6px;
+  background: #8b5a87;
+  border-radius: 2px 2px 0 0;
+}
+
+.editor-content {
+  width: 100%;
+  height: 15px;
+  background: rgba(139, 90, 135, 0.2);
+  border: 1px solid #8b5a87;
+  border-top: none;
+  position: relative;
+}
+
+.editor-cursor {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 1px;
+  height: 8px;
+  background: #2d1b69;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Workflow */
+.workflow-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 40px;
+  height: 25px;
+}
+
+.workflow-step {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(139, 90, 135, 0.5);
+}
+
+.workflow-step.active {
+  background: #8b5a87;
+}
+
+.workflow-arrow {
+  width: 6px;
+  height: 2px;
+  background: #8b5a87;
+  position: relative;
+}
+
+.workflow-arrow::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: -1px;
+  width: 0;
+  height: 0;
+  border-left: 3px solid #8b5a87;
+  border-top: 2px solid transparent;
+  border-bottom: 2px solid transparent;
+}
+
+/* KPI Dashboard */
+.kpi-dashboard {
+  display: flex;
+  gap: 3px;
+  width: 40px;
+  height: 25px;
+}
+
+.kpi-card {
+  flex: 1;
+  background: rgba(139, 90, 135, 0.2);
+  border: 1px solid #8b5a87;
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.kpi-value {
+  font-size: 0.35rem;
+  font-weight: bold;
+  color: #8b5a87;
+  line-height: 1;
+}
+
+.kpi-trend {
+  width: 0;
+  height: 0;
+  margin-top: 1px;
+}
+
+.kpi-trend.up {
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-bottom: 3px solid #10b981;
+}
+
+.kpi-trend.down {
+  border-left: 2px solid transparent;
+  border-right: 2px solid transparent;
+  border-top: 3px solid #ef4444;
+}
+
+/* Media Library */
+.media-library {
+  width: 35px;
+  height: 25px;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.media-item {
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.3rem;
+}
+
+.media-item.image {
+  background: #3b82f6;
+}
+
+.media-item.video {
+  background: #ef4444;
+}
+
+.media-item.doc {
+  background: #10b981;
+}
+
+.media-item.audio {
+  background: #8b5cf6;
+}
+
+/* Analytics Funnel */
+.analytics-funnel {
+  width: 30px;
+  height: 25px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.funnel-stage {
+  height: 4px;
+  background: linear-gradient(90deg, #8b5a87, #a67c9a);
+  border-radius: 2px;
+  margin: 0 auto;
+}
+
+/* User Permissions */
+.user-permissions {
+  display: flex;
+  gap: 3px;
+  width: 35px;
+  height: 25px;
+  align-items: center;
+  justify-content: center;
+}
+
+.permission-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.user-avatar {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8b5a87;
+}
+
+.permission-level {
+  width: 8px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+.permission-level.admin {
+  background: #ef4444;
+}
+
+.permission-level.editor {
+  background: #f59e0b;
+}
+
+/* Content Calendar */
+.content-calendar {
+  width: 30px;
+  height: 25px;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  width: 100%;
+  height: 100%;
+}
+
+.calendar-day {
+  background: rgba(139, 90, 135, 0.2);
+  border: 1px solid #8b5a87;
+  border-radius: 2px;
+}
+
+.calendar-day.active {
+  background: #8b5a87;
+}
+
+.calendar-day.scheduled {
+  background: #f59e0b;
+}
+
+/* A/B Testing */
+.ab-test {
+  width: 35px;
+  height: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.test-variant {
+  width: 12px;
+  height: 8px;
+  background: #8b5a87;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.35rem;
+  font-weight: bold;
+  color: white;
+}
+
+.test-variant.b {
+  background: #2d1b69;
+}
+
+.test-vs {
+  font-size: 0.3rem;
+  color: #8b5a87;
+  font-weight: bold;
+}
+
+.test-result {
+  display: flex;
+  width: 100%;
+  height: 3px;
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.result-bar.a {
+  background: #8b5a87;
+}
+
+.result-bar.b {
+  background: #2d1b69;
+}
+
+/* SEO Optimizer */
+.seo-optimizer {
+  width: 35px;
+  height: 25px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.seo-score {
+  font-size: 0.4rem;
+  font-weight: bold;
+  color: #8b5a87;
+  background: rgba(139, 90, 135, 0.2);
+  border: 1px solid #8b5a87;
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.seo-indicators {
+  display: flex;
+  gap: 1px;
+}
+
+.seo-indicator {
+  width: 4px;
+  height: 6px;
+  border-radius: 1px;
+}
+
+.seo-indicator.good {
+  background: #10b981;
+}
+
+.seo-indicator.warning {
+  background: #f59e0b;
+}
+
+/* Version Control */
+.version-control {
+  width: 30px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commit-history {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.commit {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(139, 90, 135, 0.5);
+}
+
+.commit.active {
+  background: #8b5a87;
+}
+
+.commit-line {
+  width: 1px;
+  height: 4px;
+  background: #8b5a87;
+}
+
+/* Lead Scoring */
+.lead-scoring {
+  width: 35px;
+  height: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lead-profile {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.lead-avatar {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #8b5a87;
+}
+
+.lead-score {
+  font-size: 0.35rem;
+  font-weight: bold;
+  color: #8b5a87;
+}
+
+.scoring-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.score-bar {
+  height: 2px;
+  background: linear-gradient(90deg, #8b5a87, #a67c9a);
+  border-radius: 1px;
+}
+
+/* Heat Analytics */
+.heat-analytics {
+  width: 30px;
+  height: 25px;
+  position: relative;
+}
+
+.heatmap-screen {
+  width: 100%;
+  height: 100%;
+  background: rgba(139, 90, 135, 0.1);
+  border: 1px solid #8b5a87;
+  border-radius: 2px;
+  position: relative;
+}
+
+.heat-point {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+}
+
+.heat-point.hot {
+  background: #ef4444;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+}
+
+.heat-point.warm {
+  background: #f59e0b;
+  box-shadow: 0 0 3px rgba(245, 158, 11, 0.6);
+}
+
+.heat-point.cool {
+  background: #3b82f6;
+  box-shadow: 0 0 2px rgba(59, 130, 246, 0.6);
+}
+
+/* Inventory Management */
+.inventory-management {
+  width: 35px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+}
+
+.inventory-items {
+  display: flex;
+  gap: 1px;
+}
+
+.inventory-item {
+  width: 6px;
+  height: 15px;
+  border-radius: 1px;
+}
+
+.inventory-item.in-stock {
+  background: #10b981;
+}
+
+.inventory-item.low-stock {
+  background: #f59e0b;
+}
+
+.inventory-item.out-stock {
+  background: #ef4444;
+}
+
+.inventory-alert {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.3rem;
+  font-weight: bold;
+  color: white;
+}
+
+/* Customer Journey */
+.customer-journey {
+  width: 40px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.journey-touchpoint {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.journey-touchpoint.awareness {
+  background: #3b82f6;
+}
+
+.journey-touchpoint.consideration {
+  background: #f59e0b;
+}
+
+.journey-touchpoint.conversion {
+  background: #10b981;
+}
+
+.journey-path {
+  width: 6px;
+  height: 1px;
+  background: #8b5a87;
+  position: relative;
+}
+
+.journey-path::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: -1px;
+  width: 0;
+  height: 0;
+  border-left: 2px solid #8b5a87;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+}
+
+.scatter-icon {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 0.25rem;
+}
+
+.scatter-dot {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #3B82F6;
+  border-radius: 50%;
+}
+
+.scatter-dot:nth-child(1) { top: 20%; left: 30%; }
+.scatter-dot:nth-child(2) { top: 60%; left: 70%; }
+.scatter-dot:nth-child(3) { top: 40%; left: 50%; }
+
+.tree-icon {
+  position: relative;
+  width: 24px;
+  height: 24px;
+  margin: 0 auto 0.25rem;
+}
+
+.tree-node {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #10B981;
+  border-radius: 50%;
+}
+
+.tree-node:nth-child(1) { top: 0; left: 50%; transform: translateX(-50%); }
+.tree-node:nth-child(3) { bottom: 0; left: 25%; }
+
+.tree-branch {
+  position: absolute;
+  width: 2px;
+  height: 12px;
+  background: #10B981;
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+</style>
+
+<script>
+  // Créer un vrai infinite loop en dupliquant automatiquement le contenu
+  document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('.component-row');
+    
+    rows.forEach(row => {
+      // Cloner tout le contenu de la ligne
+      const originalContent = row.innerHTML;
+      // Dupliquer le contenu pour créer l'effet seamless
+      row.innerHTML = originalContent + originalContent;
+    });
+  });
+</script>

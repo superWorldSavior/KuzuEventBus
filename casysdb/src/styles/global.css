@@ -1,0 +1,158 @@
+@import "tailwindcss";
+
+/* Landing page CSS variables */
+:root {
+  /* Backgrounds - Gradients qui s'enchaînent harmonieusement */
+  --bg-main: #ffffff;
+  --bg-hero: linear-gradient(180deg, #faf5ff 0%, #f9f5ff 70%, #f9f5ff 100%);
+  --bg-problem: linear-gradient(180deg, #f9f5ff 0%, #ffffff 50%, #fafbfc 100%);
+  --bg-benefits: linear-gradient(180deg, #fafbfc 0%, #f8fafc 50%, #ffffff 100%);
+  --bg-social: linear-gradient(180deg, #ffffff 0%, #faf5ff 100%);
+  --bg-cta: linear-gradient(180deg, #faf5ff 0%, #ffffff 100%);
+  
+  /* Text colors */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  
+  /* Cards - mode clair : contraste élevé */
+  --card-bg: #ffffff;
+  --card-border: #e5e7eb;
+  --card-shadow: rgba(0, 0, 0, 0.1);
+  
+  /* Brand colors (Cassis) */
+  --acc: #5B2E7E;
+  --acc-strong: #6C3A94;
+  --acc-soft: #F5EFFA;
+  --border: #e5e7eb;
+  --border-strong: #cbd5e1;
+  --surface: #ffffff;
+  --ring: #C4B5FD;
+  
+  /* Accents */
+  --accent-problem: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  --accent-solution: linear-gradient(135deg, #06b6d4 0%, #10b981 100%);
+  --accent-benefits: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+}
+
+:root.dark {
+  /* Backgrounds - Dark mode avec gradients harmonieux */
+  --bg-main: #030712;
+  --bg-hero: linear-gradient(180deg, #0f0a15 0%, #030712 70%, #030712 100%);
+  --bg-problem: linear-gradient(180deg, #030712 0%, #020509 50%, #0a0a0f 100%);
+  --bg-benefits: linear-gradient(180deg, #0a0a0f 0%, #050508 50%, #030712 100%);
+  --bg-social: linear-gradient(180deg, #030712 0%, #0f0a15 100%);
+  --bg-cta: linear-gradient(180deg, #0f0a15 0%, #030712 100%);
+  
+  /* Text colors */
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  
+  /* Cards - mode dark : contraste élevé */
+  --card-bg: #1e293b;
+  --card-border: #334155;
+  --card-shadow: rgba(0, 0, 0, 0.3);
+  
+  /* Brand colors dark */
+  --acc: #7C4BB2;
+  --acc-strong: #8A5BC0;
+  --acc-soft: #1D1126;
+  --border: #1f2937;
+  --border-strong: #374151;
+  --surface: #0b0f1a;
+  --ring: #A78BFA;
+  
+  /* Accents */
+  --accent-problem: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+  --accent-solution: linear-gradient(135deg, #0891b2 0%, #059669 100%);
+  --accent-benefits: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
+}
+
+/* Animation pour les skeletons */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.animate-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* Animation fadeInUp pour l'EcosystemDemo */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+/* ECharts shared styles (preflight-friendly, no @apply) */
+
+/* Container: full width, vertical stack, centered */
+.echarts-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Title: text-xl font-semibold mb-4 text-center */
+.echarts-title {
+  font-size: 1.25rem; /* ~text-xl */
+  line-height: 1.75rem;
+  font-weight: 600; /* ~font-semibold */
+  margin-bottom: 1rem; /* ~mb-4 */
+  text-align: center;
+}
+
+/* Chart/card surface: rounded, subtle shadow, light border */
+.echarts-chart {
+  border-radius: 0.5rem; /* ~rounded-lg */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); /* ~shadow-sm */
+  border: 1px solid #e5e7eb; /* ~border border-gray-200 */
+}
+
+/* Dark theme adjustments */
+.echarts-container[data-theme="dark"] .echarts-chart {
+  border-color: #4b5563; /* ~border-gray-600 */
+}
+
+/* Business theme adjustments */
+.echarts-container[data-theme="business"] .echarts-chart {
+  border-width: 2px; /* ~border-2 */
+  border-color: #bfdbfe; /* ~border-blue-200 */
+  /* ~shadow-lg */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+}

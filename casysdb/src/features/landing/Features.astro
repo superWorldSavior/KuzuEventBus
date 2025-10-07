@@ -1,0 +1,112 @@
+---
+const locale = (Astro as any).currentLocale ?? 'en';
+const t = locale === 'fr'
+  ? {
+      title: 'Pourquoi CasysDB ?',
+      subtitle: 'Tout ce dont vous avez besoin pour gérer vos données graphe',
+    }
+  : {
+      title: 'Why CasysDB?',
+      subtitle: 'Everything you need to manage your graph data',
+    };
+---
+
+<section id="features" class="py-20 relative" style="background: var(--bg-main);">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <!-- Embedded -->
+      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-4">⚡</div>
+        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+          {locale === 'fr' ? 'Embarquée & Rapide' : 'Embedded & Fast'}
+        </h3>
+        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Zéro serveur, zéro configuration. S\'exécute directement dans votre process Python ou TypeScript. Démarrage en millisecondes.'
+            : 'Zero servers, zero configuration. Runs directly in your Python or TypeScript process. Starts in milliseconds.'}
+        </p>
+      </div>
+
+      <!-- ISO GQL -->
+      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-4">📊</div>
+        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+          ISO GQL
+        </h3>
+        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Langage standard ISO GQL. MATCH, WHERE, RETURN, EXISTS, WITH. Compatible avec les outils GQL modernes.'
+            : 'Standard ISO GQL language. MATCH, WHERE, RETURN, EXISTS, WITH. Compatible with modern GQL tools.'}
+        </p>
+      </div>
+
+      <!-- MVCC -->
+      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-4">🔄</div>
+        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+          MVCC
+        </h3>
+        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Transactions avec snapshot isolation. Lectures cohérentes, écritures isolées. Pas de locks bloquants.'
+            : 'Transactions with snapshot isolation. Consistent reads, isolated writes. No blocking locks.'}
+        </p>
+      </div>
+
+      <!-- PITR -->
+      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-4">⏰</div>
+        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+          {locale === 'fr' ? 'Voyage dans le temps' : 'Time Travel'}
+        </h3>
+        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Point-in-Time Recovery (PITR). Créez des branches à partir de n\'importe quel commit. Explorez l\'historique complet.'
+            : 'Point-in-Time Recovery (PITR). Create branches from any commit. Explore complete history.'}
+        </p>
+      </div>
+
+      <!-- Python ORM -->
+      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-4">🐍</div>
+        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+          {locale === 'fr' ? 'ORM Python Fluent' : 'Fluent Python ORM'}
+        </h3>
+        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Query builder type-safe avec lambdas. where(), select(), join_out(). Comme SQLAlchemy mais pour les graphes.'
+            : 'Type-safe query builder with lambdas. where(), select(), join_out(). Like SQLAlchemy but for graphs.'}
+        </p>
+      </div>
+
+      <!-- Zero Dependencies -->
+      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+        <div class="text-4xl mb-4">📦</div>
+        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+          {locale === 'fr' ? 'Zéro Dépendance' : 'Zero Dependencies'}
+        </h3>
+        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+          {locale === 'fr' 
+            ? 'Moteur Rust compilé. Une seule bibliothèque native. Installation en 3 secondes. Pas de JVM, pas de Node.js requis.'
+            : 'Compiled Rust engine. Single native library. Install in 3 seconds. No JVM, no Node.js required.'}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+.feature-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px var(--card-shadow);
+}
+</style>

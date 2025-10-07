@@ -1,0 +1,149 @@
+---
+import { getCollection } from 'astro:content';
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+// Récupérer tous les articles de blog
+const blogPosts = await getCollection('blog', ({ data }) => {
+  return !data.draft; // Exclure les brouillons
+});
+
+// Trier par date de publication (plus récent en premier)
+const sortedPosts = blogPosts.sort((a, b) => 
+  new Date(b.data.date).getTime() - new Date(a.data.date).getTime()
+);
+
+// Grouper par catégorie
+const postsByCategory = sortedPosts.reduce((acc, post) => {
+  const category = post.data.category || 'Général';
+  if (!acc[category]) acc[category] = [];
+  acc[category].push(post);
+  return acc;
+}, {} as Record<string, typeof sortedPosts>);
+
+// Articles en vedette
+const featuredPosts = sortedPosts.filter(post => post.data.featured);
+---
+
+<BlogLayout title="Blog CASYS">
+  <!-- En-tête du blog -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Blog CASYS</h1>
+    <p class="text-lg text-gray-600">
+      Découvrez les dernières actualités, guides techniques et insights sur le développement de CASYS.
+    </p>
+  </div>
+
+  <!-- Articles en vedette -->
+  {featuredPosts.length > 0 && (
+    <section class="mb-12">
+      <h2 class="text-2xl font-semibold text-gray-900 mb-6 flex items-center">
+        <span class="text-yellow-500 mr-2">⭐</span>
+        Articles en vedette
+      </h2>
+      <div class="grid gap-6 md:grid-cols-2">
+        {featuredPosts.slice(0, 2).map((post) => (
+          <article class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+            <div class="flex items-center text-sm text-gray-500 mb-3">
+              <time datetime={post.data.date.toISOString()}>
+                {post.data.date.toLocaleDateString('fr-FR', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </time>
+              {post.data.category && (
+                <>
+                  <span class="mx-2">•</span>
+                  <span class="text-blue-600">{post.data.category}</span>
+                </>
+              )}
+            </div>
+            <h3 class="text-xl font-semibold text-gray-900 mb-3">
+              <a href={`/blog/${post.slug}`} class="hover:text-blue-600 transition-colors">
+                {post.data.title}
+              </a>
+            </h3>
+            {post.data.description && (
+              <p class="text-gray-600 mb-4">{post.data.description}</p>
+            )}
+            <div class="flex items-center justify-between">
+              <div class="flex flex-wrap gap-2">
+                {post.data.tags.slice(0, 3).map((tag) => (
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <a 
+                href={`/blog/${post.slug}`} 
+                class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                Lire la suite →
+              </a>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- Articles par catégorie -->
+  <section>
+    <h2 class="text-2xl font-semibold text-gray-900 mb-6">Tous les articles</h2>
+    
+    {Object.entries(postsByCategory).map(([category, posts]) => (
+      <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4 flex items-center">
+          <span class="text-blue-500 mr-2">📁</span>
+          {category}
+          <span class="ml-2 text-sm text-gray-500">({posts.length})</span>
+        </h3>
+        
+        <div class="space-y-4">
+          {posts.map((post) => (
+            <article class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <h4 class="text-lg font-medium text-gray-900 mb-2">
+                    <a href={`/blog/${post.slug}`} class="hover:text-blue-600 transition-colors">
+                      {post.data.title}
+                    </a>
+                  </h4>
+                  
+                  <div class="flex items-center text-sm text-gray-500 mb-3">
+                    <time datetime={post.data.date.toISOString()}>
+                      {post.data.date.toLocaleDateString('fr-FR')}
+                    </time>
+                    <span class="mx-2">•</span>
+                    <span>{post.data.author}</span>
+                  </div>
+                  
+                  {post.data.description && (
+                    <p class="text-gray-600 text-sm mb-3">{post.data.description}</p>
+                  )}
+                  
+                  <div class="flex flex-wrap gap-1">
+                    {post.data.tags.slice(0, 4).map((tag) => (
+                      <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                
+                <div class="ml-4 flex-shrink-0">
+                  <a 
+                    href={`/blog/${post.slug}`}
+                    class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  >
+                    Lire
+                  </a>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    ))}
+  </section>
+</BlogLayout>

@@ -10,21 +10,57 @@ from casys_db import Session
 session = Session(branch)
 ```
 
-## 2) Déclarer des entités (sans strings)
+## 2) Déclarer des entités et relations (zéro strings)
 
 ```python
-from casys_db import NodeEntity, HasMany, HasOne
+from casys_db import NodeEntity, to, from_, both, AnyOf, Relation, Label
 from typing import Self
 
-class City(NodeEntity):
-    pass  # label implicite: "City"
+# Labels (optionnel, pour override)
+class PersonLabel(Label): pass
+class CityLabel(Label): pass
 
-class Person(NodeEntity):
-    # Relations sans strings
-    lives_in = HasOne(City)              # via auto: LIVES_IN, target: City
-    friends = HasMany(Self)              # via auto: FRIENDS, target: Person
-    colleagues = HasMany(Self, via="KNOWS")  # override via si besoin
-    network = HasMany(Self).depth(1, 3)  # profondeur variable
+# Relations (contrôlent le type d'edge + propriétés)
+class LivesInRel(Relation):
+    since: int
+    reason: str
+
+class KnowsRel(Relation):
+    strength: float
+    since: int
+
+
+class City(NodeEntity):
+    name: str
+    population: int
+
+class Person(NodeEntity, label=PersonLabel):
+    name: str
+    age: int
+    
+    # Direction: to (outgoing), from_ (incoming), both (bidirectionnel)
+    # Toutes les relations retournent des collections (List)
+    
+    # Défaut: relation auto-dérivée du nom de propriété
+    cities = to(City)                    # via auto: CITIES, direction: ->
+    
+    # Override: relation explicite avec propriétés
+    home = LivesInRel.to(City)          # via: LivesInRel, direction: ->
+    residents = LivesInRel.from_(City)  # via: LivesInRel, direction: <-
+    
+    # Relations symétriques
+    friends = KnowsRel.both(Self)       # via: KnowsRel, direction: -
+    # Union de relations vers Person (réutilisée en 3bis)
+    social = AnyOf(BossRel, KnowsRel).to(Self)
+    
+    # Propriétés inline (sans classe Relation)
+    boss = to(Self).with_props(title=str, since=int)
+    
+    # Union de plusieurs types de relations
+    all_cities = AnyOf(LivesInRel, BornInRel).to(City)  # via: LivesInRel|BornInRel
+    
+    # Profondeur variable
+    network = KnowsRel.to(Self).depth(1, 3)  # via: KnowsRel*1..3
 ```
 
 ## 3) Sélectionner une « table » (DbSet-like)
@@ -32,6 +68,38 @@ class Person(NodeEntity):
 ```python
 # Canonique (EF-like): entités complètes (RETURN p)
 people = session.Person.where(lambda p: p.age > 18).all()
+```
+
+Note: les exemples ci-dessous réutilisent les déclarations de la section 2 (Person, City, BossRel, KnowsRel, etc.).
+
+## 3bis) Boucler avec relations (paires)
+
+Par défaut, les attributs de relation itèrent des nœuds (EF-like). Pour accéder aux propriétés de relation, utilisez `with_relations(...)` qui retourne des paires `(rel, node)`.
+
+```python
+# Nœuds uniquement (par défaut)
+for friend in me.friends:              # me.friends -> List[Person]
+    print(friend.name)
+
+# Paires (rel, node) pour une relation typée
+for rel, boss in me.with_relations(Person.boss):   # boss: BossRel.to(Person)
+    print(boss.name, rel.title, rel.since)
+
+# Multi-relations: dispatch simple par type de relation
+for rel, person in me.with_relations(Person.boss, Person.friends):
+    if isinstance(rel, BossRel):
+        print("Boss:", person.name, rel.title)
+    elif isinstance(rel, KnowsRel):
+        print("Ami:", person.name, rel.strength)
+
+# Union (AnyOf) réutilisant Person.social
+for rel, person in me.with_relations(Person.social):
+    # rel est BossRel ou KnowsRel
+    print(type(rel).__name__, "→", person.name)
+
+# Union ad hoc (inline, sans attribut dédié)
+for rel, person in me.with_relations(AnyOf(BossRel, KnowsRel).to(Person)):
+    print(type(rel).__name__, "→", person.name)
 ```
 
 ## 4) Sélection de colonnes (projections)

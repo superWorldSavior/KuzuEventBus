@@ -72,6 +72,32 @@ impl CasysEngine {
         
         Ok(())
     }
+    
+    fn list_snapshots(&self, db_name: String, branch_name: String, py: Python) -> PyResult<PyObject> {
+        use engine::storage::manifest as mf;
+        
+        let engine = self.inner.lock().unwrap();
+        let db = DatabaseName::try_from(db_name.as_str())
+            .map_err(|e| PyRuntimeError::new_err(format!("Invalid database name: {:?}", e)))?;
+        let branch = BranchName::try_from(branch_name.as_str())
+            .map_err(|e| PyRuntimeError::new_err(format!("Invalid branch name: {:?}", e)))?;
+        
+        let paths = mf::list_manifest_paths(engine.data_dir(), &db, &branch)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to list manifests: {:?}", e)))?;
+        
+        let mut snapshots: Vec<PyObject> = Vec::new();
+        for path in paths {
+            if let Ok(manifest) = mf::read_manifest(&path) {
+                let dict = pyo3::types::PyDict::new(py);
+                dict.set_item("timestamp", manifest.version_ts)?;
+                dict.set_item("segments_count", manifest.segments.len())?;
+                dict.set_item("branch", manifest.branch)?;
+                snapshots.push(dict.into());
+            }
+        }
+        
+        Ok(snapshots.into_py(py))
+    }
 }
 
 /// Branch (branche) dans une database Casys

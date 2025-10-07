@@ -1,0 +1,378 @@
+---
+import { Icon } from 'astro-icon/components';
+const locale = (Astro as any).currentLocale ?? 'en';
+const t = locale === 'fr'
+  ? {
+      title1: 'Vos données,',
+      title2: 'connectées naturellement',
+      subtitle: "Base de données graphe embarquée avec branches Git-like et voyage dans le temps.",
+      ctaDoc: 'Documentation',
+      ctaGithub: 'GitHub',
+      installTitle: 'Installation',
+      workflowTitle: 'Workflow complet',
+    }
+  : {
+      title1: 'Your Data,',
+      title2: 'Naturally Connected',
+      subtitle: 'Embedded graph database with Git-like branches and time travel.',
+      ctaDoc: 'Documentation',
+      ctaGithub: 'GitHub',
+      installTitle: 'Installation',
+      workflowTitle: 'Complete Workflow',
+    };
+---
+
+<section class="relative min-h-screen flex flex-col items-center justify-center" style="background: var(--bg-hero);">
+  <!-- Background effects -->
+  <div class="absolute inset-0 z-0">
+    <!-- Light mode subtle pattern -->
+    <div class="absolute inset-0 dark:hidden" style="background-image: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 1px); background-size: 28px 28px;"></div>
+    <!-- Dark mode effects -->
+    <div class="absolute inset-0 hidden dark:block bg-gradient-to-br from-cassis-950/20 via-transparent to-cassis-900/10"></div>
+    <div class="absolute inset-0 hidden dark:block" style="background-image: radial-gradient(circle at 1px 1px, rgb(139 92 135 / 0.1) 1px, transparent 1px); background-size: 32px 32px;"></div>
+    <div class="absolute inset-0 hidden dark:block bg-[radial-gradient(ellipse_at_center,transparent_50%,#030712)]"></div>
+  </div>
+
+  <!-- Two-column layout -->
+  <div class="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-2 gap-12 items-stretch">
+      
+      <!-- Left column: Title + CTAs + Install -->
+      <div class="flex flex-col justify-between space-y-8 h-full">
+        <!-- Main heading -->
+        <h1 class="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight">
+          <span class="block mb-3 bg-clip-text text-transparent bg-[linear-gradient(90deg,#000,#5B2E7E)] dark:bg-[linear-gradient(90deg,#fff,#c4b5fd)]">{t.title1}</span>
+          <span class="block bg-clip-text text-transparent pb-2 bg-[linear-gradient(90deg,#5B2E7E,#9f7aea)] dark:bg-[linear-gradient(90deg,#8A5BC0,#c4b5fd)]">
+            {t.title2}
+          </span>
+        </h1>
+
+        <!-- Subtitle -->
+        <p class="text-xl sm:text-2xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+
+        <!-- CTAs - Brutalist style -->
+        <div class="flex flex-col sm:flex-row gap-4">
+          <a
+            href="/docs/"
+            class="brutal-btn brutal-btn-primary text-center">
+            {t.ctaDoc}
+          </a>
+          <a
+            href="https://github.com/casysai/casysdb"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="brutal-btn brutal-btn-secondary text-center">
+            <span class="flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+              </svg>
+              {t.ctaGithub}
+            </span>
+          </a>
+        </div>
+
+        <!-- Quick install - Brutalist cards -->
+        <div>
+          <p class="text-sm font-semibold mb-3 uppercase tracking-wide" style="color: var(--muted);">{t.installTitle}</p>
+          <div class="flex flex-col gap-3">
+            <div class="brutal-card p-4 font-mono text-sm">
+              <span style="color: var(--muted);"># Python</span><br/>
+              <span style="color: var(--acc);">pip install</span> <span style="color: var(--text-primary);">casys-db</span>
+            </div>
+            <div class="brutal-card p-4 font-mono text-sm">
+              <span style="color: var(--muted);"># TypeScript/Node.js</span><br/>
+              <span style="color: var(--acc);">npm install</span> <span style="color: var(--text-primary);">casys-db</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right column: ML/AI workflow with tabs -->
+      <div class="flex flex-col space-y-4 h-full">
+        <p class="text-sm font-semibold uppercase tracking-wide" style="color: var(--muted);">{t.workflowTitle}</p>
+        
+        <!-- Workflow tabs -->
+        <div class="flex gap-2 flex-wrap">
+          <button class="workflow-tab active" data-step="1">
+            1. Setup
+          </button>
+          <button class="workflow-tab" data-step="2">
+            2. Insert
+          </button>
+          <button class="workflow-tab" data-step="3">
+            3. Branch
+          </button>
+          <button class="workflow-tab" data-step="4">
+            4. Update
+          </button>
+          <button class="workflow-tab" data-step="5">
+            5. Time Travel
+          </button>
+        </div>
+
+        <!-- Code content - flex to fill remaining space - Brutalist -->
+        <div class="brutal-card p-6 font-mono text-sm leading-relaxed code-container flex-1 overflow-y-auto">
+          <!-- Step 1: Setup -->
+          <pre class="workflow-content active" data-content="1"><code><span class="comment"># Setup: Knowledge Graph pour RAG</span>
+<span class="keyword">from</span> casys_db <span class="keyword">import</span> Database, Session
+<span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, HasMany
+
+<span class="comment"># Ouvrir base de prod</span>
+prod = Database(<span class="string">"knowledge_graph.db"</span>)
+
+<span class="comment"># Schéma ORM (sans strings!)</span>
+<span class="keyword">class</span> <span class="type">Topic</span>(NodeEntity):
+    <span class="keyword">pass</span>  <span class="comment"># label: "Topic"</span>
+
+<span class="keyword">class</span> <span class="type">Document</span>(NodeEntity):
+    topics = HasMany(Topic)  <span class="comment"># via auto: TOPICS</span>
+    related = HasMany(Topic, via=<span class="string">"ABOUT"</span>)  <span class="comment"># override</span>
+
+<span class="comment"># Créer branche main si besoin</span>
+main = prod.create_branch(<span class="string">"main"</span>)
+</code></pre></invoke>
+
+          <!-- Step 2: Insert -->
+          <pre class="workflow-content" data-content="2"><code><span class="comment"># Insérer documents + embeddings (OpenAI/LLaMA)</span>
+prod.query(<span class="string">"""  
+  CREATE (doc:Document {'{'}
+    title: 'RAG avec Casys',
+    content: 'Guide complet...',
+    embedding: [<span class="number">0.23</span>, <span class="number">-0.45</span>, <span class="number">0.67</span>]
+  {'}'})
+  CREATE (ai:Topic {'{'} name: 'AI' {'}'})
+  CREATE (db:Topic {'{'} name: 'Databases' {'}'})
+  CREATE (doc)-[:ABOUT]->(ai)
+  CREATE (doc)-[:ABOUT]->(db)
+"""</span>)
+prod.commit()  <span class="comment"># → Snapshot auto créé</span>
+
+<span class="comment"># Ou avec l'ORM</span>
+session = Session(prod)
+adults = session.Document.where(
+    <span class="keyword">lambda</span> d: d.topics.any(<span class="keyword">lambda</span> t: t.name == <span class="string">"AI"</span>)
+).all()
+</code></pre>
+
+          <!-- Step 3: Branch -->
+          <pre class="workflow-content" data-content="3"><code><span class="comment"># Créer une branche pour tester nouveau modèle</span>
+experiment = prod.create_branch(<span class="string">"test-llama3"</span>)
+
+<span class="comment"># Voir les snapshots disponibles</span>
+snapshots = prod.snapshots()
+<span class="keyword">for</span> snap <span class="keyword">in</span> snapshots:
+    <span class="function">print</span>(f<span class="string">"{'{'} snap['timestamp'] {'}'}: {'{'} snap['segments_count'] {'}'} segments"</span>)
+
+<span class="comment"># ✅ Prod reste intacte pendant vos tests</span>
+<span class="comment"># ✅ Isolation complète (comme Git)</span>
+<span class="comment"># ✅ Zero downtime</span>
+</code></pre>
+
+          <!-- Step 4: Update -->
+          <pre class="workflow-content" data-content="4"><code><span class="comment"># Re-calculer embeddings avec LLaMA 3</span>
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># Récupérer tous les docs</span>
+docs = experiment.query(<span class="string">"MATCH (d:Document) RETURN d"</span>)
+
+<span class="keyword">for</span> doc <span class="keyword">in</span> docs[<span class="string">'rows'</span>]:
+    new_emb = compute_llama3(doc[<span class="string">'content'</span>])
+    experiment.query(<span class="string">"""
+      MATCH (d:Document)
+      WHERE d.title = $title
+      SET d.embedding = $emb
+    """</span>, {'{'}<span class="string">'title'</span>: doc[<span class="string">'title'</span>], <span class="string">'emb'</span>: new_emb{'}'})
+
+experiment.commit()
+
+<span class="comment"># Comparer perf prod vs experiment 📊</span>
+</code></pre>
+
+          <!-- Step 5: Time Travel -->
+          <pre class="workflow-content" data-content="5"><code><span class="comment"># PITR: Si experiment casse tout ⏰</span>
+
+<span class="comment"># Voir l'historique complet</span>
+history = prod.history(from_time=<span class="string">"yesterday"</span>)
+<span class="function">print</span>(f<span class="string">"{'{'} <span class="function">len</span>(history) {'}'} snapshots depuis hier"</span>)
+
+<span class="comment"># Créer branche depuis un point passé</span>
+recovery = prod.branch_at(
+    name=<span class="string">"safe-state"</span>,
+    timestamp=<span class="string">"2 hours ago"</span>
+)
+
+<span class="comment"># Vérifier l'état avant le bug</span>
+count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"</span>)
+<span class="function">print</span>(f<span class="string">"Documents à ce moment: {'{'} count {'}'} "</span>)
+
+<span class="comment"># ✅ Zéro perte de données</span>
+</code></pre>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Features showcase - Brutalist cards -->
+    <div class="grid md:grid-cols-3 gap-6 mt-16">
+      <div class="brutal-card text-center p-6 brutal-hover">
+        <div class="text-4xl mb-3">⚡</div>
+        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">{locale === 'fr' ? 'Embarquée' : 'Embedded'}</h3>
+        <p class="text-sm" style="color: var(--text-secondary);">{locale === 'fr' ? 'Zéro serveur, s\'exécute dans votre process' : 'Zero servers, runs in your process'}</p>
+      </div>
+      
+      <div class="brutal-card text-center p-6 brutal-hover">
+        <div class="text-4xl mb-3">📊</div>
+        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">ISO GQL</h3>
+        <p class="text-sm" style="color: var(--text-secondary);">{locale === 'fr' ? 'Langage standard de requêtes graphe' : 'Standard graph query language'}</p>
+      </div>
+      
+      <div class="brutal-card text-center p-6 brutal-hover">
+        <div class="text-4xl mb-3">🔄</div>
+        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">MVCC</h3>
+        <p class="text-sm" style="color: var(--text-secondary);">{locale === 'fr' ? 'Transactions isolées, lecture cohérente' : 'Isolated transactions, consistent reads'}</p>
+      </div>
+    </div>
+
+  </div>
+
+  </div>
+
+</section>
+
+<style>
+/* Brutalist Design System - Cassis themed */
+.brutal-card {
+  background: var(--card-bg);
+  border: 3px solid #000;
+  border-radius: 12px;
+  box-shadow: 6px 6px 0 #9f7aea;
+  transition: all 0.2s;
+}
+
+:global(.dark) .brutal-card {
+  border-color: #fff;
+  box-shadow: 6px 6px 0 #7C4BB2;
+}
+
+.brutal-hover:hover {
+  transform: translate(3px, 3px);
+  box-shadow: 3px 3px 0 #9f7aea;
+}
+
+:global(.dark) .brutal-hover:hover {
+  box-shadow: 3px 3px 0 #7C4BB2;
+}
+
+.brutal-btn {
+  px: 2rem;
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  font-weight: 600;
+  border: 3px solid #000;
+  box-shadow: 5px 5px 0 #9f7aea;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.brutal-btn:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 #9f7aea;
+}
+
+.brutal-btn-primary {
+  background: linear-gradient(135deg, #5B2E7E, #6C3A94);
+  color: white;
+}
+
+.brutal-btn-secondary {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+:global(.dark) .brutal-btn {
+  border-color: #fff;
+  box-shadow: 5px 5px 0 #7C4BB2;
+}
+
+:global(.dark) .brutal-btn:hover {
+  box-shadow: 3px 3px 0 #7C4BB2;
+}
+
+/* VS Code Light Theme (exact colors) */
+.comment { color: #008000; font-style: italic; }
+.keyword { color: #0000FF; font-weight: normal; }
+.string { color: #A31515; }
+.number { color: #098658; }
+
+/* VS Code Dark Theme (exact colors - high contrast) */
+:global(.dark) .comment { color: #6A9955; font-style: italic; }
+:global(.dark) .keyword { color: #569CD6; font-weight: normal; }
+:global(.dark) .string { color: #CE9178; }
+:global(.dark) .number { color: #B5CEA8; }
+
+/* Ensure good contrast on card background */
+:global(.dark) .brutal-card code {
+  color: #D4D4D4; /* VS Code default text color */
+}
+
+/* Fixed height container */
+.code-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Workflow tabs */
+.workflow-tab {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.workflow-tab.active {
+  background: linear-gradient(90deg, var(--acc), var(--acc-strong));
+  color: white;
+  border-color: var(--acc);
+}
+
+.workflow-tab:hover:not(.active) {
+  border-color: var(--acc);
+  transform: translateY(-2px);
+}
+
+.workflow-content {
+  display: none;
+  margin: 0;
+}
+
+.workflow-content.active {
+  display: block;
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+</style>
+
+<script>
+document.querySelectorAll('.workflow-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    const step = tab.getAttribute('data-step');
+    
+    // Update tabs
+    document.querySelectorAll('.workflow-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    
+    // Update content
+    document.querySelectorAll('.workflow-content').forEach(c => c.classList.remove('active'));
+    document.querySelector(`[data-content="${step}"]`)?.classList.add('active');
+  });
+});
+</script>

@@ -1,0 +1,101 @@
+---
+title: Bienvenue sur CasysDB
+description: Une base de données graphe embarquée avec support ISO GQL
+template: splash
+hero:
+  tagline: Base de données graphe rapide et embarquée avec syntaxe ISO GQL et transactions MVCC
+  image:
+    file: ../../../../public/icons/logo.svg
+  actions:
+    - text: Commencer
+      link: /fr/getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: Voir sur GitHub
+      link: https://github.com/casysai/casysdb
+      icon: external
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Qu'est-ce que CasysDB ?
+
+CasysDB est un moteur de base de données graphe moderne et embarqué, construit en Rust avec des bindings natifs pour Python et TypeScript. Il implémente **ISO GQL** (Graph Query Language) et fournit des transactions basées sur MVCC pour un accès concurrent fiable.
+
+<CardGrid>
+  <Card title="🚀 Rapide & Embarquée" icon="rocket">
+    Architecture sans serveur. S'exécute directement dans votre process applicatif avec une empreinte minimale.
+  </Card>
+  
+  <Card title="📊 Support ISO GQL" icon="open-book">
+    Langage de requête graphe standard avec MATCH, WHERE, RETURN et pattern matching avancé.
+  </Card>
+  
+  <Card title="🔄 Transactions MVCC" icon="refresh">
+    Contrôle de concurrence multi-version pour des lectures et écritures isolées et cohérentes.
+  </Card>
+  
+  <Card title="🐍 Python & TypeScript" icon="laptop">
+    SDKs de première classe avec APIs fluentes et query builders type-safe (style ORM).
+  </Card>
+</CardGrid>
+
+## Exemple Rapide
+
+```python
+from casys_db import Database, NodeEntity
+
+class Person(NodeEntity):
+    pass
+
+# Ouvrir la base de données
+db = Database("chemin/vers/db")
+branch = db.default_branch()
+session = branch.session()
+
+# Créer des nœuds
+session.execute("""
+  CREATE (p:Person {name: 'Alice', age: 30})
+  RETURN p
+""")
+
+# Requête avec API fluente
+adults = session.Person.where(lambda p: p.age >= 18).all()
+```
+
+## Fonctionnalités Clés
+
+- **Embarquée**: Aucun processus serveur séparé requis
+- **ISO GQL**: Langage de requête graphe conforme aux standards
+- **MVCC**: Isolation snapshot pour les transactions
+- **Point-in-Time Recovery (PITR)**: Créez des branches depuis n'importe quel commit
+- **SDKs Python & TypeScript**: Query builders fluents avec sécurité des types
+- **Zéro dépendance**: Binaire unique, empreinte minimale
+
+## Prochaines Étapes
+
+<CardGrid>
+  <Card title="Installation" icon="add-document">
+    Installez CasysDB via pip ou npm
+    
+    [Guide d'installation →](/fr/getting-started/installation/)
+  </Card>
+  
+  <Card title="Démarrage Rapide" icon="rocket">
+    Lancez-vous en 5 minutes
+    
+    [Démarrage rapide →](/fr/getting-started/quickstart/)
+  </Card>
+  
+  <Card title="Syntaxe GQL" icon="pencil">
+    Apprenez le langage de requête ISO GQL
+    
+    [Documentation GQL →](/fr/gql/basics/)
+  </Card>
+  
+  <Card title="Référence SDK" icon="laptop">
+    Explorez les APIs Python et TypeScript
+    
+    [SDK Python →](/fr/sdk/python/basics/)
+  </Card>
+</CardGrid>

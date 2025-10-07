@@ -1,0 +1,227 @@
+---
+import { getCollection } from 'astro:content';
+import BlogLayout from '../../layouts/BlogLayout.astro';
+
+export const prerender = true;
+
+// Générer une page statique pour chaque article de blog
+export async function getStaticPaths() {
+  const blogPosts = await getCollection('blog', ({ data }) => {
+    return !data.draft; // Exclure les brouillons
+  });
+  
+  return blogPosts.map(entry => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+// Récupérer l'article pour la page actuelle
+const { entry } = Astro.props;
+
+if (!entry) {
+  return Astro.redirect('/blog');
+}
+
+const { Content } = await entry.render();
+
+// Récupérer les articles similaires (même catégorie ou tags)
+const allPosts = await getCollection('blog', ({ data }) => !data.draft);
+const relatedPosts = allPosts
+  .filter(post => 
+    post.slug !== entry.slug && (
+      post.data.category === entry.data.category ||
+      post.data.tags.some(tag => entry.data.tags.includes(tag))
+    )
+  )
+  .slice(0, 3);
+---
+
+<BlogLayout title={entry.data.title}>
+  <!-- Navigation retour -->
+  <nav class="mb-6">
+    <a 
+      href="/blog" 
+      class="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 transition-colors"
+    >
+      ← Retour au blog
+    </a>
+  </nav>
+
+  <!-- En-tête de l'article -->
+  <header class="mb-8 pb-8 border-b border-gray-200">
+    <div class="mb-4">
+      {entry.data.category && (
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+          {entry.data.category}
+        </span>
+      )}
+    </div>
+    
+    <h1 class="text-4xl font-bold text-gray-900 mb-4">
+      {entry.data.title}
+    </h1>
+    
+    {entry.data.description && (
+      <p class="text-xl text-gray-600 mb-6">
+        {entry.data.description}
+      </p>
+    )}
+    
+    <!-- Métadonnées -->
+    <div class="flex items-center text-sm text-gray-500 space-x-6">
+      <div class="flex items-center">
+        <span class="mr-1">📅</span>
+        <time datetime={entry.data.date.toISOString()}>
+          {entry.data.date.toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </time>
+      </div>
+      
+      <div class="flex items-center">
+        <span class="mr-1">✍️</span>
+        <span>{entry.data.author}</span>
+      </div>
+      
+      {entry.data.updatedAt && (
+        <div class="flex items-center">
+          <span class="mr-1">🔄</span>
+          <span>
+            Mis à jour le {entry.data.updatedAt.toLocaleDateString('fr-FR')}
+          </span>
+        </div>
+      )}
+    </div>
+    
+    <!-- Tags -->
+    {entry.data.tags.length > 0 && (
+      <div class="mt-4">
+        <div class="flex flex-wrap gap-2">
+          {entry.data.tags.map((tag) => (
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              #{tag}
+            </span>
+          ))}
+        </div>
+      </div>
+    )}
+  </header>
+
+  <!-- Contenu de l'article -->
+  <article class="prose prose-lg max-w-none mb-12">
+    <Content />
+  </article>
+
+  <!-- Articles similaires -->
+  {relatedPosts.length > 0 && (
+    <section class="border-t border-gray-200 pt-8">
+      <h2 class="text-2xl font-semibold text-gray-900 mb-6">Articles similaires</h2>
+      
+      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {relatedPosts.map((post) => (
+          <article class="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
+            <div class="mb-3">
+              <h3 class="text-lg font-medium text-gray-900 mb-2">
+                <a href={`/blog/${post.slug}`} class="hover:text-blue-600 transition-colors">
+                  {post.data.title}
+                </a>
+              </h3>
+              
+              <div class="text-sm text-gray-500 mb-2">
+                {post.data.date.toLocaleDateString('fr-FR')}
+              </div>
+              
+              {post.data.description && (
+                <p class="text-sm text-gray-600 mb-3 line-clamp-2">
+                  {post.data.description}
+                </p>
+              )}
+              
+              <div class="flex flex-wrap gap-1">
+                {post.data.tags.slice(0, 2).map((tag) => (
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+            
+            <a 
+              href={`/blog/${post.slug}`}
+              class="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Lire l'article →
+            </a>
+          </article>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- Navigation suivant/précédent -->
+  <nav class="border-t border-gray-200 pt-8 mt-8">
+    <div class="flex justify-between items-center">
+      <div class="text-sm text-gray-500">
+        <a href="/blog" class="hover:text-gray-700 transition-colors">
+          ← Tous les articles
+        </a>
+      </div>
+      
+      <div class="text-sm text-gray-500">
+        Partagez cet article sur vos réseaux sociaux
+      </div>
+    </div>
+  </nav>
+</BlogLayout>
+
+<style>
+  /* Améliorer la lisibilité du contenu */
+  .prose {
+    color: rgb(31 41 55);
+  }
+  
+  .prose h1, .prose h2, .prose h3, .prose h4 {
+    color: rgb(17 24 39);
+  }
+  
+  .prose a {
+    color: rgb(37 99 235);
+  }
+  
+  .prose a:hover {
+    color: rgb(30 64 175);
+  }
+  
+  .prose code {
+    background-color: rgb(243 244 246);
+    padding: 0.125rem 0.25rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+  }
+  
+  .prose pre {
+    background-color: rgb(17 24 39);
+    color: rgb(243 244 246);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+  }
+  
+  .prose blockquote {
+    border-left: 4px solid rgb(59 130 246);
+    padding-left: 1rem;
+    font-style: italic;
+    color: rgb(55 65 81);
+  }
+  
+  /* Truncate text utility */
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>

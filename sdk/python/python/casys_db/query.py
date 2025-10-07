@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Query builder for Casys ORM - LINQ-style fluent API with lambdas.
 """
@@ -5,6 +6,7 @@ Query builder for Casys ORM - LINQ-style fluent API with lambdas.
 from typing import Optional, List, Callable, Any, Type
 from .orm import NodeEntity, PropertyRef, ComparisonExpr, LogicalExpr, OrderByExpr
 import inspect
+import warnings
 
 
 class QueryBuilder:
@@ -216,6 +218,11 @@ class QueryBuilder:
             .join(lambda p: p.friends, 1, 2)  # depth range 1..2
             .join(lambda p: p.lives_in, alias="home")  # override alias
         """
+        warnings.warn(
+            "QueryBuilder.join(...) est provisoirement obsolète: préférez with_relations(...) ou la navigation EF-like. Cette API sera revue.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         # Extract relation name from lambda
         rel_name = self._extract_relation_name(rel_selector)
         rels = getattr(self.entity_class, '_relations', {}) or {}
@@ -288,6 +295,11 @@ class QueryBuilder:
         Join 1-hop (or variable-length) from base var to an outgoing relation.
         Example: (p)-[:via*min..max]->(alias:target)
         """
+        warnings.warn(
+            "QueryBuilder.join_out(...) est provisoirement obsolète: préférez with_relations(...) ou la navigation EF-like. Cette API sera revue.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         jmin = jmax = None
         if min is not None or max is not None:
             # Keyword-based depth
@@ -321,6 +333,11 @@ class QueryBuilder:
         Join 1-hop (or variable-length) incoming relation to base var.
         Example: (alias:source)-[:via*min..max]->(p)
         """
+        warnings.warn(
+            "QueryBuilder.join_in(...) est provisoirement obsolète: préférez with_relations(...) ou la navigation EF-like. Cette API sera revue.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         jmin = jmax = None
         if min is not None or max is not None:
             jmin = 1 if min is None else int(min)
@@ -353,6 +370,11 @@ class QueryBuilder:
         sans passer de strings pour via/label.
         Direction déterminée par 'inverse' du descriptor.
         """
+        warnings.warn(
+            "QueryBuilder.join_rel(...) est provisoirement obsolète: préférez with_relations(...) ou la navigation EF-like. Cette API sera revue.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         rels = getattr(self.entity_class, '_relations', {}) or {}
         desc = rels.get(rel_name)
         if desc is None:
@@ -425,7 +447,6 @@ class QueryBuilder:
         Execute the query and return all matching entities.
         """
         gql = self._build_gql()
-        print(f"DEBUG GQL: {gql}")  # DEBUG
         # Pass named parameters to the engine if provided
         result = self.branch.query(gql, self._params if self._params else None)
         
@@ -553,29 +574,33 @@ class QueryBuilder:
         return gql
 
     def _lambda_to_expr_with_alias(self, lambda_func: Callable, alias: str) -> str:
-        """Convert a lambda into a GQL expression using bytecode inspection.
+        """Convert a lambda into a GQL expression. Prefer DSL capture, fallback to parsing.
         Example: lambda c: c.name => 'c.name'
         """
+        # 1) Try DSL capture
         try:
-            # Get lambda bytecode to extract variable and attribute names
             code = lambda_func.__code__
-            # co_names contains attribute names, co_varnames contains parameter names
+            param_name = code.co_varnames[0] if code.co_argcount > 0 else 'x'
+            expr = lambda_func(Var(param_name))
+            if isinstance(expr, Expr):
+                return expr.to_gql()
+        except Exception:
+            pass
+        # 2) Try bytecode quick-path
+        try:
+            code = lambda_func.__code__
             param_name = code.co_varnames[0] if code.co_varnames else 'x'
-            attr_names = code.co_names  # e.g., ('name',)
-            
-            # Simple case: single attribute access like lambda p: p.name
+            attr_names = code.co_names
             if len(attr_names) == 1:
                 return f"{param_name}.{attr_names[0]}"
-            elif len(attr_names) > 1:
-                # Multiple attrs or complex expression: fallback to inspect
-                pass
-            
-            # Fallback: try source parsing (less reliable for inline kwargs)
+        except Exception:
+            pass
+        # 3) Fallback: source parsing
+        try:
             source = inspect.getsource(lambda_func).strip()
             if "lambda" not in source:
                 return alias
             body = source.split("lambda", 1)[1].split(":", 1)[1].strip()
-            # Trim trailing context
             paren_count = 0
             end_idx = len(body)
             for i, c in enumerate(body):
@@ -598,7 +623,7 @@ class QueryBuilder:
             return body
         except Exception:
             return alias
-    
+
     def _build_count_gql(self) -> str:
         """Build a COUNT query."""
         label = self.entity_class._get_label()
@@ -617,10 +642,20 @@ class QueryBuilder:
     def _lambda_to_gql(self, lambda_func: Callable, var: str | None) -> str:
         """
         Convert a lambda function to a GQL WHERE clause.
-        
-        This is a simplified version - a real implementation would need
-        to parse the lambda's AST properly.
+        Tries DSL capture first, then falls back to source parsing.
         """
+        # 1) Try DSL capture
+        try:
+            code = lambda_func.__code__
+            param_name = code.co_varnames[0] if code.co_argcount > 0 else 'x'
+            call_var = Var(var if var is not None else param_name)
+            expr = lambda_func(call_var)
+            if isinstance(expr, Expr):
+                return expr.to_gql()
+        except Exception:
+            pass
+        
+        # 2) Fallback: source parsing
         try:
             source = inspect.getsource(lambda_func).strip()
             if "lambda" not in source:
@@ -879,3 +914,78 @@ class QueryBuilder:
         # TODO: Properly map columns to entity properties
         entity = self.entity_class()
         return entity
+
+
+# --- Minimal DSL for robust lambda capture ---
+
+class Expr:
+    """Expression DSL for capturing lambda operations without source parsing."""
+    def __init__(self, kind: str, value: Any = None, left: 'Expr | None' = None, op: 'str | None' = None, right: 'Expr | None' = None):
+        self.kind = kind
+        self.value = value
+        self.left = left
+        self.op = op
+        self.right = right
+
+    def __getattr__(self, name: str) -> 'Expr':
+        if self.kind in ("var", "attr"):
+            return Expr("attr", (self, name))
+        raise AttributeError(name)
+
+    # arithmetic
+    def __add__(self, other): return Expr("bin", None, self, "+", _wrap(other))
+    def __sub__(self, other): return Expr("bin", None, self, "-", _wrap(other))
+    def __mul__(self, other): return Expr("bin", None, self, "*", _wrap(other))
+    def __truediv__(self, other): return Expr("bin", None, self, "/", _wrap(other))
+
+    # comparisons
+    def __eq__(self, other): return Expr("bin", None, self, "=", _wrap(other))
+    def __ne__(self, other): return Expr("bin", None, self, "!=", _wrap(other))
+    def __lt__(self, other): return Expr("bin", None, self, "<", _wrap(other))
+    def __le__(self, other): return Expr("bin", None, self, "<=", _wrap(other))
+    def __gt__(self, other): return Expr("bin", None, self, ">", _wrap(other))
+    def __ge__(self, other): return Expr("bin", None, self, ">=", _wrap(other))
+    
+    # logical (AND/OR)
+    def __and__(self, other): return Expr("bin", None, self, "AND", _wrap(other))
+    def __or__(self, other): return Expr("bin", None, self, "OR", _wrap(other))
+
+    def to_gql(self) -> str:
+        if self.kind == "var":
+            return str(self.value)
+        if self.kind == "attr":
+            # flatten chained attributes
+            parts = []
+            cur = self
+            while cur.kind == "attr":
+                base, name = cur.value
+                parts.append(name)
+                cur = base
+            if cur.kind == "var":
+                parts.append(str(cur.value))
+            parts.reverse()
+            return ".".join(parts)
+        if self.kind == "lit":
+            v = self.value
+            if isinstance(v, str):
+                return f"'{v}'"
+            return str(v)
+        if self.kind == "bin":
+            left_gql = self.left.to_gql()
+            right_gql = self.right.to_gql()
+            # Wrap AND/OR operands in parentheses for correct precedence
+            if self.op in ("AND", "OR"):
+                return f"({left_gql} {self.op} {right_gql})"
+            return f"{left_gql} {self.op} {right_gql}"
+        return ""
+
+def _wrap(v: Any) -> Expr:
+    """Wrap a value in an Expr if it isn't already."""
+    if isinstance(v, Expr):
+        return v
+    return Expr("lit", v)
+
+class Var(Expr):
+    """Variable expression."""
+    def __init__(self, name: str):
+        super().__init__("var", name)

@@ -4,7 +4,7 @@ SHELL := /bin/bash
 DOCKER_COMPOSE ?= docker compose
 
 
-.PHONY: compose-up compose-down compose-logs wait api test unit integration integration-noup e2e install env start worker dev dev-start dev-stop dev-logs dev-build dev-restart compose-api compose-all check-compose-v2 frontend frontend-install
+.PHONY: compose-up compose-down compose-logs wait api test unit integration integration-noup e2e install env start worker dev dev-start dev-stop dev-logs dev-build dev-restart compose-api compose-all check-compose-v2 frontend frontend-install sdk-test sdk-test-quick
 
 check-compose-v2:
 	@docker compose version >/dev/null 2>&1 || ( \
@@ -88,10 +88,9 @@ wait:
 	bash scripts/wait-for-services.sh
 
 install:
-	python3 -m venv .venv || true; \
-	. .venv/bin/activate; \
-	pip install -U pip; \
-	pip install -e backend/.[dev]
+	@echo "⚠️  Utilisez ./setup_dev.sh pour initialiser l'environnement"
+	@echo "   (installe backend + SDK en mode éditable)"
+	./setup_dev.sh
 
 api:
 	. .venv/bin/activate; \
@@ -125,6 +124,15 @@ integration-noup:
 test: unit
 
 e2e: integration
+
+# SDK Python tests
+sdk-test:
+	. .venv/bin/activate; \
+	cd sdk/python && pytest tests/ -v
+
+sdk-test-quick:
+	. .venv/bin/activate; \
+	cd sdk/python && pytest tests/ -q
 
 # Frontend commands
 frontend-install:

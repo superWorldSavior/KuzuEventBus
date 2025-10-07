@@ -1,6 +1,7 @@
 ---
 title: Démarrage Rapide
 description: Commencez avec CasysDB en 5 minutes
+head: []
 ---
 
 Ce guide vous permettra d'être opérationnel avec CasysDB en moins de 5 minutes.
@@ -147,7 +148,6 @@ for row in results:
 
 ## Et Après ?
 
-- Apprenez-en plus sur la [Syntaxe GQL](/fr/gql/basics/)
-- Explorez le [SDK Python](/fr/sdk/python/basics/)
+- Découvrez les [Bases de l'ORM](/fr/orm/basics/)
+- Comprenez les [Transactions & MVCC](/fr/core/transactions/)
 - Consultez les [Exemples](/fr/examples/social-network/)
-- Comprenez les [Transactions & MVCC](/fr/gql/transactions/)

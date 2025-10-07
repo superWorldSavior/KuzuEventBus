@@ -32,7 +32,7 @@ const t = locale === 'fr'
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <article class="relative rounded-2xl backdrop-blur p-6 transition hover:-translate-y-1.5 hover:shadow-xl" style="background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 4px 15px var(--card-shadow);">
+      <article class="brutal-card p-6 brutal-hover">
         <div class="flex items-start gap-4">
           <div class="text-3xl">⚡</div>
           <div>
@@ -42,7 +42,7 @@ const t = locale === 'fr'
         </div>
       </article>
 
-      <article class="relative rounded-2xl backdrop-blur p-6 transition hover:-translate-y-1.5 hover:shadow-xl" style="background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 4px 15px var(--card-shadow);">
+      <article class="brutal-card p-6 brutal-hover">
         <div class="flex items-start gap-4">
           <div class="text-3xl">📊</div>
           <div>
@@ -52,7 +52,7 @@ const t = locale === 'fr'
         </div>
       </article>
 
-      <article class="relative rounded-2xl backdrop-blur p-6 transition hover:-translate-y-1.5 hover:shadow-xl" style="background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: 0 4px 15px var(--card-shadow);">
+      <article class="brutal-card p-6 brutal-hover">
         <div class="flex items-start gap-4">
           <div class="text-3xl">🔄</div>
           <div>
@@ -66,4 +66,29 @@ const t = locale === 'fr'
     </div>
   </div>
 </section>
+
+<style>
+/* Brutalist Design System */
+.brutal-card {
+  background: var(--card-bg);
+  border: 3px solid #000;
+  border-radius: 12px;
+  box-shadow: 6px 6px 0 #9f7aea;
+  transition: all 0.2s;
+}
+
+:global(.dark) .brutal-card {
+  border-color: #fff;
+  box-shadow: 6px 6px 0 #7C4BB2;
+}
+
+.brutal-hover:hover {
+  transform: translate(3px, 3px);
+  box-shadow: 3px 3px 0 #9f7aea;
+}
+
+:global(.dark) .brutal-hover:hover {
+  box-shadow: 3px 3px 0 #7C4BB2;
+}
+</style>
 

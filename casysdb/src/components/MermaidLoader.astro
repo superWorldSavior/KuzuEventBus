@@ -1,0 +1,114 @@
+---
+// Composant client-side pour charger Mermaid et transformer les blocs de code
+---
+
+<script is:inline>
+  (function() {
+    let mermaidLoaded = false;
+    
+    async function loadMermaid() {
+      if (window.mermaid) return window.mermaid;
+      
+      try {
+        const script = document.createElement('script');
+        script.type = 'module';
+        script.textContent = `
+          import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+          window.mermaid = mermaid;
+          window.dispatchEvent(new Event('mermaid-loaded'));
+        `;
+        document.head.appendChild(script);
+        
+        await new Promise(resolve => {
+          window.addEventListener('mermaid-loaded', resolve, { once: true });
+        });
+        
+        return window.mermaid;
+      } catch (error) {
+        console.error('Failed to load Mermaid:', error);
+        return null;
+      }
+    }
+
+    async function transformMermaidBlocks() {
+      // Trouver les blocs mermaid transformés par Expressive Code
+      const figures = Array.from(document.querySelectorAll('figure.frame pre[data-language="mermaid"]'));
+      
+      console.log('Found mermaid blocks:', figures.length);
+      
+      if (figures.length === 0) return;
+
+      const mermaid = await loadMermaid();
+      if (!mermaid) return;
+
+      mermaid.initialize({ 
+        startOnLoad: false,
+        theme: 'neutral',
+        securityLevel: 'loose',
+        themeVariables: {
+          fontSize: '16px',
+          fontFamily: 'ui-sans-serif, system-ui, sans-serif',
+        }
+      });
+
+      for (let i = 0; i < figures.length; i++) {
+        const pre = figures[i];
+        const figure = pre.closest('figure');
+        if (!figure) continue;
+
+        // Récupérer le code brut depuis le bouton de copie
+        const copyButton = figure.querySelector('button[data-code]');
+        let graph = copyButton?.getAttribute('data-code') || pre.textContent || '';
+        
+        // Nettoyer le texte (supprimer les caractères invisibles et normaliser les espaces)
+        graph = graph.trim().replace(/\s+/g, ' ').replace(/ /g, '\n');
+        
+        const id = `mermaid-${i}-${Date.now()}`;
+
+        try {
+          const container = document.createElement('div');
+          container.className = 'mermaid-container not-content';
+          container.style.cssText = `
+            margin: 1.5rem 0;
+            background: var(--sl-color-gray-6);
+            padding: 2rem 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--sl-color-gray-5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow-x: auto;
+          `;
+          
+          const { svg } = await mermaid.render(id, graph);
+          container.innerHTML = svg;
+          
+          // Centrer le SVG et ajuster sa taille
+          const svgElement = container.querySelector('svg');
+          if (svgElement) {
+            svgElement.style.maxWidth = '100%';
+            svgElement.style.height = 'auto';
+          }
+          
+          figure.replaceWith(container);
+          console.log('Rendered mermaid diagram:', id);
+        } catch (error) {
+          console.error('Failed to render mermaid diagram:', error, graph);
+        }
+      }
+    }
+
+    function init() {
+      console.log('MermaidLoader: init');
+      setTimeout(transformMermaidBlocks, 100);
+    }
+
+    document.addEventListener('astro:page-load', init);
+    
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>

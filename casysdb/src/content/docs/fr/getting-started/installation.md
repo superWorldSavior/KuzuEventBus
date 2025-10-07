@@ -1,6 +1,9 @@
 ---
 title: Installation
 description: Installer CasysDB pour Python ou TypeScript
+head: []
+sidebar:
+  order: 1
 ---
 
 CasysDB est disponible comme bibliothèque native pour **Python** et **TypeScript/Node.js**.
@@ -77,5 +80,5 @@ console.log(`Base de données créée : ${db}`);
 ## Prochaines Étapes
 
 - [Guide de Démarrage Rapide](/fr/getting-started/quickstart/) - Lancez-vous en 5 minutes
-- [Bases du SDK Python](/fr/sdk/python/basics/) - Apprenez l'API Python
-- [Bases du SDK TypeScript](/fr/sdk/typescript/basics/) - Apprenez l'API TypeScript
+- [Bases de l'ORM](/fr/orm/basics/) - Requêtes sans GQL
+- [Transactions & MVCC](/fr/core/transactions/) - Comprendre l'isolation

@@ -5,6 +5,7 @@ import qwikdev from '@qwikdev/astro';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import icon from 'astro-icon';
+import mdx from '@astrojs/mdx';
 
 // https://astro.build/config
 export default defineConfig({
@@ -24,6 +25,9 @@ export default defineConfig({
       logo: {
         src: './public/icons/logo.svg',
       },
+      components: {
+        Head: './src/components/overrides/Head.astro',
+      },
       social: [
         {
           icon: 'github',
@@ -37,35 +41,30 @@ export default defineConfig({
           autogenerate: { directory: 'getting-started' },
         },
         {
-          label: 'GQL Syntax',
-          autogenerate: { directory: 'gql' },
+          label: 'Core Concepts',
+          autogenerate: { directory: 'core' },
         },
         {
-          label: 'Python SDK',
-          autogenerate: { directory: 'sdk/python' },
-        },
-        {
-          label: 'TypeScript SDK',
-          autogenerate: { directory: 'sdk/typescript' },
-        },
-        {
-          label: 'Examples',
-          autogenerate: { directory: 'examples' },
-        },
-        {
-          label: 'API Reference',
-          autogenerate: { directory: 'api' },
+          label: 'ORM',
+          autogenerate: { directory: 'orm' },
         },
       ],
       customCss: [
         './src/styles/starlight.css',
       ],
-      defaultLocale: 'en',
+      defaultLocale: 'root',
       locales: {
-        en: { label: 'English' },
-        fr: { label: 'Français' },
+        root: {
+          label: 'English',
+          lang: 'en',
+        },
+        fr: { 
+          label: 'Français',
+          lang: 'fr',
+        },
       },
     }),
+    mdx(),
     icon(),
     qwikdev()
   ],
@@ -81,7 +80,7 @@ export default defineConfig({
       theme: 'github-dark',
       wrap: true,
     },
-    // Mermaid est géré par l'intégration @astrojs/mermaid
+    // Mermaid rendu côté client via script global (sans Playwright)
   },
 
   vite: {

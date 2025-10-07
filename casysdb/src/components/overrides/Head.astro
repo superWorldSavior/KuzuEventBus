@@ -1,0 +1,9 @@
+---
+// Override du composant Head de Starlight pour injecter MermaidLoader
+import type { Props } from '@astrojs/starlight/props';
+import Default from '@astrojs/starlight/components/Head.astro';
+import MermaidLoader from '../MermaidLoader.astro';
+---
+
+<Default {...Astro.props}><slot /></Default>
+<MermaidLoader />

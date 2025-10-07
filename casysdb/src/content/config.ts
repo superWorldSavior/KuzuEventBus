@@ -1,4 +1,5 @@
 import { defineCollection, z } from 'astro:content';
+import { docsSchema } from '@astrojs/starlight/schema';
 
 const blog = defineCollection({
   type: 'content',
@@ -17,6 +18,14 @@ const blog = defineCollection({
     draft: z.boolean().default(false),
   }),
 });
+
+// Déclaration explicite de la collection "docs" avec le schéma Starlight
+const docs = defineCollection({
+  type: 'content',
+  schema: docsSchema(),
+});
+
 export const collections = {
   blog,
+  docs,
 };

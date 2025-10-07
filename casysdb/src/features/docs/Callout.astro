@@ -1,0 +1,20 @@
+---
+export interface Props {
+  type?: 'note' | 'tip' | 'warning' | 'danger';
+  title?: string;
+}
+const { type = 'note', title } = Astro.props as Props;
+const colors: Record<string, string> = {
+  note: 'var(--sl-color-accent)',
+  tip: 'var(--gb-green, #9bbc0f)',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+};
+const color = colors[type] ?? colors.note;
+---
+<section style={`border:3px solid ${color}; border-radius:12px; box-shadow:6px 6px 0 color-mix(in oklab, ${color} 25%, transparent); padding:0.85rem 1rem;`}>
+  {title && (
+    <h4 style={`margin:0 0 .35rem 0; font-weight:800; color:${color}`}>{title}</h4>
+  )}
+  <slot />
+</section>

@@ -20,7 +20,7 @@ const t = locale === 'fr'
 
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
       <!-- Embedded -->
-      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="brutal-card p-6 brutal-hover">
         <div class="text-4xl mb-4">⚡</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
           {locale === 'fr' ? 'Embarquée & Rapide' : 'Embedded & Fast'}
@@ -33,7 +33,7 @@ const t = locale === 'fr'
       </div>
 
       <!-- ISO GQL -->
-      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="brutal-card p-6 brutal-hover">
         <div class="text-4xl mb-4">📊</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
           ISO GQL
@@ -46,7 +46,7 @@ const t = locale === 'fr'
       </div>
 
       <!-- MVCC -->
-      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="brutal-card p-6 brutal-hover">
         <div class="text-4xl mb-4">🔄</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
           MVCC
@@ -59,7 +59,7 @@ const t = locale === 'fr'
       </div>
 
       <!-- PITR -->
-      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="brutal-card p-6 brutal-hover">
         <div class="text-4xl mb-4">⏰</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
           {locale === 'fr' ? 'Voyage dans le temps' : 'Time Travel'}
@@ -72,7 +72,7 @@ const t = locale === 'fr'
       </div>
 
       <!-- Python ORM -->
-      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="brutal-card p-6 brutal-hover">
         <div class="text-4xl mb-4">🐍</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
           {locale === 'fr' ? 'ORM Python Fluent' : 'Fluent Python ORM'}
@@ -85,7 +85,7 @@ const t = locale === 'fr'
       </div>
 
       <!-- Zero Dependencies -->
-      <div class="feature-card p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="brutal-card p-6 brutal-hover">
         <div class="text-4xl mb-4">📦</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
           {locale === 'fr' ? 'Zéro Dépendance' : 'Zero Dependencies'}
@@ -101,12 +101,26 @@ const t = locale === 'fr'
 </section>
 
 <style>
-.feature-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+/* Brutalist Design System */
+.brutal-card {
+  background: var(--card-bg);
+  border: 3px solid #000;
+  border-radius: 12px;
+  box-shadow: 6px 6px 0 #9f7aea;
+  transition: all 0.2s;
 }
 
-.feature-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px var(--card-shadow);
+:global(.dark) .brutal-card {
+  border-color: #fff;
+  box-shadow: 6px 6px 0 #7C4BB2;
+}
+
+.brutal-hover:hover {
+  transform: translate(3px, 3px);
+  box-shadow: 3px 3px 0 #9f7aea;
+}
+
+:global(.dark) .brutal-hover:hover {
+  box-shadow: 3px 3px 0 #7C4BB2;
 }
 </style>

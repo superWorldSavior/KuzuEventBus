@@ -1,6 +1,9 @@
 ---
 title: Quick Start
 description: Get started with CasysDB in 5 minutes
+head: []
+sidebar:
+  order: 2
 ---
 
 This guide will get you up and running with CasysDB in less than 5 minutes.
@@ -147,7 +150,6 @@ for row in results:
 
 ## What's Next?
 
-- Learn more about [GQL Syntax](/gql/basics/)
-- Explore the [Python SDK](/sdk/python/basics/)
+- Learn the [ORM Basics](/orm/basics/)
+- Understand [Transactions & MVCC](/core/transactions/)
 - Check out [Examples](/examples/social-network/)
-- Understand [Transactions & MVCC](/gql/transactions/)

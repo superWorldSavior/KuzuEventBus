@@ -1,6 +1,3 @@
-/* Import global theme first to get all Cassis brand variables */
-@import './theme.css';
-
 /* 
  * Map Starlight CSS variables to existing Cassis theme
  * Starlight doc: https://starlight.astro.build/guides/css-and-tailwind/
@@ -8,25 +5,278 @@
 
 :root {
   /* Brand accent (links, buttons, highlights) */
-  --sl-color-accent-low: var(--acc-soft);
-  --sl-color-accent: var(--acc);
-  --sl-color-accent-high: var(--acc-strong);
+  --sl-color-accent-low: var(--acc-soft, #F5EFFA);
+  --sl-color-accent: var(--acc, #5B2E7E);
+  --sl-color-accent-high: var(--acc-strong, #6C3A94);
   
   /* Text colors */
-  --sl-color-text: var(--ink);
-  --sl-color-text-accent: var(--muted);
+  --sl-color-text: var(--ink, #0f172a);
+  --sl-color-text-accent: var(--muted, #64748b);
   
   /* Borders */
-  --sl-color-gray-5: var(--border);
-  --sl-color-gray-6: var(--border-strong);
+  --sl-color-gray-5: var(--border, #e5e7eb);
+  --sl-color-gray-6: var(--border-strong, #cbd5e1);
   
   /* Background surfaces */
-  --sl-color-bg: var(--surface);
+  --sl-color-bg: var(--surface, #ffffff);
   
   /* Fonts (optional override) */
   --sl-font: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --sl-font-mono: 'Fira Code', 'JetBrains Mono', Consolas, Monaco, monospace;
+
+  /* Game Boy green palette (DMG) */
+  --gb-green: #9bbc0f;
+  --gb-green-strong: #8bac0f;
+  --gb-green-dark: #306230;
+  --gb-green-shadow: color-mix(in oklab, var(--gb-green) 35%, white);
 }
 
-/* Dark mode inherits from :root.dark in theme.css automatically */
-/* No need to redefine - Starlight will pick up the updated CSS variables */
+/* Dark mode: laisse theme.css piloter les tokens, on mappe sur les mêmes variables */
+:root[data-theme='dark'] {
+  --sl-color-accent-low: var(--acc-soft, #1D1126);
+  --sl-color-accent: var(--acc, #7C4BB2);
+  --sl-color-accent-high: var(--acc-strong, #8A5BC0);
+  --sl-color-text: var(--ink, #f1f5f9);
+  --sl-color-text-accent: var(--muted, #94a3b8);
+  --sl-color-gray-5: var(--border, #1f2937);
+  --sl-color-gray-6: var(--border-strong, #374151);
+  --sl-color-bg: var(--surface, #0b0f1a);
+
+  /* Game Boy palette - dark tuning */
+  --gb-green: #8bac0f;
+  --gb-green-strong: #6e8f0a;
+  --gb-green-dark: #0f380f;
+  --gb-green-shadow: color-mix(in oklab, var(--gb-green) 25%, black);
+}
+
+/*
+ * Brutalist touches légères pour s'aligner au Hero
+ * - pas de wrappers supplémentaires, uniquement styling ciblé
+ */
+
+/* Boutons Starlight */
+.sl-flex .sl-button,
+.sl-button {
+  border: 3px solid var(--sl-color-gray-6);
+  border-radius: 12px;
+  box-shadow: 5px 5px 0 var(--sl-color-accent-low);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sl-flex .sl-button:hover,
+.sl-button:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 var(--sl-color-accent-low);
+}
+
+.sl-flex .sl-button.primary,
+.sl-button.primary {
+  /* Game Boy green style */
+  background: linear-gradient(135deg, var(--gb-green) 0%, var(--gb-green-strong) 100%);
+  border-color: var(--gb-green-dark);
+  box-shadow: 5px 5px 0 var(--gb-green-shadow);
+  color: #0f1a0f; /* meilleure lisibilité sur vert clair */
+}
+
+.sl-flex .sl-button.primary:hover,
+.sl-button.primary:hover {
+  box-shadow: 3px 3px 0 var(--gb-green-shadow);
+}
+
+/* Blocs de code */
+.sl-markdown pre {
+  border: 3px solid var(--sl-color-gray-6);
+  border-radius: 12px;
+  box-shadow: 6px 6px 0 var(--sl-color-accent-low);
+}
+
+/* Tables (docs comparatives) */
+.sl-markdown table {
+  border: 3px solid var(--sl-color-gray-6);
+  border-radius: 12px;
+}
+.sl-markdown table th,
+.sl-markdown table td {
+  border-color: var(--sl-color-gray-6) !important;
+}
+
+/* Sélection de texte visible dans la doc */
+.sl-markdown ::selection {
+  /* fond pâle cassis en clair */
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-text);
+}
+
+:root[data-theme='dark'] .sl-markdown ::selection {
+  /* léger overlay cassis en sombre */
+  background: color-mix(in oklab, var(--sl-color-accent) 35%, transparent);
+  color: var(--sl-color-text);
+}
+
+/* Liens dans le contenu: style cohérent avec la vitrine */
+.sl-markdown a {
+  color: var(--sl-color-accent);
+  text-decoration-color: color-mix(in oklab, var(--sl-color-accent) 50%, transparent);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+.sl-markdown a:hover {
+  text-decoration-color: var(--sl-color-accent);
+}
+
+/* Titres plus affirmés (brutalist light) */
+.sl-markdown h1, .sl-markdown h2 {
+  font-weight: 800;
+}
+.sl-markdown h3 {
+  font-weight: 700;
+}
+
+/* Inline code plus lisible */
+.sl-markdown code:not(pre code) {
+  background: var(--sl-color-accent-low);
+  border: 2px solid var(--sl-color-gray-6);
+  border-radius: 8px;
+  padding: .1rem .35rem;
+}
+
+/* Blockquote: rappel accent et fond doux */
+.sl-markdown blockquote {
+  border-left: 3px solid var(--sl-color-accent);
+  background: color-mix(in oklab, var(--sl-color-accent-low) 70%, transparent);
+  padding: .75rem 1rem;
+  border-radius: 12px;
+}
+
+/* KBD: raccourcis visibles */
+.sl-markdown kbd {
+  border: 2px solid var(--sl-color-gray-6);
+  border-bottom-width: 3px;
+  border-radius: 8px;
+  padding: .15rem .4rem;
+  background: var(--sl-color-bg);
+}
+
+/* TOC (On this page): léger accent, pas d’over-wrapper */
+nav[aria-label*="On this page"] {
+  border: 2px solid var(--sl-color-gray-6);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--sl-color-accent-low) 25%, transparent);
+}
+nav[aria-label*="On this page"] a {
+  border-radius: 8px;
+}
+nav[aria-label*="On this page"] a:hover {
+  background: color-mix(in oklab, var(--sl-color-accent-low) 60%, transparent);
+}
+
+/* ===== Ciblage fallback sur le markup courant (.content-panel) ===== */
+.content-panel a {
+  color: var(--sl-color-accent);
+  text-decoration-color: color-mix(in oklab, var(--sl-color-accent) 50%, transparent);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+}
+.content-panel a:hover { text-decoration-color: var(--sl-color-accent); }
+
+.content-panel h1, .content-panel h2 { font-weight: 800; }
+.content-panel h3 { font-weight: 700; }
+
+.content-panel pre {
+  border: 3px solid var(--sl-color-gray-6);
+  border-radius: 12px;
+  box-shadow: 6px 6px 0 var(--sl-color-accent-low);
+}
+
+.content-panel figure.frame.is-terminal { 
+  border: 3px solid var(--sl-color-gray-6);
+  border-radius: 12px;
+  box-shadow: 6px 6px 0 var(--sl-color-accent-low);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Barre intérieure (en-tête) violette juste sous la bordure */
+.content-panel figure.frame.is-terminal > figcaption,
+.content-panel figure.frame.is-terminal > .frame-title,
+.content-panel figure.frame.is-terminal > .title,
+.content-panel figure.frame.is-terminal > .header,
+.content-panel figure.frame.is-terminal > :first-child {
+  background: linear-gradient(135deg, var(--sl-color-accent) 0%, var(--sl-color-accent-high) 100%);
+  color: #fff;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-bottom: 2px solid var(--sl-color-gray-6);
+  border-top-left-radius: 9px;
+  border-top-right-radius: 9px;
+}
+
+/* À l'intérieur d'un frame terminal, on enlève les bordures internes */
+.content-panel figure.frame pre {
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 8px; /* léger arrondi interne pour le confort visuel */
+}
+
+.content-panel code:not(pre code) {
+  background: var(--sl-color-accent-low);
+  border: 2px solid var(--sl-color-gray-6);
+  border-radius: 8px;
+  padding: .1rem .35rem;
+}
+
+.content-panel blockquote {
+  border-left: 3px solid var(--sl-color-accent);
+  background: color-mix(in oklab, var(--sl-color-accent-low) 70%, transparent);
+  padding: .75rem 1rem;
+  border-radius: 12px;
+}
+
+.content-panel kbd {
+  border: 2px solid var(--sl-color-gray-6);
+  border-bottom-width: 3px;
+  border-radius: 8px;
+  padding: .15rem .4rem;
+  background: var(--sl-color-bg);
+}
+
+.content-panel ::selection {
+  background: var(--sl-color-accent-low);
+  color: var(--sl-color-text);
+}
+:root[data-theme='dark'] .content-panel ::selection {
+  background: color-mix(in oklab, var(--sl-color-accent) 35%, transparent);
+  color: var(--sl-color-text);
+}
+
+/* ===== Pagination Next/Previous: style bouton Game Boy ===== */
+.pagination-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  background: linear-gradient(135deg, var(--gb-green) 0%, var(--gb-green-strong) 100%);
+  border: 3px solid var(--gb-green-dark);
+  border-radius: 12px;
+  box-shadow: 4px 4px 0 var(--gb-green-shadow);
+  color: #0f1a0f;
+  padding: .55rem .9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.pagination-links a:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--gb-green-shadow);
+}
+
+/* ===== Bouton Copy des blocs terminal ===== */
+.content-panel figure.frame .copy > button {
+  background: linear-gradient(135deg, var(--gb-green) 0%, var(--gb-green-strong) 100%);
+  border: 2px solid var(--gb-green-dark);
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 var(--gb-green-shadow);
+  color: #0f1a0f;
+}
+.content-panel figure.frame .copy > button:hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 var(--gb-green-shadow);
+}

@@ -1,0 +1,16 @@
+---
+export interface Item { key: string; value: string }
+export interface Props { title?: string; items: Item[] }
+const { title, items } = Astro.props as Props;
+---
+<section style="border:3px solid var(--sl-color-gray-6);border-radius:12px;box-shadow:6px 6px 0 var(--sl-color-accent-low);padding:0.85rem 1rem;">
+  {title && (<h4 style="margin:0 0 .35rem 0;font-weight:800;">{title}</h4>)}
+  <dl style="display:grid;grid-template-columns: max-content 1fr; gap:.25rem .75rem; margin:0;">
+    {items?.map((it) => (
+      <>
+        <dt style="font-weight:700;">{it.key}</dt>
+        <dd style="margin:0;opacity:.9;">{it.value}</dd>
+      </>
+    ))}
+  </dl>
+</section>

@@ -1,6 +1,7 @@
 ---
 title: Bases de GQL
 description: Introduction au langage de requête graphe ISO GQL
+head: []
 ---
 
 CasysDB implémente **ISO GQL** (Graph Query Language), le standard international pour interroger les bases de données graphe.

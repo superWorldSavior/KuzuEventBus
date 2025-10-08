@@ -1,0 +1,43 @@
+---
+
+// Simple i18n slot switcher. Server renders a single initial language to avoid double content.
+// Client can override based on navigator.language (and respects ?lang= if present).
+const url = Astro.url;
+const qp = url.searchParams.get('lang');
+const initial = qp && ['en','fr'].includes(qp) ? qp : 'en';
+---
+<div data-i18n data-initial={initial}>
+  <div data-lang="en" style={initial !== 'en' ? 'display:none' : ''}>
+    <slot name="en" />
+  </div>
+  <div data-lang="fr" style={initial !== 'fr' ? 'display:none' : ''}>
+    <slot name="fr" />
+  </div>
+  <noscript>
+    <!-- No JS: fallback renders initial language only -->
+  </noscript>
+</div>
+
+<script>
+(() => {
+  const roots = document.querySelectorAll('[data-i18n]');
+  if (!roots.length) return;
+  const url = new URL(window.location.href);
+  const qp = url.searchParams.get('lang');
+  const detect = () => {
+    let lang = (qp || '').slice(0,2);
+    if (!['en','fr'].includes(lang)) lang = (navigator.language || 'en').slice(0,2);
+    if (!['en','fr'].includes(lang)) lang = 'en';
+    return lang;
+  };
+  const lang = detect();
+  roots.forEach(root => {
+    root.setAttribute('data-current', lang);
+    const blocks = root.querySelectorAll('[data-lang]');
+    blocks.forEach(el => {
+      const l = el.getAttribute('data-lang');
+      el.style.display = l === lang ? '' : 'none';
+    });
+  });
+})();
+</script>

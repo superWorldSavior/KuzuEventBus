@@ -1,21 +1,22 @@
 ---
-const locale = (Astro as any).currentLocale ?? 'en';
-const t = locale === 'fr'
-  ? {
-      title: 'CasysDB vs Alternatives',
-      subtitle: 'Pourquoi choisir CasysDB pour vos données graphe',
-    }
-  : {
-      title: 'CasysDB vs Alternatives',
-      subtitle: 'Why choose CasysDB for your graph data',
-    };
+import I18n from '../i18n/I18n.astro';
 ---
 
 <section class="py-20 relative" style="background: var(--bg-main);">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-12">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+        <I18n>
+          <Fragment slot="en">CasysDB vs Alternatives</Fragment>
+          <Fragment slot="fr">CasysDB vs Alternatives</Fragment>
+        </I18n>
+      </h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+        <I18n>
+          <Fragment slot="en">Why choose CasysDB for your graph data</Fragment>
+          <Fragment slot="fr">Pourquoi choisir CasysDB pour vos données graphe</Fragment>
+        </I18n>
+      </p>
     </div>
 
     <div class="overflow-x-auto">
@@ -32,7 +33,10 @@ const t = locale === 'fr'
         <tbody>
           <tr style="border-bottom: 1px solid var(--border);">
             <td class="p-4 font-semibold" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Embarquée (no server)' : 'Embedded (no server)'}
+              <I18n>
+                <Fragment slot="en">Embedded (no server)</Fragment>
+                <Fragment slot="fr">Embarquée (no server)</Fragment>
+              </I18n>
             </td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
@@ -41,7 +45,10 @@ const t = locale === 'fr'
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
             <td class="p-4 font-semibold" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Requêtes Graphe Natives' : 'Native Graph Queries'}
+              <I18n>
+                <Fragment slot="en">Native Graph Queries</Fragment>
+                <Fragment slot="fr">Requêtes Graphe Natives</Fragment>
+              </I18n>
             </td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
@@ -50,7 +57,10 @@ const t = locale === 'fr'
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
             <td class="p-4 font-semibold" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Langage Standard (ISO GQL)' : 'Standard Language (ISO GQL)'}
+              <I18n>
+                <Fragment slot="en">Standard Language (ISO GQL)</Fragment>
+                <Fragment slot="fr">Langage Standard (ISO GQL)</Fragment>
+              </I18n>
             </td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
@@ -68,7 +78,10 @@ const t = locale === 'fr'
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
             <td class="p-4 font-semibold" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Voyage dans le temps (PITR)' : 'Time Travel (PITR)'}
+              <I18n>
+                <Fragment slot="en">Time Travel (PITR)</Fragment>
+                <Fragment slot="fr">Voyage dans le temps (PITR)</Fragment>
+              </I18n>
             </td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
@@ -77,7 +90,10 @@ const t = locale === 'fr'
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
             <td class="p-4 font-semibold" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'ORM Type-Safe' : 'Type-Safe ORM'}
+              <I18n>
+                <Fragment slot="en">Type-Safe ORM</Fragment>
+                <Fragment slot="fr">ORM Type-Safe</Fragment>
+              </I18n>
             </td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
@@ -86,7 +102,10 @@ const t = locale === 'fr'
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
             <td class="p-4 font-semibold" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Dépendances' : 'Dependencies'}
+              <I18n>
+                <Fragment slot="en">Dependencies</Fragment>
+                <Fragment slot="fr">Dépendances</Fragment>
+              </I18n>
             </td>
             <td class="p-4 text-center"><span class="font-bold" style="color: var(--acc);">0</span></td>
             <td class="p-4 text-center" style="color: var(--text-secondary);">JVM</td>
@@ -95,7 +114,10 @@ const t = locale === 'fr'
           </tr>
           <tr>
             <td class="p-4 font-semibold" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Licence' : 'License'}
+              <I18n>
+                <Fragment slot="en">License</Fragment>
+                <Fragment slot="fr">Licence</Fragment>
+              </I18n>
             </td>
             <td class="p-4 text-center font-bold" style="color: var(--acc);">MIT</td>
             <td class="p-4 text-center" style="color: var(--text-secondary);">GPL/Commercial</td>
@@ -106,11 +128,12 @@ const t = locale === 'fr'
       </table>
     </div>
 
-    <div class="brutal-highlight p-6">
+    <div class="flat-highlight p-6">
       <p class="text-center text-lg font-semibold" style="color: var(--text-primary);">
-        {locale === 'fr' 
-          ? '🚀 CasysDB combine la simplicité de SQLite avec la puissance des bases graphe, le tout avec MVCC et Time Travel'
-          : '🚀 CasysDB combines SQLite\'s simplicity with graph database power, plus MVCC and Time Travel'}
+        <I18n>
+          <Fragment slot="en">🚀 CasysDB combines SQLite's simplicity with graph database power, plus MVCC and Time Travel</Fragment>
+          <Fragment slot="fr">🚀 CasysDB combine la simplicité de SQLite avec la puissance des bases graphe, le tout avec MVCC et Time Travel</Fragment>
+        </I18n>
       </p>
     </div>
   </div>
@@ -127,17 +150,11 @@ const t = locale === 'fr'
 }
 
 /* Brutalist highlight box */
-.brutal-highlight {
+.flat-highlight {
   background: var(--acc-soft);
-  border: 3px solid #9f7aea;
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 #9f7aea;
+  border: 1px solid var(--border);
+  border-radius: 10px;
   margin-top: 3rem;
-}
-
-:global(.dark) .brutal-highlight {
-  border-color: #7C4BB2;
-  box-shadow: 6px 6px 0 #7C4BB2;
 }
 
 @media (max-width: 768px) {

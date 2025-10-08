@@ -6,6 +6,10 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'astro/config';
 import icon from 'astro-icon';
 import mdx from '@astrojs/mdx';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const rkMod = require('remark-kroki');
+const remarkKroki = rkMod?.remarkKroki || rkMod?.default || rkMod;
 
 // https://astro.build/config
 export default defineConfig({
@@ -52,17 +56,7 @@ export default defineConfig({
       customCss: [
         './src/styles/starlight.css',
       ],
-      defaultLocale: 'root',
-      locales: {
-        root: {
-          label: 'English',
-          lang: 'en',
-        },
-        fr: { 
-          label: 'Français',
-          lang: 'fr',
-        },
-      },
+      // Mermaid rendu côté client via script global (sans Playwright)
     }),
     mdx(),
     icon(),
@@ -71,18 +65,14 @@ export default defineConfig({
 
   // Configuration pour les articles MDX
   markdown: {
+    // Pré-rendu Mermaid via Kroki (SVG inline, sans Chromium)
+    remarkPlugins: [[remarkKroki, { server: 'https://kroki.io', output: 'inline-svg' }]],
     // Activer la coloration syntaxique
     syntaxHighlight: {
       type: 'shiki',
       excludeLangs: ['mermaid', 'math'],
     },
-    shikiConfig: {
-      theme: 'github-dark',
-      wrap: true,
-    },
-    // Mermaid rendu côté client via script global (sans Playwright)
   },
-
   vite: {
     clearScreen: false, // Ne pas nettoyer l'écran pour conserver l'historique des logs
     // @ts-expect-error - Vite 7 plugin type mismatch with @tailwindcss/vite

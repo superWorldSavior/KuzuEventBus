@@ -1,44 +1,49 @@
 ---
-const locale = (Astro as any).currentLocale ?? 'en';
-const t = locale === 'fr'
-  ? {
-      title: 'CasysDB en action',
-      subtitle: 'Requêtes graphe puissantes avec ISO GQL, ORM fluent en Python',
-      tab1: 'Créer un graphe',
-      tab2: 'Query GQL',
-      tab3: 'ORM Python',
-      tab4: 'Relationships',
-    }
-  : {
-      title: 'CasysDB in Action',
-      subtitle: 'Powerful graph queries with ISO GQL, fluent Python ORM',
-      tab1: 'Create Graph',
-      tab2: 'GQL Query',
-      tab3: 'Python ORM',
-      tab4: 'Relationships',
-    };
+import I18n from '../i18n/I18n.astro';
 ---
 
 <section id="examples" class="py-20 relative" style="background: var(--bg-benefits);">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-12">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+        <I18n>
+          <Fragment slot="en">CasysDB in Action</Fragment>
+          <Fragment slot="fr">CasysDB en action</Fragment>
+        </I18n>
+      </h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+        <I18n>
+          <Fragment slot="en">Powerful graph queries with ISO GQL, fluent Python ORM</Fragment>
+          <Fragment slot="fr">Requêtes graphe puissantes avec ISO GQL, ORM fluent en Python</Fragment>
+        </I18n>
+      </p>
     </div>
 
     <!-- Tabs -->
     <div class="flex justify-center gap-2 mb-6 flex-wrap">
       <button class="code-tab active px-6 py-3 rounded-lg font-semibold transition-all" data-tab="create">
-        {t.tab1}
+        <I18n>
+          <Fragment slot="en">Create Graph</Fragment>
+          <Fragment slot="fr">Créer un graphe</Fragment>
+        </I18n>
       </button>
       <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="query">
-        {t.tab2}
+        <I18n>
+          <Fragment slot="en">GQL Query</Fragment>
+          <Fragment slot="fr">Query GQL</Fragment>
+        </I18n>
       </button>
       <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="orm">
-        {t.tab3}
+        <I18n>
+          <Fragment slot="en">Python ORM</Fragment>
+          <Fragment slot="fr">ORM Python</Fragment>
+        </I18n>
       </button>
       <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="relations">
-        {t.tab4}
+        <I18n>
+          <Fragment slot="en">Relationships</Fragment>
+          <Fragment slot="fr">Relations</Fragment>
+        </I18n>
       </button>
     </div>
 
@@ -150,19 +155,18 @@ results = (
 <style>
 .code-tab {
   background: var(--card-bg);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
 }
 
 .code-tab.active {
-  background: linear-gradient(90deg, var(--acc), var(--acc-strong));
-  color: white;
+  background: var(--acc-soft);
+  color: var(--text-primary);
   border-color: var(--acc);
 }
 
 .code-tab:hover:not(.active) {
   border-color: var(--acc);
-  transform: translateY(-2px);
 }
 
 .code-block {

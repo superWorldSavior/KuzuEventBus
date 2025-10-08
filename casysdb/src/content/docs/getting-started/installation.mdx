@@ -1,0 +1,140 @@
+---
+title: Installation
+description: Installer CasysDB pour Python ou TypeScript
+head: []
+
+---
+import I18n from '../../../features/i18n/I18n.astro';
+
+
+<I18n>
+  <Fragment slot="en">
+
+  ## Installation (English)
+
+  CasysDB is available as a native library for **Python** and **TypeScript/Node.js**.
+
+  ### Python (pip)
+
+  ```bash
+  pip install casys-db
+  ```
+
+  ### From sources (Python)
+
+  ```bash
+  git clone https://github.com/casysai/casysdb.git
+  cd casysdb/sdk/python
+  pip install maturin
+  maturin develop --release
+  ```
+
+  #### Requirements
+
+  - Python 3.8+
+  - pip or poetry
+
+  ### TypeScript/Node.js
+
+  ```bash
+  npm install casys-db
+  # or
+  pnpm add casys-db
+  # or
+  yarn add casys-db
+  ```
+
+  #### Requirements
+
+  - Node.js 18+
+  - npm, pnpm, or yarn
+
+  ### Verify installation
+
+  ```python
+  from casys_db import Database
+
+  print("CasysDB installed!")
+  db = Database(":memory:")
+  print(f"DB created: {db}")
+  ```
+
+  ```ts
+  import { Database } from 'casys-db';
+
+  console.log('CasysDB installed!');
+  const db = new Database(':memory:');
+  console.log(`DB created: ${db}`);
+  ```
+
+  ### Next steps
+
+  - [Quickstart](/getting-started/quickstart/)
+
+  </Fragment>
+
+  <Fragment slot="fr">
+
+  ## Installation (Français)
+
+  CasysDB est disponible comme bibliothèque native pour **Python** et **TypeScript/Node.js**.
+
+  ### Installation Python (pip)
+
+  ```bash
+  pip install casys-db
+  ```
+
+  ### Depuis les sources (Python)
+
+  ```bash
+  git clone https://github.com/casysai/casysdb.git
+  cd casysdb/sdk/python
+  pip install maturin
+  maturin develop --release
+  ```
+
+  #### Prérequis
+
+  - Python 3.8+
+  - pip ou poetry
+
+  ### TypeScript/Node.js
+
+  ```bash
+  npm install casys-db
+  # ou
+  pnpm add casys-db
+  # ou
+  yarn add casys-db
+  ```
+
+  #### Prérequis
+
+  - Node.js 18+
+  - npm, pnpm, ou yarn
+
+  ### Vérifier l'installation
+
+  ```python
+  from casys_db import Database
+
+  print("CasysDB installé avec succès !")
+  db = Database(":memory:")
+  print(f"Base de données créée : {db}")
+  ```
+
+  ```typescript
+  import { Database } from 'casys-db';
+
+  console.log('CasysDB installé avec succès !');
+  const db = new Database(':memory:');
+  console.log(`Base de données créée : ${db}`);
+  ```
+
+  ### Prochaines étapes
+
+  - [Guide de Démarrage Rapide](/getting-started/quickstart/)
+
+  </Fragment>
+</I18n>

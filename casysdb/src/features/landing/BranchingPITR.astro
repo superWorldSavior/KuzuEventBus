@@ -1,94 +1,109 @@
 ---
-const locale = (Astro as any).currentLocale ?? 'en';
-const t = locale === 'fr'
-  ? {
-      title: 'Branches & Voyage dans le Temps',
-      subtitle: 'Point-in-Time Recovery et branches Git-like pour vos données graphe',
-      tab1: 'Créer des Branches',
-      tab2: 'PITR',
-      tab3: 'Snapshots',
-      vizTitle: 'Système de Branches',
-      vizSubtitle: 'Comme Git, mais pour vos données graphe',
-    }
-  : {
-      title: 'Branching & Time Travel',
-      subtitle: 'Point-in-Time Recovery and Git-like branches for your graph data',
-      tab1: 'Create Branches',
-      tab2: 'PITR',
-      tab3: 'Snapshots',
-      vizTitle: 'Branch System',
-      vizSubtitle: 'Like Git, but for your graph data',
-    };
+import I18n from '../i18n/I18n.astro';
 ---
 
 <section id="branching" class="py-20 relative" style="background: var(--bg-main);">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-12">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+        <I18n>
+          <Fragment slot="en">Branching & Time Travel</Fragment>
+          <Fragment slot="fr">Branches & Voyage dans le Temps</Fragment>
+        </I18n>
+      </h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+        <I18n>
+          <Fragment slot="en">Point-in-Time Recovery and Git-like branches for your graph data</Fragment>
+          <Fragment slot="fr">Point-in-Time Recovery et branches Git-like pour vos données graphe</Fragment>
+        </I18n>
+      </p>
     </div>
 
     <div class="grid lg:grid-cols-2 gap-12 items-center">
       <!-- Left: Visualization -->
       <div>
-        <h3 class="text-2xl font-bold mb-4 text-center" style="color: var(--text-primary);">{t.vizTitle}</h3>
-        <p class="text-center mb-6" style="color: var(--text-secondary);">{t.vizSubtitle}</p>
         
-        <!-- Git-like Branch Diagram -->
-        <svg viewBox="0 0 600 400" class="w-full h-auto" style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 2rem;">
-          <!-- Main branch -->
-          <g id="main-branch">
-            <line x1="50" y1="200" x2="550" y2="200" stroke="var(--acc)" stroke-width="3"/>
-            <circle cx="50" cy="200" r="8" fill="var(--acc)"/>
-            <circle cx="150" cy="200" r="8" fill="var(--acc)"/>
-            <circle cx="250" cy="200" r="8" fill="var(--acc)"/>
-            <circle cx="350" cy="200" r="8" fill="var(--acc)"/>
-            <circle cx="450" cy="200" r="8" fill="var(--acc)"/>
-            <circle cx="550" cy="200" r="8" fill="var(--acc-strong)"/>
-            <text x="50" y="230" text-anchor="middle" fill="var(--text-primary)" font-size="12" font-weight="600">main</text>
-            <text x="550" y="230" text-anchor="middle" fill="var(--text-primary)" font-size="12">HEAD</text>
-          </g>
+        
+        <!-- Git-like Branch Diagram (Mermaid, responsive) -->
+        <div class="w-full overflow-x-auto">
+          <div id="branch-graph" class="min-w-[360px] p-4 mx-auto max-w-full h-[320px] lg:h-[360px] overflow-auto"></div>
+        </div>
+        <script is:inline>
+          (async () => {
+            try {
+              const mermaid = window.mermaid || (await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs')).default;
+              if (!window.mermaid) window.mermaid = mermaid;
+              mermaid.initialize({ 
+                startOnLoad: false, 
+                securityLevel: 'loose', 
+                theme: 'forest',
+                themeVariables: {
+                  primaryColor: '#f3e8ff',             // subtle violet tint
+                  primaryTextColor: '#1f2937',         // gray-800
+                  primaryBorderColor: '#7C4BB2',       // violet border
+                  lineColor: '#7C4BB2',                // main line violet
+                  textColor: '#1f2937',
+                  tertiaryColor: '#e9d5ff',            // light violet
+                  fontSize: '12px',
+                  fontFamily: 'ui-sans-serif, system-ui, sans-serif'
+                }
+              });
 
-          <!-- Experiment branch -->
-          <g id="experiment-branch">
-            <line x1="250" y1="200" x2="250" y2="100" stroke="var(--acc-soft)" stroke-width="2" stroke-dasharray="5,5"/>
-            <line x1="250" y1="100" x2="450" y2="100" stroke="#10b981" stroke-width="3"/>
-            <circle cx="250" cy="100" r="8" fill="#10b981"/>
-            <circle cx="350" cy="100" r="8" fill="#10b981"/>
-            <circle cx="450" cy="100" r="8" fill="#059669"/>
-            <text x="450" y="80" text-anchor="middle" fill="var(--text-primary)" font-size="12" font-weight="600">experiment</text>
-          </g>
+              // BT: bottom-to-top so timeline goes upward
+              // Git wording: branch created from c2 (recovery), feature dev merged into main, HEAD on latest commit.
+              const graph = `gitGraph BT:\n  %% Historique initial de main\n  commit id: "c1"\n  commit id: "c2" tag: "r1"\n\n  %% PITR: recovery depuis c2 (r1)\n  branch recovery\n  checkout recovery\n  commit id: "r2"\n\n  %% main continue -> c3\n  checkout main\n  commit id: "c3"\n\n  %% dev part de c3\n  branch dev\n  checkout dev\n  commit id: "e1" tag: "e1"\n  commit id: "d2"\n\n  %% merge dev -> main\n  checkout main\n  merge dev\n\n  %% promotion: recovery (r1) devient la base de main\n  merge recovery tag: "promote r1"\n\n  %% HEAD final\n  commit id: "c4" tag: "HEAD"`;
 
-          <!-- Dev branch -->
-          <g id="dev-branch">
-            <line x1="350" y1="200" x2="350" y2="300" stroke="var(--acc-soft)" stroke-width="2" stroke-dasharray="5,5"/>
-            <line x1="350" y1="300" x2="550" y2="300" stroke="#f59e0b" stroke-width="3"/>
-            <circle cx="350" cy="300" r="8" fill="#f59e0b"/>
-            <circle cx="450" cy="300" r="8" fill="#f59e0b"/>
-            <circle cx="550" cy="300" r="8" fill="#d97706"/>
-            <text x="550" y="330" text-anchor="middle" fill="var(--text-primary)" font-size="12" font-weight="600">dev</text>
-          </g>
-
-          <!-- Labels -->
-          <text x="150" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">commit 1</text>
-          <text x="250" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">commit 2</text>
-          <text x="350" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">commit 3</text>
-          <text x="450" y="180" text-anchor="middle" fill="var(--text-muted)" font-size="10">commit 4</text>
-        </svg>
+              const { svg } = await mermaid.render('branch-graph-svg', graph);
+              const el = document.getElementById('branch-graph');
+              if (el) {
+                el.innerHTML = svg;
+                const svgEl = el.querySelector('svg');
+                if (svgEl) {
+                  svgEl.style.maxWidth = '100%';
+                  svgEl.style.height = '100%';
+                }
+                // Synchroniser la hauteur du diagramme avec la colonne droite
+                const right = document.getElementById('branch-right-col');
+                const sync = () => {
+                  if (!right) return;
+                  const h = right.getBoundingClientRect().height;
+                  if (h > 0) {
+                    el.style.height = `${h}px`;
+                  }
+                };
+                sync();
+                if (window.ResizeObserver && right) {
+                  const ro = new ResizeObserver(() => sync());
+                  ro.observe(right);
+                }
+                window.addEventListener('resize', sync);
+              }
+            } catch (e) { console.error('Mermaid render failed', e); }
+          })();
+        </script>
       </div>
 
       <!-- Right: Code Examples with Tabs -->
-      <div>
+      <div id="branch-right-col">
         <!-- Tabs -->
         <div class="flex gap-2 mb-6 flex-wrap">
-          <button class="branch-tab active px-6 py-3 rounded-lg font-semibold transition-all" data-tab="branch">
-            {t.tab1}
+          <button class="branch-tab active px-6 py-3 rounded-lg font-semibold" data-tab="branch">
+            <I18n>
+              <Fragment slot="en">Create Branches</Fragment>
+              <Fragment slot="fr">Créer des Branches</Fragment>
+            </I18n>
           </button>
-          <button class="branch-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="pitr">
-            {t.tab2}
+          <button class="branch-tab px-6 py-3 rounded-lg font-semibold" data-tab="pitr">
+            <I18n>
+              <Fragment slot="en">PITR</Fragment>
+              <Fragment slot="fr">PITR</Fragment>
+            </I18n>
           </button>
-          <button class="branch-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="snapshot">
-            {t.tab3}
+          <button class="branch-tab px-6 py-3 rounded-lg font-semibold" data-tab="snapshot">
+            <I18n>
+              <Fragment slot="en">Snapshots</Fragment>
+              <Fragment slot="fr">Snapshots</Fragment>
+            </I18n>
           </button>
         </div>
 
@@ -174,39 +189,51 @@ branch.load()
 
     <!-- Features Grid -->
     <div class="grid md:grid-cols-3 gap-6 mt-16">
-      <div class="text-center p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="text-center p-6 rounded-xl flat-card">
         <div class="text-4xl mb-3">🌳</div>
         <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
-          {locale === 'fr' ? 'Branches Isolées' : 'Isolated Branches'}
+          <I18n>
+            <Fragment slot="en">Isolated Branches</Fragment>
+            <Fragment slot="fr">Branches Isolées</Fragment>
+          </I18n>
         </h3>
         <p class="text-sm" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Testez des changements sans risque. Chaque branche est complètement isolée.'
-            : 'Test changes safely. Each branch is completely isolated.'}
+          <I18n>
+            <Fragment slot="en">Test changes safely. Each branch is completely isolated.</Fragment>
+            <Fragment slot="fr">Testez des changements sans risque. Chaque branche est complètement isolée.</Fragment>
+          </I18n>
         </p>
       </div>
 
-      <div class="text-center p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="text-center p-6 rounded-xl flat-card">
         <div class="text-4xl mb-3">⏰</div>
         <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
-          {locale === 'fr' ? 'Voyage dans le Temps' : 'Time Travel'}
+          <I18n>
+            <Fragment slot="en">Time Travel</Fragment>
+            <Fragment slot="fr">Voyage dans le Temps</Fragment>
+          </I18n>
         </h3>
         <p class="text-sm" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Créez une branche depuis n\'importe quel commit passé. Débugguez facilement.'
-            : 'Create a branch from any past commit. Debug easily.'}
+          <I18n>
+            <Fragment slot="en">Create a branch from any past commit. Debug easily.</Fragment>
+            <Fragment slot="fr">Créez une branche depuis n'importe quel commit passé. Débugguez facilement.</Fragment>
+          </I18n>
         </p>
       </div>
 
-      <div class="text-center p-6 rounded-xl" style="background: var(--card-bg); border: 1px solid var(--border);">
+      <div class="text-center p-6 rounded-xl flat-card">
         <div class="text-4xl mb-3">📸</div>
         <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
-          {locale === 'fr' ? 'Snapshots Auto' : 'Auto Snapshots'}
+          <I18n>
+            <Fragment slot="en">Auto Snapshots</Fragment>
+            <Fragment slot="fr">Snapshots Auto</Fragment>
+          </I18n>
         </h3>
         <p class="text-sm" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Chaque commit = snapshot. Aucune perte de données, historique complet.'
-            : 'Each commit = snapshot. No data loss, complete history.'}
+          <I18n>
+            <Fragment slot="en">Each commit = snapshot. No data loss, complete history.</Fragment>
+            <Fragment slot="fr">Chaque commit = snapshot. Aucune perte de données, historique complet.</Fragment>
+          </I18n>
         </p>
       </div>
     </div>
@@ -216,19 +243,14 @@ branch.load()
 <style>
 .branch-tab {
   background: var(--card-bg);
-  border: 2px solid var(--border);
+  border: 1px solid var(--border);
   color: var(--text-secondary);
 }
 
 .branch-tab.active {
-  background: linear-gradient(90deg, var(--acc), var(--acc-strong));
-  color: white;
+  background: var(--acc-soft);
+  color: var(--text-primary);
   border-color: var(--acc);
-}
-
-.branch-tab:hover:not(.active) {
-  border-color: var(--acc);
-  transform: translateY(-2px);
 }
 
 .code-block {
@@ -263,6 +285,13 @@ branch.load()
 .function { color: #61afef; }
 .type { color: #e5c07b; }
 .number { color: #d19a66; }
+
+/* Flat card */
+.flat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
 </style>
 
 <script>

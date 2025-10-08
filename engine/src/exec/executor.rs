@@ -8,6 +8,12 @@ use std::collections::HashMap;
 
 pub type Tuple = HashMap<String, Value>;
 
+#[derive(Default)]
+struct ExecCounters {
+    scanned: u64,
+    expanded: u64,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     String(String),
@@ -101,7 +107,8 @@ impl<'a> Executor<'a> {
     pub fn execute(&self, plan: &ExecutionPlan, write: Option<&mut dyn GraphWriteStore>) -> Result<QueryResult, EngineError> {
         let start = std::time::Instant::now();
         let mut write_opt = write;
-        let tuples = self.execute_node(&plan.root, &mut write_opt)?;
+        let mut counters = ExecCounters::default();
+        let tuples = self.execute_node(&plan.root, &mut write_opt, &mut counters)?;
         
         // Convert tuples to QueryResult format
         let mut columns: Vec<ColumnMeta> = Vec::new();
@@ -166,14 +173,14 @@ impl<'a> Executor<'a> {
         Ok(QueryResult {
             columns,
             rows,
-            stats: Some(crate::types::QueryStats { elapsed_ms, scanned: 0, expanded: 0 }),
+            stats: Some(crate::types::QueryStats { elapsed_ms, scanned: counters.scanned, expanded: counters.expanded }),
         })
     }
 
-    fn execute_node(&self, node: &PlanNode, write: &mut Option<&mut dyn GraphWriteStore>) -> Result<Vec<Tuple>, EngineError> {
-        self.execute_node_with_context(node, &HashMap::new(), write)
+    fn execute_node(&self, node: &PlanNode, write: &mut Option<&mut dyn GraphWriteStore>, counters: &mut ExecCounters) -> Result<Vec<Tuple>, EngineError> {
+        self.execute_node_with_context(node, &HashMap::new(), write, counters)
     }
-    fn execute_node_with_context(&self, node: &PlanNode, parent_tuple: &Tuple, write: &mut Option<&mut dyn GraphWriteStore>) -> Result<Vec<Tuple>, EngineError> {
+    fn execute_node_with_context(&self, node: &PlanNode, parent_tuple: &Tuple, write: &mut Option<&mut dyn GraphWriteStore>, counters: &mut ExecCounters) -> Result<Vec<Tuple>, EngineError> {
         match node {
             PlanNode::Create { patterns } => {
                 if let Some(w) = write.as_deref_mut() {
@@ -185,7 +192,7 @@ impl<'a> Executor<'a> {
             PlanNode::MatchCreate { match_input, create_patterns } => {
                 // For each matched tuple, execute CREATE with that context
                 let match_tuples = {
-                    self.execute_node_with_context(match_input, parent_tuple, write)?
+                    self.execute_node_with_context(match_input, parent_tuple, write, counters)?
                 };
                 if let Some(wi) = write.as_deref_mut() {
                     let mut all_results = Vec::new();
@@ -200,8 +207,8 @@ impl<'a> Executor<'a> {
             }
             PlanNode::CartesianProduct { left, right } => {
                 // Execute both sides
-                let left_tuples = { self.execute_node_with_context(left, parent_tuple, write)? };
-                let right_tuples = { self.execute_node_with_context(right, parent_tuple, write)? };
+                let left_tuples = { self.execute_node_with_context(left, parent_tuple, write, counters)? };
+                let right_tuples = { self.execute_node_with_context(right, parent_tuple, write, counters)? };
                 
                 // Cartesian product: combine every tuple from left with every tuple from right
                 let mut result = Vec::new();
@@ -255,6 +262,7 @@ impl<'a> Executor<'a> {
                 } else {
                     Vec::new()
                 };
+                counters.scanned += nodes.len() as u64;
                 Ok(nodes.into_iter().map(|n| {
                     let mut tuple = parent_tuple.clone();
                     tuple.insert(variable.clone(), Value::NodeId(n.id));
@@ -289,6 +297,7 @@ impl<'a> Executor<'a> {
                 }
                 // Non-correlated: scan all nodes
                 let nodes = if let Some(r) = self.read { r.scan_all()? } else if let Some(w) = write.as_deref_mut() { w.scan_all()? } else { Vec::new() };
+                counters.scanned += nodes.len() as u64;
                 Ok(nodes.into_iter().map(|n| {
                     let mut tuple = parent_tuple.clone();
                     tuple.insert(variable.clone(), Value::NodeId(n.id));
@@ -300,7 +309,7 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::Filter { input, predicate } => {
-                let tuples = self.execute_node_with_context(input, parent_tuple, write)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple, write, counters)?;
                 Ok(tuples.into_iter().filter(|t| {
                     self.eval_expr(predicate, t, None).ok()
                         .and_then(|v| match v {
@@ -311,7 +320,7 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::Project { input, items } => {
-                let tuples = self.execute_node_with_context(input, parent_tuple, write)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple, write, counters)?;
                 Ok(tuples.into_iter().map(|t| {
                     let mut result = HashMap::new();
                     for item in items {
@@ -330,7 +339,7 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::Aggregate { input, group_by, aggregates } => {
-                let tuples = self.execute_node_with_context(input, parent_tuple, write)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple, write, counters)?;
                 
                 if group_by.is_empty() {
                     // Global aggregation (no GROUP BY)
@@ -387,7 +396,7 @@ impl<'a> Executor<'a> {
                 }
             }
             PlanNode::OrderBy { input, items } => {
-                let mut tuples = self.execute_node_with_context(input, parent_tuple, write)?;
+                let mut tuples = self.execute_node_with_context(input, parent_tuple, write, counters)?;
                 tuples.sort_by(|a, b| {
                     for item in items {
                         let val_a = self.eval_expr(&item.expr, a, None).ok();
@@ -409,13 +418,13 @@ impl<'a> Executor<'a> {
                 Ok(tuples)
             }
             PlanNode::Limit { input, count } => {
-                let tuples = self.execute_node_with_context(input, parent_tuple, write)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple, write, counters)?;
                 Ok(tuples.into_iter().take(*count as usize).collect())
             }
             PlanNode::Expand { input, from_var, edge_var, to_var, edge_type, direction, depth } => {
                 use super::ast::Direction;
                 
-                let input_tuples = { self.execute_node_with_context(input, parent_tuple, write)? };
+                let input_tuples = { self.execute_node_with_context(input, parent_tuple, write, counters)? };
                 let mut result = Vec::new();
                 // Resolve reader once to avoid repeated mutable borrows of `write`
                 let reader: &dyn GraphReadStore = if let Some(r) = self.read { r } else if let Some(w) = write.as_deref_mut() { w } else { return Ok(result) };
@@ -439,6 +448,7 @@ impl<'a> Executor<'a> {
                                 depth_range.min,
                                 depth_range.max,
                             )?;
+                            counters.expanded += reachable.len() as u64;
                             
                             for to_node in reachable {
                                 let mut new_tuple = tuple.clone();
@@ -478,6 +488,7 @@ impl<'a> Executor<'a> {
                             if !edge_types.is_empty() {
                                 neighbors.retain(|(edge, _)| edge_types.contains(&edge.edge_type.as_str()));
                             }
+                            counters.expanded += neighbors.len() as u64;
                             for (edge, to_node) in neighbors {
                                 let mut new_tuple = tuple.clone();
                                 

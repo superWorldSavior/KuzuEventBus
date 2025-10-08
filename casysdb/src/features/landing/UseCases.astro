@@ -1,36 +1,41 @@
 ---
-const locale = (Astro as any).currentLocale ?? 'en';
-const t = locale === 'fr'
-  ? {
-      title: 'Cas d\'usage',
-      subtitle: 'CasysDB excelle là où les données sont connectées',
-    }
-  : {
-      title: 'Use Cases',
-      subtitle: 'CasysDB excels where data is connected',
-    };
+import I18n from '../i18n/I18n.astro';
 ---
 
 <section id="use-cases" class="py-20 relative" style="background: var(--bg-social);">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+        <I18n>
+          <Fragment slot="en">Use Cases</Fragment>
+          <Fragment slot="fr">Cas d'usage</Fragment>
+        </I18n>
+      </h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+        <I18n>
+          <Fragment slot="en">CasysDB excels where data is connected</Fragment>
+          <Fragment slot="fr">CasysDB excelle là où les données sont connectées</Fragment>
+        </I18n>
+      </p>
     </div>
 
     <div class="grid md:grid-cols-2 gap-8">
       <!-- Social Networks -->
-      <div class="brutal-card p-8 brutal-hover">
+      <div class="flat-card p-8">
         <div class="flex items-start gap-4">
           <div class="text-5xl">👥</div>
           <div>
             <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Réseaux Sociaux' : 'Social Networks'}
+              <I18n>
+                <Fragment slot="en">Social Networks</Fragment>
+                <Fragment slot="fr">Réseaux Sociaux</Fragment>
+              </I18n>
             </h3>
             <p class="mb-4" style="color: var(--text-secondary);">
-              {locale === 'fr' 
-                ? 'Trouvez des amis d\'amis, recommandations, détection de communautés. Queries 2-3 hops en millisecondes.'
-                : 'Find friends-of-friends, recommendations, community detection. 2-3 hop queries in milliseconds.'}
+              <I18n>
+                <Fragment slot="en">Find friends-of-friends, recommendations, community detection. 2-3 hop queries in milliseconds.</Fragment>
+                <Fragment slot="fr">Trouvez des amis d'amis, recommandations, détection de communautés. Queries 2-3 hops en millisecondes.</Fragment>
+              </I18n>
             </p>
             <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (user:Person)-[:KNOWS*2..3]->(friend)
 WHERE user.id = $userId
@@ -40,17 +45,21 @@ RETURN DISTINCT friend</code></pre>
       </div>
 
       <!-- Knowledge Graphs -->
-      <div class="brutal-card p-8 brutal-hover">
+      <div class="flat-card p-8">
         <div class="flex items-start gap-4">
           <div class="text-5xl">🧠</div>
           <div>
             <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Knowledge Graphs' : 'Knowledge Graphs'}
+              <I18n>
+                <Fragment slot="en">Knowledge Graphs</Fragment>
+                <Fragment slot="fr">Knowledge Graphs</Fragment>
+              </I18n>
             </h3>
             <p class="mb-4" style="color: var(--text-secondary);">
-              {locale === 'fr' 
-                ? 'Ontologies, RAG, semantic search. Relationships complexes entre entités, attributs, concepts.'
-                : 'Ontologies, RAG, semantic search. Complex relationships between entities, attributes, concepts.'}
+              <I18n>
+                <Fragment slot="en">Ontologies, RAG, semantic search. Complex relationships between entities, attributes, concepts.</Fragment>
+                <Fragment slot="fr">Ontologies, RAG, semantic search. Relationships complexes entre entités, attributs, concepts.</Fragment>
+              </I18n>
             </p>
             <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (concept)-[:RELATED_TO*]->(topic)
 WHERE concept.name = 'Machine Learning'
@@ -60,17 +69,21 @@ RETURN topic.name, COUNT(*) AS relevance</code></pre>
       </div>
 
       <!-- Recommendation Engines -->
-      <div class="brutal-card p-8 brutal-hover">
+      <div class="flat-card p-8">
         <div class="flex items-start gap-4">
           <div class="text-5xl">🎯</div>
           <div>
             <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Moteurs de Recommandation' : 'Recommendation Engines'}
+              <I18n>
+                <Fragment slot="en">Recommendation Engines</Fragment>
+                <Fragment slot="fr">Moteurs de Recommandation</Fragment>
+              </I18n>
             </h3>
             <p class="mb-4" style="color: var(--text-secondary);">
-              {locale === 'fr' 
-                ? 'Collaborative filtering, content-based recommendations. Trouvez des patterns dans les interactions utilisateurs.'
-                : 'Collaborative filtering, content-based recommendations. Find patterns in user interactions.'}
+              <I18n>
+                <Fragment slot="en">Collaborative filtering, content-based recommendations. Find patterns in user interactions.</Fragment>
+                <Fragment slot="fr">Collaborative filtering, content-based recommendations. Trouvez des patterns dans les interactions utilisateurs.</Fragment>
+              </I18n>
             </p>
             <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (u:User)-[:LIKES]->(i:Item)<-[:LIKES]-(similar:User)
 WHERE u.id = $userId
@@ -80,17 +93,21 @@ RETURN i.name, COUNT(similar) AS score</code></pre>
       </div>
 
       <!-- Network Analysis -->
-      <div class="brutal-card p-8 brutal-hover">
+      <div class="flat-card p-8">
         <div class="flex items-start gap-4">
           <div class="text-5xl">🕸️</div>
           <div>
             <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
-              {locale === 'fr' ? 'Analyse de Réseaux' : 'Network Analysis'}
+              <I18n>
+                <Fragment slot="en">Network Analysis</Fragment>
+                <Fragment slot="fr">Analyse de Réseaux</Fragment>
+              </I18n>
             </h3>
             <p class="mb-4" style="color: var(--text-secondary);">
-              {locale === 'fr' 
-                ? 'Détection de fraude, supply chain, dependency tracking. Visualisez et explorez les connections.'
-                : 'Fraud detection, supply chain, dependency tracking. Visualize and explore connections.'}
+              <I18n>
+                <Fragment slot="en">Fraud detection, supply chain, dependency tracking. Visualize and explore connections.</Fragment>
+                <Fragment slot="fr">Détection de fraude, supply chain, dependency tracking. Visualisez et explorez les connections.</Fragment>
+              </I18n>
             </p>
             <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH path = (start)-[:DEPENDS_ON*]->(end)
 WHERE start.type = 'Service'
@@ -103,27 +120,11 @@ RETURN path, LENGTH(path) AS depth</code></pre>
 </section>
 
 <style>
-/* Brutalist Design System */
-.brutal-card {
+/* Flat Design */
+.flat-card {
   background: var(--card-bg);
-  border: 3px solid #000;
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 #9f7aea;
-  transition: all 0.2s;
-}
-
-:global(.dark) .brutal-card {
-  border-color: #fff;
-  box-shadow: 6px 6px 0 #7C4BB2;
-}
-
-.brutal-hover:hover {
-  transform: translate(3px, 3px);
-  box-shadow: 3px 3px 0 #9f7aea;
-}
-
-:global(.dark) .brutal-hover:hover {
-  box-shadow: 3px 3px 0 #7C4BB2;
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
 pre {

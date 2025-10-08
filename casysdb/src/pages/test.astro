@@ -1,0 +1,31 @@
+---
+import LandingLayout from '../layouts/LandingLayout.astro';
+import PlaygroundQwik from '../features/playground/qwik/PlaygroundQwik';
+---
+
+<LandingLayout title="CasysDB Playground Test">
+  <section class="py-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-2 gap-12 items-stretch">
+        <!-- Left column: placeholder content to mimic hero text area -->
+        <div class="space-y-4">
+          <h1 class="text-3xl md:text-4xl font-extrabold text-[var(--text-primary)]">Playground Preview</h1>
+          <p class="text-[var(--text-secondary)]">
+            This page previews the interactive playground sized for the right column of the hero. On large screens,
+            the playground appears on the right; on mobile, it stacks below.
+          </p>
+          <ul class="list-disc pl-5 text-[var(--text-secondary)]">
+            <li>Branches: dev, recovery, merge into main</li>
+            <li>Graph: nodes and relations with D3</li>
+            <li>Flat UI, responsive, no overflow</li>
+          </ul>
+        </div>
+
+        <!-- Right column: the playground -->
+        <div class="flex flex-col h-full">
+          <PlaygroundQwik client:load />
+        </div>
+      </div>
+    </div>
+  </section>
+</LandingLayout>

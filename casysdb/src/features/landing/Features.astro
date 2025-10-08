@@ -1,99 +1,118 @@
 ---
-const locale = (Astro as any).currentLocale ?? 'en';
-const t = locale === 'fr'
-  ? {
-      title: 'Pourquoi CasysDB ?',
-      subtitle: 'Tout ce dont vous avez besoin pour gérer vos données graphe',
-    }
-  : {
-      title: 'Why CasysDB?',
-      subtitle: 'Everything you need to manage your graph data',
-    };
+import I18n from '../i18n/I18n.astro';
 ---
 
 <section id="features" class="py-20 relative" style="background: var(--bg-main);">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-16">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">{t.subtitle}</p>
+      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+        <I18n>
+          <Fragment slot="en">Why CasysDB?</Fragment>
+          <Fragment slot="fr">Pourquoi CasysDB ?</Fragment>
+        </I18n>
+      </h2>
+      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+        <I18n>
+          <Fragment slot="en">Everything you need to manage your graph data</Fragment>
+          <Fragment slot="fr">Tout ce dont vous avez besoin pour gérer vos données graphe</Fragment>
+        </I18n>
+      </p>
     </div>
 
     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
       <!-- Embedded -->
-      <div class="brutal-card p-6 brutal-hover">
+      <div class="flat-card p-6">
         <div class="text-4xl mb-4">⚡</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
-          {locale === 'fr' ? 'Embarquée & Rapide' : 'Embedded & Fast'}
+          <I18n>
+            <Fragment slot="en">Embedded & Fast</Fragment>
+            <Fragment slot="fr">Embarquée & Rapide</Fragment>
+          </I18n>
         </h3>
         <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Zéro serveur, zéro configuration. S\'exécute directement dans votre process Python ou TypeScript. Démarrage en millisecondes.'
-            : 'Zero servers, zero configuration. Runs directly in your Python or TypeScript process. Starts in milliseconds.'}
+          <I18n>
+            <Fragment slot="en">Zero servers, zero configuration. Runs directly in your Python or TypeScript process. Starts in milliseconds.</Fragment>
+            <Fragment slot="fr">Zéro serveur, zéro configuration. S'exécute directement dans votre process Python ou TypeScript. Démarrage en millisecondes.</Fragment>
+          </I18n>
         </p>
       </div>
 
       <!-- ISO GQL -->
-      <div class="brutal-card p-6 brutal-hover">
+      <div class="flat-card p-6">
         <div class="text-4xl mb-4">📊</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
           ISO GQL
         </h3>
         <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Langage standard ISO GQL. MATCH, WHERE, RETURN, EXISTS, WITH. Compatible avec les outils GQL modernes.'
-            : 'Standard ISO GQL language. MATCH, WHERE, RETURN, EXISTS, WITH. Compatible with modern GQL tools.'}
+          <I18n>
+            <Fragment slot="en">Standard ISO GQL language. MATCH, WHERE, RETURN, EXISTS, WITH. Compatible with modern GQL tools.</Fragment>
+            <Fragment slot="fr">Langage standard ISO GQL. MATCH, WHERE, RETURN, EXISTS, WITH. Compatible avec les outils GQL modernes.</Fragment>
+          </I18n>
         </p>
       </div>
 
       <!-- MVCC -->
-      <div class="brutal-card p-6 brutal-hover">
+      <div class="flat-card p-6">
         <div class="text-4xl mb-4">🔄</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
           MVCC
         </h3>
         <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Transactions avec snapshot isolation. Lectures cohérentes, écritures isolées. Pas de locks bloquants.'
-            : 'Transactions with snapshot isolation. Consistent reads, isolated writes. No blocking locks.'}
+          <I18n>
+            <Fragment slot="en">Transactions with snapshot isolation. Consistent reads, isolated writes. No blocking locks.</Fragment>
+            <Fragment slot="fr">Transactions avec snapshot isolation. Lectures cohérentes, écritures isolées. Pas de locks bloquants.</Fragment>
+          </I18n>
         </p>
       </div>
 
       <!-- PITR -->
-      <div class="brutal-card p-6 brutal-hover">
+      <div class="flat-card p-6">
         <div class="text-4xl mb-4">⏰</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
-          {locale === 'fr' ? 'Voyage dans le temps' : 'Time Travel'}
+          <I18n>
+            <Fragment slot="en">Time Travel</Fragment>
+            <Fragment slot="fr">Voyage dans le temps</Fragment>
+          </I18n>
         </h3>
         <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Point-in-Time Recovery (PITR). Créez des branches à partir de n\'importe quel commit. Explorez l\'historique complet.'
-            : 'Point-in-Time Recovery (PITR). Create branches from any commit. Explore complete history.'}
+          <I18n>
+            <Fragment slot="en">Point-in-Time Recovery (PITR). Create branches from any commit. Explore complete history.</Fragment>
+            <Fragment slot="fr">Point-in-Time Recovery (PITR). Créez des branches à partir de n'importe quel commit. Explorez l'historique complet.</Fragment>
+          </I18n>
         </p>
       </div>
 
       <!-- Python ORM -->
-      <div class="brutal-card p-6 brutal-hover">
+      <div class="flat-card p-6">
         <div class="text-4xl mb-4">🐍</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
-          {locale === 'fr' ? 'ORM Python Fluent' : 'Fluent Python ORM'}
+          <I18n>
+            <Fragment slot="en">Fluent Python ORM</Fragment>
+            <Fragment slot="fr">ORM Python Fluent</Fragment>
+          </I18n>
         </h3>
         <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Query builder type-safe avec lambdas. where(), select(), join_out(). Comme SQLAlchemy mais pour les graphes.'
-            : 'Type-safe query builder with lambdas. where(), select(), join_out(). Like SQLAlchemy but for graphs.'}
+          <I18n>
+            <Fragment slot="en">Type-safe query builder with lambdas. where(), select(), join_out(). Like SQLAlchemy but for graphs.</Fragment>
+            <Fragment slot="fr">Query builder type-safe avec lambdas. where(), select(), join_out(). Comme SQLAlchemy mais pour les graphes.</Fragment>
+          </I18n>
         </p>
       </div>
 
       <!-- Zero Dependencies -->
-      <div class="brutal-card p-6 brutal-hover">
+      <div class="flat-card p-6">
         <div class="text-4xl mb-4">📦</div>
         <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
-          {locale === 'fr' ? 'Zéro Dépendance' : 'Zero Dependencies'}
+          <I18n>
+            <Fragment slot="en">Zero Dependencies</Fragment>
+            <Fragment slot="fr">Zéro Dépendance</Fragment>
+          </I18n>
         </h3>
         <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
-          {locale === 'fr' 
-            ? 'Moteur Rust compilé. Une seule bibliothèque native. Installation en 3 secondes. Pas de JVM, pas de Node.js requis.'
-            : 'Compiled Rust engine. Single native library. Install in 3 seconds. No JVM, no Node.js required.'}
+          <I18n>
+            <Fragment slot="en">Compiled Rust engine. Single native library. Install in 3 seconds. No JVM, no Node.js required.</Fragment>
+            <Fragment slot="fr">Moteur Rust compilé. Une seule bibliothèque native. Installation en 3 secondes. Pas de JVM, pas de Node.js requis.</Fragment>
+          </I18n>
         </p>
       </div>
     </div>
@@ -101,26 +120,10 @@ const t = locale === 'fr'
 </section>
 
 <style>
-/* Brutalist Design System */
-.brutal-card {
+/* Flat Design */
+.flat-card {
   background: var(--card-bg);
-  border: 3px solid #000;
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 #9f7aea;
-  transition: all 0.2s;
-}
-
-:global(.dark) .brutal-card {
-  border-color: #fff;
-  box-shadow: 6px 6px 0 #7C4BB2;
-}
-
-.brutal-hover:hover {
-  transform: translate(3px, 3px);
-  box-shadow: 3px 3px 0 #9f7aea;
-}
-
-:global(.dark) .brutal-hover:hover {
-  box-shadow: 3px 3px 0 #7C4BB2;
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 </style>

@@ -1,94 +1,94 @@
 ---
-// Composant des bénéfices pour la landing page
-const locale = (Astro as any).currentLocale ?? 'en';
-const t = locale === 'fr'
-  ? {
-      title: 'Pourquoi CasysDB ?',
-      subtitle: 'Une base de données graphe moderne, embarquée, et puissante.',
-      b1t: 'Zero configuration',
-      b1d: 'Pas de serveur à gérer. S\'exécute directement dans votre application Python ou TypeScript.',
-      b2t: 'ISO GQL natif',
-      b2d: 'Langage standard de requêtes graphe. Apprenez une fois, utilisez partout.',
-      b3t: 'MVCC & PITR',
-      b3d: 'Transactions isolées avec MVCC. Point-in-Time Recovery pour voyager dans l\'historique.',
-    }
-  : {
-      title: 'Why CasysDB?',
-      subtitle: 'A modern, embedded, and powerful graph database.',
-      b1t: 'Zero configuration',
-      b1d: 'No server to manage. Runs directly in your Python or TypeScript application.',
-      b2t: 'Native ISO GQL',
-      b2d: 'Standard graph query language. Learn once, use everywhere.',
-      b3t: 'MVCC & PITR',
-      b3d: 'Isolated transactions with MVCC. Point-in-Time Recovery to travel through history.',
-    };
+import I18n from '../i18n/I18n.astro';
 ---
 
 <section id="benefits" class="relative py-24 overflow-hidden" style="background: transparent;">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-12">
-      <h2 class="text-3xl md:text-4xl font-bold" style="color: var(--text-primary);">{t.title}</h2>
-      <p class="mt-3 text-lg" style="color: var(--text-secondary);">{t.subtitle}</p>
+      <h2 class="text-3xl md:text-4xl font-bold" style="color: var(--text-primary);">
+        <I18n>
+          <Fragment slot="en">Why CasysDB?</Fragment>
+          <Fragment slot="fr">Pourquoi CasysDB ?</Fragment>
+        </I18n>
+      </h2>
+      <p class="mt-3 text-lg" style="color: var(--text-secondary);">
+        <I18n>
+          <Fragment slot="en">A modern, embedded, and powerful graph database.</Fragment>
+          <Fragment slot="fr">Une base de données graphe moderne, embarquée, et puissante.</Fragment>
+        </I18n>
+      </p>
     </div>
     
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <article class="brutal-card p-6 brutal-hover">
+      <article class="flat-card p-6">
         <div class="flex items-start gap-4">
           <div class="text-3xl">⚡</div>
           <div>
-            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">{t.b1t}</h3>
-            <p class="mt-1" style="color: var(--text-secondary);">{t.b1d}</p>
+            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">
+              <I18n>
+                <Fragment slot="en">Zero configuration</Fragment>
+                <Fragment slot="fr">Zero configuration</Fragment>
+              </I18n>
+            </h3>
+            <p class="mt-1" style="color: var(--text-secondary);">
+              <I18n>
+                <Fragment slot="en">No server to manage. Runs directly in your Python or TypeScript application.</Fragment>
+                <Fragment slot="fr">Pas de serveur à gérer. S'exécute directement dans votre application Python ou TypeScript.</Fragment>
+              </I18n>
+            </p>
           </div>
         </div>
       </article>
 
-      <article class="brutal-card p-6 brutal-hover">
+      <article class="flat-card p-6">
         <div class="flex items-start gap-4">
           <div class="text-3xl">📊</div>
           <div>
-            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">{t.b2t}</h3>
-            <p class="mt-1" style="color: var(--text-secondary);">{t.b2d}</p>
+            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">
+              <I18n>
+                <Fragment slot="en">Native ISO GQL</Fragment>
+                <Fragment slot="fr">ISO GQL natif</Fragment>
+              </I18n>
+            </h3>
+            <p class="mt-1" style="color: var(--text-secondary);">
+              <I18n>
+                <Fragment slot="en">Standard graph query language. Learn once, use everywhere.</Fragment>
+                <Fragment slot="fr">Langage standard de requêtes graphe. Apprenez une fois, utilisez partout.</Fragment>
+              </I18n>
+            </p>
           </div>
         </div>
       </article>
 
-      <article class="brutal-card p-6 brutal-hover">
+      <article class="flat-card p-6">
         <div class="flex items-start gap-4">
           <div class="text-3xl">🔄</div>
           <div>
-            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">{t.b3t}</h3>
-            <p class="mt-1" style="color: var(--text-secondary);">{t.b3d}</p>
+            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">
+              <I18n>
+                <Fragment slot="en">MVCC & PITR</Fragment>
+                <Fragment slot="fr">MVCC & PITR</Fragment>
+              </I18n>
+            </h3>
+            <p class="mt-1" style="color: var(--text-secondary);">
+              <I18n>
+                <Fragment slot="en">Isolated transactions with MVCC. Point-in-Time Recovery to travel through history.</Fragment>
+                <Fragment slot="fr">Transactions isolées avec MVCC. Point-in-Time Recovery pour voyager dans l'historique.</Fragment>
+              </I18n>
+            </p>
           </div>
         </div>
       </article>
-    </div>
-  </div>
     </div>
   </div>
 </section>
 
 <style>
-/* Brutalist Design System */
-.brutal-card {
+/* Flat Design */
+.flat-card {
   background: var(--card-bg);
-  border: 3px solid #000;
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 #9f7aea;
-  transition: all 0.2s;
-}
-
-:global(.dark) .brutal-card {
-  border-color: #fff;
-  box-shadow: 6px 6px 0 #7C4BB2;
-}
-
-.brutal-hover:hover {
-  transform: translate(3px, 3px);
-  box-shadow: 3px 3px 0 #9f7aea;
-}
-
-:global(.dark) .brutal-hover:hover {
-  box-shadow: 3px 3px 0 #7C4BB2;
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 </style>
 

@@ -1,29 +1,20 @@
 ---
 import '../styles/global.css';
 import Analytics from '@vercel/analytics/astro'
+import I18n from '../features/i18n/I18n.astro';
 export interface Props {
   title: string;
 }
 
 const { title } = Astro.props;
-const locale = (Astro as any).currentLocale ?? 'en';
-const t = locale === 'fr'
-  ? {
-      nav: { docs: 'Documentation', examples: 'Exemples', branches: 'Branches', usecases: 'Cas d\'usage', github: 'GitHub' },
-      footer: { product: 'Produit', resources: 'Ressources', community: 'Communauté' },
-    }
-  : {
-      nav: { docs: 'Documentation', examples: 'Examples', branches: 'Branches', usecases: 'Use Cases', github: 'GitHub' },
-      footer: { product: 'Product', resources: 'Resources', community: 'Community' },
-    };
 const pathname = Astro.url.pathname;
 const siteUrl = import.meta.env.PUBLIC_SITE_URL as string | undefined;
 const canonicalUrl = siteUrl ? new URL(pathname, siteUrl).toString() : undefined;
-const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_US';
+const ogLocale = 'en_US';
 ---
 
 <!DOCTYPE html>
-<html lang={locale}>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="description" content="CasysDB - An embedded graph database with ISO GQL support" />
@@ -34,21 +25,6 @@ const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_US';
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <link rel="manifest" href="/icons/site.webmanifest" />
     <script>
-      // Auto language redirect (client-only): if browser is FR and path not under /fr, redirect to /fr/…
-      (function () {
-        try {
-          var path = location.pathname;
-          if (!path.startsWith('/fr')) {
-            var lang = (navigator.languages && navigator.languages[0]) || navigator.language || '';
-            lang = String(lang || '').toLowerCase();
-            if (lang.startsWith('fr')) {
-              var target = path === '/' ? '/fr/' : ('/fr' + path);
-              location.replace(target + location.search + location.hash);
-            }
-          }
-        } catch (_) { /* no-op */ }
-      })();
-
       // Auto theme sync with system (no localStorage override)
       (function () {
         try {
@@ -94,22 +70,37 @@ const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_US';
           <!-- Navigation -->
           <nav class="hidden md:flex space-x-8">
             <a href="/getting-started/installation/" class="text-gray-800 hover:text-gray-900 dark:text-white/80 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors">
-              {t.nav.docs}
+              <I18n>
+                <Fragment slot="en">Documentation</Fragment>
+                <Fragment slot="fr">Documentation</Fragment>
+              </I18n>
             </a>
             <a href="#examples" class="text-gray-800 hover:text-gray-900 dark:text-white/80 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors">
-              {t.nav.examples}
+              <I18n>
+                <Fragment slot="en">Examples</Fragment>
+                <Fragment slot="fr">Exemples</Fragment>
+              </I18n>
             </a>
             <a href="#branching" class="text-gray-800 hover:text-gray-900 dark:text-white/80 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors">
-              {t.nav.branches}
+              <I18n>
+                <Fragment slot="en">Branches</Fragment>
+                <Fragment slot="fr">Branches</Fragment>
+              </I18n>
             </a>
             <a href="#use-cases" class="text-gray-800 hover:text-gray-900 dark:text-white/80 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors">
-              {t.nav.usecases}
+              <I18n>
+                <Fragment slot="en">Use Cases</Fragment>
+                <Fragment slot="fr">Cas d'usage</Fragment>
+              </I18n>
             </a>
             <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="text-gray-800 hover:text-gray-900 dark:text-white/80 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors flex items-center gap-1">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
               </svg>
-              {t.nav.github}
+              <I18n>
+                <Fragment slot="en">GitHub</Fragment>
+                <Fragment slot="fr">GitHub</Fragment>
+              </I18n>
             </a>
           </nav>
 
@@ -144,7 +135,12 @@ const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_US';
 
           <!-- Product -->
           <div>
-            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary);">{t.footer.product}</h4>
+            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary);">
+              <I18n>
+                <Fragment slot="en">Product</Fragment>
+                <Fragment slot="fr">Produit</Fragment>
+              </I18n>
+            </h4>
             <ul class="space-y-2 text-sm" style="color: var(--text-secondary);">
               <li><a href="/getting-started/installation/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Installation</a></li>
               <li><a href="/getting-started/quickstart/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Quick Start</a></li>
@@ -155,7 +151,12 @@ const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_US';
 
           <!-- Community -->
           <div>
-            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary);">{t.footer.community}</h4>
+            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary);">
+              <I18n>
+                <Fragment slot="en">Community</Fragment>
+                <Fragment slot="fr">Communauté</Fragment>
+              </I18n>
+            </h4>
             <ul class="space-y-2 text-sm" style="color: var(--text-secondary);">
               <li><a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">GitHub</a></li>
               <li><a href="https://github.com/casysai/casysdb/issues" target="_blank" rel="noopener noreferrer" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Issues</a></li>
@@ -166,7 +167,7 @@ const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_US';
         </div>
 
         <div class="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center" style="border-color: var(--card-border);">
-          <p class="text-sm" style="color: var(--text-muted);"
+          <p class="text-sm" style="color: var(--text-muted);">
             © 2025 CasysDB. Open-source under MIT License.
           </p>
           <div class="flex space-x-6 mt-4 md:mt-0">

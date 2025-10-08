@@ -104,7 +104,7 @@ export const PlaygroundQwik = component$(() => {
   useTask$(({ track }) => { track(() => v.value); });
 
   return (
-    <div class="w-full" onClick$={() => { /* debug hydration touch */ console.debug('Playground ready'); }}>
+    <div class="w-full">
       {/* Controls */}
       <Controls
         onInsert$={insert}

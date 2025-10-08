@@ -181,6 +181,15 @@ impl CasysBranch {
             row.iter().map(|v| json_to_py(py, v)).collect::<Vec<_>>().into_py(py)
         }).collect();
         dict.set_item("rows", py_rows)?;
+
+        // Stats (if available)
+        if let Some(stats) = result.stats {
+            let s = PyDict::new(py);
+            s.set_item("elapsed_ms", stats.elapsed_ms)?;
+            s.set_item("scanned", stats.scanned)?;
+            s.set_item("expanded", stats.expanded)?;
+            dict.set_item("stats", s)?;
+        }
         
         Ok(dict.into())
     }

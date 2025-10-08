@@ -99,6 +99,7 @@ impl<'a> Executor<'a> {
     }
 
     pub fn execute(&self, plan: &ExecutionPlan, write: Option<&mut dyn GraphWriteStore>) -> Result<QueryResult, EngineError> {
+        let start = std::time::Instant::now();
         let mut write_opt = write;
         let tuples = self.execute_node(&plan.root, &mut write_opt)?;
         
@@ -106,25 +107,30 @@ impl<'a> Executor<'a> {
         let mut columns: Vec<ColumnMeta> = Vec::new();
         let mut rows: Vec<Vec<serde_json::Value>> = Vec::new();
 
-        // Try to preserve column order based on top-level Project items
-        let mut ordered_names: Option<Vec<String>> = None;
-        match &plan.root {
-            super::planner::PlanNode::Project { items, .. } => {
-                let mut names = Vec::new();
-                for item in items {
-                    let name = item.alias.clone().unwrap_or_else(|| {
-                        match &item.expr {
-                            Expr::Ident(n) => n.clone(),
-                            Expr::Property(var, prop) => format!("{}.{}", var, prop),
-                            _ => "?".to_string(),
-                        }
-                    });
-                    names.push(name);
+        // Try to preserve column order based on the nearest Project node in the plan
+        fn projection_names_from_plan(node: &super::planner::PlanNode) -> Option<Vec<String>> {
+            match node {
+                super::planner::PlanNode::Project { items, .. } => {
+                    let mut names = Vec::new();
+                    for item in items {
+                        let name = item.alias.clone().unwrap_or_else(|| {
+                            match &item.expr {
+                                Expr::Ident(n) => n.clone(),
+                                Expr::Property(var, prop) => format!("{}.{}", var, prop),
+                                _ => "?".to_string(),
+                            }
+                        });
+                        names.push(name);
+                    }
+                    Some(names)
                 }
-                ordered_names = Some(names);
+                super::planner::PlanNode::OrderBy { input, .. } => projection_names_from_plan(input),
+                super::planner::PlanNode::Limit { input, .. } => projection_names_from_plan(input),
+                // Aggregate produces its own projection; leave None to derive from tuples
+                _ => None,
             }
-            _ => {}
         }
+        let ordered_names = projection_names_from_plan(&plan.root);
 
         if let Some(names) = ordered_names {
             // Use ordered names from RETURN items
@@ -156,10 +162,11 @@ impl<'a> Executor<'a> {
             }
         }
 
+        let elapsed_ms = start.elapsed().as_millis() as u64;
         Ok(QueryResult {
             columns,
             rows,
-            stats: None,
+            stats: Some(crate::types::QueryStats { elapsed_ms, scanned: 0, expanded: 0 }),
         })
     }
 
@@ -342,7 +349,9 @@ impl<'a> Executor<'a> {
                         let mut group_key = Vec::new();
                         for expr in group_by {
                             let val = self.eval_expr(expr, &tuple, None)?;
-                            group_key.push(format!("{:?}", val)); // Simple key serialization
+                            // Stable key serialization via JSON string
+                            let key = serde_json::to_string(&val.to_json()).unwrap_or("null".to_string());
+                            group_key.push(key);
                         }
                         groups.entry(group_key).or_insert_with(Vec::new).push(tuple);
                     }
@@ -416,11 +425,17 @@ impl<'a> Executor<'a> {
                     if let Some(Value::NodeId(from_id)) = tuple.get(from_var) {
                         // Check if variable-length path
                         if let Some(depth_range) = depth {
-                            // Variable-length traversal
+                            // Variable-length traversal with optional union edge types and direction
+                            let edge_types: Vec<&str> = if let Some(et) = edge_type {
+                                et.split('|').map(|s| s.trim()).filter(|s| !s.is_empty()).collect()
+                            } else {
+                                Vec::new()
+                            };
                             let reachable = self.traverse_variable_length(
                                 reader,
                                 *from_id,
-                                edge_type.as_deref(),
+                                &edge_types,
+                                direction.clone(),
                                 depth_range.min,
                                 depth_range.max,
                             )?;
@@ -496,16 +511,18 @@ impl<'a> Executor<'a> {
         }
     }
 
-    /// Traverse variable-length paths using BFS
+    /// Traverse variable-length paths using BFS with optional union edge types and direction
     fn traverse_variable_length(
         &self,
         reader: &dyn GraphReadStore,
         start_id: u64,
-        edge_type: Option<&str>,
+        edge_types: &[&str],
+        direction: super::ast::Direction,
         min_depth: u32,
         max_depth: u32,
     ) -> Result<Vec<crate::index::Node>, EngineError> {
         use std::collections::{HashSet, VecDeque};
+        use super::ast::Direction;
         
         let mut result = Vec::new();
         let mut visited = HashSet::new();
@@ -521,23 +538,37 @@ impl<'a> Executor<'a> {
                 continue;
             }
             
-            // Get neighbors
-            let neighbors = reader.get_neighbors(node_id, edge_type)?;
+            // Collect neighbors according to direction
+            let mut neighbors = match direction {
+                Direction::Right => reader.get_neighbors(node_id, None)?,
+                Direction::Left => reader.get_neighbors_incoming(node_id, None)?,
+                Direction::Both => {
+                    let mut out = reader.get_neighbors(node_id, None)?;
+                    let incoming = reader.get_neighbors_incoming(node_id, None)?;
+                    out.extend(incoming);
+                    out
+                }
+            };
+            
+            // Filter by edge types if provided
+            if !edge_types.is_empty() {
+                neighbors.retain(|(edge, _)| edge_types.contains(&edge.edge_type.as_str()));
+            }
             
             for (_edge, to_node) in neighbors {
-                if !visited.contains(&to_node.id) {
-                    visited.insert(to_node.id);
-                    
-                    // Add to result if within depth range
-                    let next_depth = depth + 1;
-                    if next_depth >= min_depth && next_depth <= max_depth {
-                        result.push(to_node.clone());
-                    }
-                    
-                    // Continue BFS if haven't reached max depth
-                    if next_depth < max_depth {
-                        queue.push_back((to_node.id, next_depth));
-                    }
+                if visited.contains(&to_node.id) {
+                    continue;
+                }
+                // Mark visited immediately to avoid duplicates across different parents
+                visited.insert(to_node.id);
+                let next_depth = depth + 1;
+                // Add to result if within depth range and exclude the origin node
+                if next_depth >= min_depth && next_depth <= max_depth && to_node.id != start_id {
+                    result.push(to_node.clone());
+                }
+                // Continue BFS if haven't reached max depth
+                if next_depth < max_depth {
+                    queue.push_back((to_node.id, next_depth));
                 }
             }
         }
@@ -627,10 +658,17 @@ impl<'a> Executor<'a> {
                                     };
                                     // Variable-length
                                     if let Some(depth) = &edge.depth {
+                                        // Support union edge types
+                                        let edge_types: Vec<&str> = edge
+                                            .edge_type
+                                            .as_deref()
+                                            .map(|s| s.split('|').map(|t| t.trim()).filter(|t| !t.is_empty()).collect())
+                                            .unwrap_or_else(|| Vec::new());
                                         let reachable = self.traverse_variable_length(
                                             reader,
                                             *from_id,
-                                            edge.edge_type.as_deref(),
+                                            &edge_types,
+                                            edge.direction.clone(),
                                             depth.min,
                                             depth.max,
                                         )?;

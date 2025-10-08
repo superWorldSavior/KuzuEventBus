@@ -475,7 +475,19 @@ impl Parser {
             };
 
             self.expect(Token::RightBracket)?; // consume ]
-            (var, typ, props, depth)
+            // Support quantifier outside bracket: -[:TYPE|TYPE2]*min..max-
+            let depth_outside = self.parse_depth_range()?;
+            let final_depth = match (depth, depth_outside) {
+                (Some(_), Some(_)) => {
+                    return Err(EngineError::InvalidArgument(
+                        "depth specified twice (inside and outside bracket)".into(),
+                    ));
+                }
+                (Some(d), None) => Some(d),
+                (None, Some(d)) => Some(d),
+                (None, None) => None,
+            };
+            (var, typ, props, final_depth)
         } else {
             (None, None, HashMap::new(), None)
         };

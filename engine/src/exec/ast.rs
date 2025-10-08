@@ -2,18 +2,30 @@
 
 use std::collections::{HashMap, HashSet};
 
+/// Multiple statements (batch execution)
+#[derive(Debug, Clone, PartialEq)]
+pub struct QueryBatch {
+    pub queries: Vec<Query>,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Query {
-    pub match_clause: MatchClause,
-    pub with_clause: Option<WithClause>,  // Pipeline transformation
+    pub match_clause: Option<MatchClause>,    // Optional MATCH
+    pub create_clause: Option<CreateClause>,  // Optional CREATE
+    pub with_clause: Option<WithClause>,      // Pipeline transformation
     pub where_clause: Option<WhereClause>,
-    pub return_clause: ReturnClause,
+    pub return_clause: Option<ReturnClause>,  // Optional for CREATE without RETURN
     pub order_by: Option<OrderByClause>,
     pub limit: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct MatchClause {
+    pub patterns: Vec<Pattern>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct CreateClause {
     pub patterns: Vec<Pattern>,
 }
 
@@ -166,9 +178,11 @@ impl Query {
             where_clause.expr.collect_parameters(&mut params);
         }
         
-        // Extract from RETURN clause
-        for item in &self.return_clause.items {
-            item.expr.collect_parameters(&mut params);
+        // Extract from RETURN clause (if present)
+        if let Some(ref return_clause) = self.return_clause {
+            for item in &return_clause.items {
+                item.expr.collect_parameters(&mut params);
+            }
         }
         
         // Extract from ORDER BY clause

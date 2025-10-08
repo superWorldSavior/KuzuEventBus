@@ -54,50 +54,46 @@
  * - pas de wrappers supplémentaires, uniquement styling ciblé
  */
 
-/* Boutons Starlight */
+/* Boutons Starlight - style normal */
 .sl-flex .sl-button,
 .sl-button {
-  border: 3px solid var(--sl-color-gray-6);
-  border-radius: 12px;
-  box-shadow: 5px 5px 0 var(--sl-color-accent-low);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .sl-flex .sl-button:hover,
 .sl-button:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 3px 3px 0 var(--sl-color-accent-low);
+  background: var(--sl-color-accent-low);
+  border-color: var(--sl-color-accent);
 }
 
 .sl-flex .sl-button.primary,
 .sl-button.primary {
-  /* Game Boy green style */
-  background: linear-gradient(135deg, var(--gb-green) 0%, var(--gb-green-strong) 100%);
-  border-color: var(--gb-green-dark);
-  box-shadow: 5px 5px 0 var(--gb-green-shadow);
-  color: #0f1a0f; /* meilleure lisibilité sur vert clair */
+  background: var(--sl-color-accent);
+  color: white;
+  border-color: var(--sl-color-accent);
 }
 
 .sl-flex .sl-button.primary:hover,
 .sl-button.primary:hover {
-  box-shadow: 3px 3px 0 var(--gb-green-shadow);
+  background: var(--sl-color-accent-high);
 }
 
 /* Blocs de code */
 .sl-markdown pre {
-  border: 3px solid var(--sl-color-gray-6);
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 var(--sl-color-accent-low);
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
 }
 
 /* Tables (docs comparatives) */
 .sl-markdown table {
-  border: 3px solid var(--sl-color-gray-6);
-  border-radius: 12px;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
 }
 .sl-markdown table th,
 .sl-markdown table td {
-  border-color: var(--sl-color-gray-6) !important;
+  border-color: var(--sl-color-gray-5) !important;
 }
 
 /* Sélection de texte visible dans la doc */
@@ -135,39 +131,39 @@
 /* Inline code plus lisible */
 .sl-markdown code:not(pre code) {
   background: var(--sl-color-accent-low);
-  border: 2px solid var(--sl-color-gray-6);
-  border-radius: 8px;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 4px;
   padding: .1rem .35rem;
 }
 
 /* Blockquote: rappel accent et fond doux */
 .sl-markdown blockquote {
-  border-left: 3px solid var(--sl-color-accent);
-  background: color-mix(in oklab, var(--sl-color-accent-low) 70%, transparent);
+  border-left: 4px solid var(--sl-color-accent);
+  background: color-mix(in oklab, var(--sl-color-accent-low) 50%, transparent);
   padding: .75rem 1rem;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 /* KBD: raccourcis visibles */
 .sl-markdown kbd {
-  border: 2px solid var(--sl-color-gray-6);
-  border-bottom-width: 3px;
-  border-radius: 8px;
+  border: 1px solid var(--sl-color-gray-5);
+  border-bottom-width: 2px;
+  border-radius: 4px;
   padding: .15rem .4rem;
   background: var(--sl-color-bg);
 }
 
-/* TOC (On this page): léger accent, pas d’over-wrapper */
+/* TOC (On this page): léger accent, pas d'over-wrapper */
 nav[aria-label*="On this page"] {
-  border: 2px solid var(--sl-color-gray-6);
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--sl-color-accent-low) 25%, transparent);
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--sl-color-accent-low) 15%, transparent);
 }
 nav[aria-label*="On this page"] a {
-  border-radius: 8px;
+  border-radius: 6px;
 }
 nav[aria-label*="On this page"] a:hover {
-  background: color-mix(in oklab, var(--sl-color-accent-low) 60%, transparent);
+  background: color-mix(in oklab, var(--sl-color-accent-low) 40%, transparent);
 }
 
 /* ===== Ciblage fallback sur le markup courant (.content-panel) ===== */
@@ -183,15 +179,13 @@ nav[aria-label*="On this page"] a:hover {
 .content-panel h3 { font-weight: 700; }
 
 .content-panel pre {
-  border: 3px solid var(--sl-color-gray-6);
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 var(--sl-color-accent-low);
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
 }
 
 .content-panel figure.frame.is-terminal { 
-  border: 3px solid var(--sl-color-gray-6);
-  border-radius: 12px;
-  box-shadow: 6px 6px 0 var(--sl-color-accent-low);
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 8px;
   position: relative;
   overflow: hidden;
 }
@@ -220,22 +214,22 @@ nav[aria-label*="On this page"] a:hover {
 
 .content-panel code:not(pre code) {
   background: var(--sl-color-accent-low);
-  border: 2px solid var(--sl-color-gray-6);
-  border-radius: 8px;
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: 4px;
   padding: .1rem .35rem;
 }
 
 .content-panel blockquote {
-  border-left: 3px solid var(--sl-color-accent);
-  background: color-mix(in oklab, var(--sl-color-accent-low) 70%, transparent);
+  border-left: 4px solid var(--sl-color-accent);
+  background: color-mix(in oklab, var(--sl-color-accent-low) 50%, transparent);
   padding: .75rem 1rem;
-  border-radius: 12px;
+  border-radius: 8px;
 }
 
 .content-panel kbd {
-  border: 2px solid var(--sl-color-gray-6);
-  border-bottom-width: 3px;
-  border-radius: 8px;
+  border: 1px solid var(--sl-color-gray-5);
+  border-bottom-width: 2px;
+  border-radius: 4px;
   padding: .15rem .4rem;
   background: var(--sl-color-bg);
 }
@@ -249,34 +243,32 @@ nav[aria-label*="On this page"] a:hover {
   color: var(--sl-color-text);
 }
 
-/* ===== Pagination Next/Previous: style bouton Game Boy ===== */
+/* ===== Pagination Next/Previous: style normal ===== */
 .pagination-links a {
   display: inline-flex;
   align-items: center;
   gap: .4rem;
-  background: linear-gradient(135deg, var(--gb-green) 0%, var(--gb-green-strong) 100%);
-  border: 3px solid var(--gb-green-dark);
-  border-radius: 12px;
-  box-shadow: 4px 4px 0 var(--gb-green-shadow);
-  color: #0f1a0f;
+  background: var(--sl-color-accent);
+  border: 1px solid var(--sl-color-accent);
+  border-radius: 8px;
+  color: white;
   padding: .55rem .9rem;
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: none;
+  transition: all 0.2s ease;
 }
 .pagination-links a:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 2px 2px 0 var(--gb-green-shadow);
+  background: var(--sl-color-accent-high);
 }
 
 /* ===== Bouton Copy des blocs terminal ===== */
 .content-panel figure.frame .copy > button {
-  background: linear-gradient(135deg, var(--gb-green) 0%, var(--gb-green-strong) 100%);
-  border: 2px solid var(--gb-green-dark);
-  border-radius: 10px;
-  box-shadow: 3px 3px 0 var(--gb-green-shadow);
-  color: #0f1a0f;
+  background: var(--sl-color-accent);
+  border: 1px solid var(--sl-color-accent);
+  border-radius: 6px;
+  color: white;
+  transition: all 0.2s ease;
 }
 .content-panel figure.frame .copy > button:hover {
-  transform: translate(1px, 1px);
-  box-shadow: 2px 2px 0 var(--gb-green-shadow);
+  background: var(--sl-color-accent-high);
 }

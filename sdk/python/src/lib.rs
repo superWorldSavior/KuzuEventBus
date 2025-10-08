@@ -8,7 +8,7 @@ use std::path::PathBuf;
 
 use ::casys_engine as engine;
 use engine::types::{DatabaseName, BranchName};
-use engine::index::{InMemoryGraphStore, GraphStore};
+use engine::index::{InMemoryGraphStore, GraphReadStore, GraphWriteStore};
 use engine::exec::{parser, planner::Planner, executor::Executor, executor::Value};
 
 /// Engine principal pour gérer les bases de données Casys
@@ -146,13 +146,26 @@ impl CasysBranch {
         }
         
         // Exécute
-        let store = self.store.lock().unwrap();
-        let executor = if parameters.is_empty() {
-            Executor::new(&*store)
+        let mut store = self.store.lock().unwrap();
+        // If CREATE is present, route through write handle and no explicit read handle (Option B)
+        let result = if ast.create_clause.is_some() {
+            let mut write: Option<&mut dyn GraphWriteStore> = Some(&mut *store);
+            let executor = if parameters.is_empty() {
+                Executor::new_no_read()
+            } else {
+                Executor::with_parameters_no_read(parameters)
+            };
+            executor.execute(&plan, write)
         } else {
-            Executor::with_parameters(&*store, parameters)
-        };
-        let result = executor.execute(&plan)
+            // Read-only path: use explicit read store and no write handle
+            let read = &*store as &dyn GraphReadStore;
+            let executor = if parameters.is_empty() {
+                Executor::new(read)
+            } else {
+                Executor::with_parameters(read, parameters)
+            };
+            executor.execute(&plan, None)
+        }
             .map_err(|e| PyRuntimeError::new_err(format!("Execution error: {:?}", e)))?;
         
         // Convert to Python dict

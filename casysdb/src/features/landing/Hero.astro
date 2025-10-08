@@ -50,18 +50,18 @@ const t = locale === 'fr'
         <!-- Subtitle -->
         <p class="text-xl sm:text-2xl" style="color: var(--text-secondary);">{t.subtitle}</p>
 
-        <!-- CTAs - Brutalist style -->
+        <!-- CTAs - Style normal -->
         <div class="flex flex-col sm:flex-row gap-4">
           <a
             href="/getting-started/installation/"
-            class="brutal-btn brutal-btn-primary text-center">
+            class="cta-btn cta-btn-primary text-center">
             {t.ctaDoc}
           </a>
           <a
             href="https://github.com/casysai/casysdb"
             target="_blank"
             rel="noopener noreferrer"
-            class="brutal-btn brutal-btn-secondary text-center">
+            class="cta-btn cta-btn-secondary text-center">
             <span class="flex items-center justify-center gap-2">
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
@@ -71,15 +71,15 @@ const t = locale === 'fr'
           </a>
         </div>
 
-        <!-- Quick install - Brutalist cards -->
+        <!-- Quick install - Cards normales -->
         <div>
           <p class="text-sm font-semibold mb-3 uppercase tracking-wide" style="color: var(--muted);">{t.installTitle}</p>
           <div class="flex flex-col gap-3">
-            <div class="brutal-card p-4 font-mono text-sm">
+            <div class="install-card p-4 font-mono text-sm">
               <span style="color: var(--muted);"># Python</span><br/>
               <span style="color: var(--acc);">pip install</span> <span style="color: var(--text-primary);">casys-db</span>
             </div>
-            <div class="brutal-card p-4 font-mono text-sm">
+            <div class="install-card p-4 font-mono text-sm">
               <span style="color: var(--muted);"># TypeScript/Node.js</span><br/>
               <span style="color: var(--acc);">npm install</span> <span style="color: var(--text-primary);">casys-db</span>
             </div>
@@ -110,8 +110,8 @@ const t = locale === 'fr'
           </button>
         </div>
 
-        <!-- Code content - flex to fill remaining space - Brutalist -->
-        <div class="brutal-card p-6 font-mono text-sm leading-relaxed code-container flex-1 overflow-y-auto">
+        <!-- Code content - flex to fill remaining space -->
+        <div class="code-card p-6 font-mono text-sm leading-relaxed code-container flex-1 overflow-y-auto">
           <!-- Step 1: Setup -->
           <pre class="workflow-content active" data-content="1"><code><span class="comment"># Setup: Knowledge Graph pour RAG</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> Database, Session
@@ -212,21 +212,21 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
 
     </div>
 
-    <!-- Features showcase - Brutalist cards -->
+    <!-- Features showcase - Cards normales -->
     <div class="grid md:grid-cols-3 gap-6 mt-16">
-      <div class="brutal-card text-center p-6 brutal-hover">
+      <div class="feature-card text-center p-6">
         <div class="text-4xl mb-3">⚡</div>
         <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">{locale === 'fr' ? 'Embarquée' : 'Embedded'}</h3>
         <p class="text-sm" style="color: var(--text-secondary);">{locale === 'fr' ? 'Zéro serveur, s\'exécute dans votre process' : 'Zero servers, runs in your process'}</p>
       </div>
       
-      <div class="brutal-card text-center p-6 brutal-hover">
+      <div class="feature-card text-center p-6">
         <div class="text-4xl mb-3">📊</div>
         <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">ISO GQL</h3>
         <p class="text-sm" style="color: var(--text-secondary);">{locale === 'fr' ? 'Langage standard de requêtes graphe' : 'Standard graph query language'}</p>
       </div>
       
-      <div class="brutal-card text-center p-6 brutal-hover">
+      <div class="feature-card text-center p-6">
         <div class="text-4xl mb-3">🔄</div>
         <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">MVCC</h3>
         <p class="text-sm" style="color: var(--text-secondary);">{locale === 'fr' ? 'Transactions isolées, lecture cohérente' : 'Isolated transactions, consistent reads'}</p>
@@ -240,63 +240,57 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
 </section>
 
 <style>
-/* Brutalist Design System - Cassis themed */
-.brutal-card {
+/* Design System - Cassis themed */
+.install-card, .code-card, .feature-card {
   background: var(--card-bg);
-  border: 3px solid #000;
+  border: 1px solid var(--border);
   border-radius: 12px;
-  box-shadow: 6px 6px 0 #9f7aea;
   transition: all 0.2s;
 }
 
-:global(.dark) .brutal-card {
-  border-color: #fff;
-  box-shadow: 6px 6px 0 #7C4BB2;
+.feature-card:hover {
+  border-color: var(--acc);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(91, 46, 126, 0.1);
 }
 
-.brutal-hover:hover {
-  transform: translate(3px, 3px);
-  box-shadow: 3px 3px 0 #9f7aea;
+:global(.dark) .feature-card:hover {
+  box-shadow: 0 4px 12px rgba(124, 75, 178, 0.2);
 }
 
-:global(.dark) .brutal-hover:hover {
-  box-shadow: 3px 3px 0 #7C4BB2;
-}
-
-.brutal-btn {
-  px: 2rem;
+.cta-btn {
   padding: 1rem 2rem;
-  border-radius: 12px;
+  border-radius: 8px;
   font-weight: 600;
-  border: 3px solid #000;
-  box-shadow: 5px 5px 0 #9f7aea;
+  border: 1px solid var(--border);
   transition: all 0.2s;
   text-decoration: none;
   display: inline-block;
 }
 
-.brutal-btn:hover {
-  transform: translate(2px, 2px);
-  box-shadow: 3px 3px 0 #9f7aea;
+.cta-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(91, 46, 126, 0.15);
 }
 
-.brutal-btn-primary {
+.cta-btn-primary {
   background: linear-gradient(135deg, #5B2E7E, #6C3A94);
   color: white;
+  border-color: #5B2E7E;
 }
 
-.brutal-btn-secondary {
+.cta-btn-primary:hover {
+  background: linear-gradient(135deg, #6C3A94, #7C4BB2);
+}
+
+.cta-btn-secondary {
   background: var(--surface);
   color: var(--text-primary);
 }
 
-:global(.dark) .brutal-btn {
-  border-color: #fff;
-  box-shadow: 5px 5px 0 #7C4BB2;
-}
-
-:global(.dark) .brutal-btn:hover {
-  box-shadow: 3px 3px 0 #7C4BB2;
+.cta-btn-secondary:hover {
+  background: var(--acc-soft);
+  border-color: var(--acc);
 }
 
 /* VS Code Light Theme (exact colors) */

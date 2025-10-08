@@ -1,7 +1,8 @@
 use casys::exec::parser::parse;
 use casys::exec::planner::Planner;
 use casys::exec::executor::{Executor, Value};
-use casys::index::{InMemoryGraphStore, GraphStore};
+use casys::index::InMemoryGraphStore;
+use casys::index::GraphWriteStore;
 use std::collections::HashMap;
 
 #[test]
@@ -18,7 +19,8 @@ fn test_parse_exists_simple() {
     match where_clause.expr {
         casys::exec::ast::Expr::Exists(subquery) => {
             // Vérifier que la sous-requête a un MATCH
-            assert!(subquery.match_clause.patterns.len() > 0);
+            assert!(subquery.match_clause.is_some());
+            assert!(subquery.match_clause.as_ref().unwrap().patterns.len() > 0);
         }
         _ => panic!("Expected EXISTS expression"),
     }
@@ -49,7 +51,7 @@ fn test_exists_with_results() {
     let ast = parse(query).unwrap();
     let plan = Planner::plan(&ast).unwrap();
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).unwrap();
+    let result = executor.execute(&plan, None).unwrap();
     
     // Devrait retourner seulement Article1
     assert_eq!(result.rows.len(), 1);
@@ -71,7 +73,7 @@ fn test_exists_no_results() {
     let ast = parse(query).unwrap();
     let plan = Planner::plan(&ast).unwrap();
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).unwrap();
+    let result = executor.execute(&plan, None).unwrap();
     
     // Devrait retourner 0 résultats
     assert_eq!(result.rows.len(), 0);
@@ -100,7 +102,7 @@ fn test_exists_with_not() {
     let ast = parse(query).unwrap();
     let plan = Planner::plan(&ast).unwrap();
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).unwrap();
+    let result = executor.execute(&plan, None).unwrap();
     
     // Devrait retourner Article2 (qui n'a pas de tag)
     assert_eq!(result.rows.len(), 1);
@@ -132,7 +134,7 @@ fn test_exists_with_parameter() {
     params.insert("status".to_string(), Value::String("published".to_string()));
     
     let executor = Executor::with_parameters(&store, params);
-    let result = executor.execute(&plan).unwrap();
+    let result = executor.execute(&plan, None).unwrap();
     
     assert_eq!(result.rows.len(), 1);
     let title = &result.rows[0][0];

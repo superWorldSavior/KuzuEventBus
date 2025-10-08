@@ -1,5 +1,6 @@
 use casys::{Engine, DatabaseName, BranchName};
-use casys::index::{InMemoryGraphStore, GraphStore};
+use casys::index::InMemoryGraphStore;
+use casys::index::GraphWriteStore;
 use casys::exec::{parser, planner::Planner, executor::Executor};
 
 #[test]
@@ -27,7 +28,7 @@ fn test_variable_length_path_exact_depth() {
     let ast = parser::parse(gql).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Should return Charlie (2 hops from Alice)
     assert_eq!(result.rows.len(), 1);
@@ -56,7 +57,7 @@ fn test_variable_length_path_range() {
     let ast = parser::parse(gql).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Should return Bob (1 hop) and Charlie (2 hops)
     assert_eq!(result.rows.len(), 2);
@@ -86,7 +87,7 @@ fn test_variable_length_path_shorthand() {
     let ast = parser::parse(gql).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Should return Bob (1 hop)
     assert_eq!(result.rows.len(), 1);

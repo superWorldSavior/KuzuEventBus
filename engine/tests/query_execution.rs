@@ -1,5 +1,6 @@
 use casys::exec::{parser, planner::Planner, executor::{Executor, Value}};
-use casys::index::{InMemoryGraphStore, GraphStore};
+use casys::index::InMemoryGraphStore;
+use casys::index::GraphWriteStore;
 use std::collections::HashMap;
 
 #[test]
@@ -21,7 +22,7 @@ fn execute_simple_match_return() {
     
     // Execute query
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     assert_eq!(result.columns.len(), 1);
     assert_eq!(result.rows.len(), 1);
@@ -47,7 +48,7 @@ fn execute_match_with_where_filter() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Should only return Alice (age 30 > 28)
     assert_eq!(result.rows.len(), 1);
@@ -69,7 +70,7 @@ fn execute_match_with_limit() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     assert_eq!(result.rows.len(), 3);
 }
@@ -88,7 +89,7 @@ fn execute_full_scan_without_label() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     assert_eq!(result.rows.len(), 3);
 }
@@ -107,7 +108,7 @@ fn execute_label_scan() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Should only return Person nodes
     assert_eq!(result.rows.len(), 2);
@@ -129,7 +130,7 @@ fn execute_order_by_ascending() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Results should be sorted: 20, 25, 30, 40
     assert_eq!(result.rows.len(), 4);
@@ -155,7 +156,7 @@ fn execute_order_by_descending() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Results should be sorted descending: 40, 30, 20
     assert_eq!(result.rows.len(), 3);
@@ -187,7 +188,7 @@ fn execute_edge_pattern_traversal() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Should return one row with Alice and Bob (order may vary due to HashMap)
     assert_eq!(result.rows.len(), 1);
@@ -214,7 +215,7 @@ fn execute_count_aggregate() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     assert_eq!(result.rows.len(), 1);
     assert_eq!(result.rows[0][0], serde_json::Value::Number(5.into()));
@@ -236,7 +237,7 @@ fn execute_sum_avg_min_max_aggregates() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     assert_eq!(result.rows.len(), 1);
     // Sum = 90.0, Avg = 30.0, Min = 20.0, Max = 40.0
@@ -268,7 +269,7 @@ fn execute_group_by_with_count() {
     let ast = parser::parse(query).expect("parse");
     let plan = Planner::plan(&ast).expect("plan");
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).expect("execute");
+    let result = executor.execute(&plan, None).expect("execute");
     
     // Should have 2 groups
     assert_eq!(result.rows.len(), 2);

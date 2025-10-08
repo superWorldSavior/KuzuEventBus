@@ -1,9 +1,9 @@
 //! Executor: exécute le plan via itérateurs
 
 use super::planner::{ExecutionPlan, PlanNode};
-use super::ast::{Expr, BinOp, UnOp, Literal, AggFunc};
+use super::ast::{Expr, BinOp, UnOp, Literal, AggFunc, Pattern};
 use crate::types::{EngineError, QueryResult, ColumnMeta};
-use crate::index::{GraphStore, NodeId};
+use crate::index::{GraphReadStore, GraphWriteStore, NodeId};
 use std::collections::HashMap;
 
 pub type Tuple = HashMap<String, Value>;
@@ -48,20 +48,41 @@ impl Value {
 }
 
 pub struct Executor<'a> {
-    store: &'a dyn GraphStore,
+    read: Option<&'a dyn GraphReadStore>,
     parameters: HashMap<String, Value>,
 }
 
 impl<'a> Executor<'a> {
-    pub fn new(store: &'a dyn GraphStore) -> Self {
+    /// Resolve a read-capable store: prefer self.read, fallback to provided write handle
+    fn reader<'r>(&'r self, write: Option<&'r mut dyn GraphWriteStore>) -> Result<&'r dyn GraphReadStore, EngineError> {
+        if let Some(r) = self.read {
+            return Ok(r);
+        }
+        if let Some(w) = write {
+            return Ok(&*w);
+        }
+        Err(EngineError::InvalidArgument("read-capable store required".into()))
+    }
+    pub fn new(read: &'a dyn GraphReadStore) -> Self {
         Self { 
-            store,
+            read: Some(read),
             parameters: HashMap::new(),
         }
     }
 
-    pub fn with_parameters(store: &'a dyn GraphStore, parameters: HashMap<String, Value>) -> Self {
-        Self { store, parameters }
+    pub fn new_no_read() -> Self {
+        Self {
+            read: None,
+            parameters: HashMap::new(),
+        }
+    }
+    
+    pub fn with_parameters(read: &'a dyn GraphReadStore, parameters: HashMap<String, Value>) -> Self {
+        Self { read: Some(read), parameters }
+    }
+
+    pub fn with_parameters_no_read(parameters: HashMap<String, Value>) -> Self {
+        Self { read: None, parameters }
     }
 
     /// Validate that all required parameters are bound
@@ -77,29 +98,62 @@ impl<'a> Executor<'a> {
         Ok(())
     }
 
-    pub fn execute(&self, plan: &ExecutionPlan) -> Result<QueryResult, EngineError> {
-        let tuples = self.execute_node(&plan.root)?;
+    pub fn execute(&self, plan: &ExecutionPlan, write: Option<&mut dyn GraphWriteStore>) -> Result<QueryResult, EngineError> {
+        let mut write_opt = write;
+        let tuples = self.execute_node(&plan.root, &mut write_opt)?;
         
         // Convert tuples to QueryResult format
-        let mut columns = Vec::new();
-        let mut rows = Vec::new();
+        let mut columns: Vec<ColumnMeta> = Vec::new();
+        let mut rows: Vec<Vec<serde_json::Value>> = Vec::new();
 
-        if let Some(first) = tuples.first() {
-            for key in first.keys() {
-                columns.push(ColumnMeta {
-                    name: key.clone(),
-                    r#type: "any".to_string(),
-                });
+        // Try to preserve column order based on top-level Project items
+        let mut ordered_names: Option<Vec<String>> = None;
+        match &plan.root {
+            super::planner::PlanNode::Project { items, .. } => {
+                let mut names = Vec::new();
+                for item in items {
+                    let name = item.alias.clone().unwrap_or_else(|| {
+                        match &item.expr {
+                            Expr::Ident(n) => n.clone(),
+                            Expr::Property(var, prop) => format!("{}.{}", var, prop),
+                            _ => "?".to_string(),
+                        }
+                    });
+                    names.push(name);
+                }
+                ordered_names = Some(names);
             }
+            _ => {}
         }
 
-        for tuple in tuples {
-            let mut row = Vec::new();
-            for col in &columns {
-                let val = tuple.get(&col.name).cloned().unwrap_or(Value::Null);
-                row.push(val.to_json());
+        if let Some(names) = ordered_names {
+            // Use ordered names from RETURN items
+            for n in &names {
+                columns.push(ColumnMeta { name: n.clone(), r#type: "any".to_string() });
             }
-            rows.push(row);
+            for tuple in tuples {
+                let mut row = Vec::new();
+                for n in &names {
+                    let val = tuple.get(n).cloned().unwrap_or(Value::Null);
+                    row.push(val.to_json());
+                }
+                rows.push(row);
+            }
+        } else {
+            // Fallback: derive columns from first tuple (unordered)
+            if let Some(first) = tuples.first() {
+                for key in first.keys() {
+                    columns.push(ColumnMeta { name: key.clone(), r#type: "any".to_string() });
+                }
+            }
+            for tuple in tuples {
+                let mut row = Vec::new();
+                for col in &columns {
+                    let val = tuple.get(&col.name).cloned().unwrap_or(Value::Null);
+                    row.push(val.to_json());
+                }
+                rows.push(row);
+            }
         }
 
         Ok(QueryResult {
@@ -109,18 +163,67 @@ impl<'a> Executor<'a> {
         })
     }
 
-    fn execute_node(&self, node: &PlanNode) -> Result<Vec<Tuple>, EngineError> {
-        self.execute_node_with_context(node, &HashMap::new())
+    fn execute_node(&self, node: &PlanNode, write: &mut Option<&mut dyn GraphWriteStore>) -> Result<Vec<Tuple>, EngineError> {
+        self.execute_node_with_context(node, &HashMap::new(), write)
     }
-    fn execute_node_with_context(&self, node: &PlanNode, parent_tuple: &Tuple) -> Result<Vec<Tuple>, EngineError> {
+    fn execute_node_with_context(&self, node: &PlanNode, parent_tuple: &Tuple, write: &mut Option<&mut dyn GraphWriteStore>) -> Result<Vec<Tuple>, EngineError> {
         match node {
+            PlanNode::Create { patterns } => {
+                if let Some(w) = write.as_deref_mut() {
+                    self.execute_create(patterns, parent_tuple, Some(w))
+                } else {
+                    Err(EngineError::InvalidArgument("CREATE requires a write-capable store".into()))
+                }
+            }
+            PlanNode::MatchCreate { match_input, create_patterns } => {
+                // For each matched tuple, execute CREATE with that context
+                let match_tuples = {
+                    self.execute_node_with_context(match_input, parent_tuple, write)?
+                };
+                if let Some(wi) = write.as_deref_mut() {
+                    let mut all_results = Vec::new();
+                    for tuple in match_tuples {
+                        let created = self.execute_create(create_patterns, &tuple, Some(wi))?;
+                        all_results.extend(created);
+                    }
+                    Ok(all_results)
+                } else {
+                    Err(EngineError::InvalidArgument("CREATE requires a write-capable store".into()))
+                }
+            }
+            PlanNode::CartesianProduct { left, right } => {
+                // Execute both sides
+                let left_tuples = { self.execute_node_with_context(left, parent_tuple, write)? };
+                let right_tuples = { self.execute_node_with_context(right, parent_tuple, write)? };
+                
+                // Cartesian product: combine every tuple from left with every tuple from right
+                let mut result = Vec::new();
+                for left_tuple in &left_tuples {
+                    for right_tuple in &right_tuples {
+                        let mut combined = left_tuple.clone();
+                        // Merge right tuple into combined (right values overwrite if keys conflict)
+                        for (k, v) in right_tuple {
+                            combined.insert(k.clone(), v.clone());
+                        }
+                        result.push(combined);
+                    }
+                }
+                Ok(result)
+            }
             PlanNode::LabelScan { variable, label } => {
                 // Check if variable already exists in parent tuple (correlated subquery)
                 if let Some(existing_node_id) = parent_tuple.get(variable) {
                     // Variable exists in parent context - use it directly (correlated)
                     if let Value::NodeId(node_id) = existing_node_id {
                         // Fetch the node to verify it has the correct label
-                        if let Ok(Some(node)) = self.store.get_node(*node_id) {
+                        let node_opt = if let Some(r) = self.read {
+                            r.get_node(*node_id)?
+                        } else if let Some(w) = write.as_deref_mut() {
+                            w.get_node(*node_id)?
+                        } else {
+                            None
+                        };
+                        if let Some(node) = node_opt {
                             if node.labels.contains(label) {
                                 // Node matches - return single tuple with parent context
                                 let mut tuple = parent_tuple.clone();
@@ -138,7 +241,13 @@ impl<'a> Executor<'a> {
                 }
                 
                 // Variable doesn't exist in parent - normal scan
-                let nodes = self.store.scan_by_label(label)?;
+                let nodes = if let Some(r) = self.read {
+                    r.scan_by_label(label)?
+                } else if let Some(w) = write.as_deref_mut() {
+                    w.scan_by_label(label)?
+                } else {
+                    Vec::new()
+                };
                 Ok(nodes.into_iter().map(|n| {
                     let mut tuple = parent_tuple.clone();
                     tuple.insert(variable.clone(), Value::NodeId(n.id));
@@ -153,7 +262,12 @@ impl<'a> Executor<'a> {
                 // Correlated subquery: if the variable already exists in parent context, reuse it
                 if let Some(existing_node_id) = parent_tuple.get(variable) {
                     if let Value::NodeId(node_id) = existing_node_id {
-                        if let Ok(Some(node)) = self.store.get_node(*node_id) {
+                        let node_opt = if let Some(r) = self.read {
+                            r.get_node(*node_id)?
+                        } else if let Some(w) = write.as_deref_mut() {
+                            w.get_node(*node_id)?
+                        } else { None };
+                        if let Some(node) = node_opt {
                             let mut tuple = parent_tuple.clone();
                             tuple.insert(variable.clone(), Value::NodeId(*node_id));
                             for (k, v) in node.properties {
@@ -167,7 +281,7 @@ impl<'a> Executor<'a> {
                     return Ok(vec![]);
                 }
                 // Non-correlated: scan all nodes
-                let nodes = self.store.scan_all()?;
+                let nodes = if let Some(r) = self.read { r.scan_all()? } else if let Some(w) = write.as_deref_mut() { w.scan_all()? } else { Vec::new() };
                 Ok(nodes.into_iter().map(|n| {
                     let mut tuple = parent_tuple.clone();
                     tuple.insert(variable.clone(), Value::NodeId(n.id));
@@ -179,9 +293,9 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::Filter { input, predicate } => {
-                let tuples = self.execute_node_with_context(input, parent_tuple)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple, write)?;
                 Ok(tuples.into_iter().filter(|t| {
-                    self.eval_expr(predicate, t).ok()
+                    self.eval_expr(predicate, t, None).ok()
                         .and_then(|v| match v {
                             Value::Bool(b) => Some(b),
                             _ => None,
@@ -190,11 +304,11 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::Project { input, items } => {
-                let tuples = self.execute_node_with_context(input, parent_tuple)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple, write)?;
                 Ok(tuples.into_iter().map(|t| {
                     let mut result = HashMap::new();
                     for item in items {
-                        if let Ok(val) = self.eval_expr(&item.expr, &t) {
+                        if let Ok(val) = self.eval_expr(&item.expr, &t, None) {
                             let key = item.alias.clone().unwrap_or_else(|| {
                                 match &item.expr {
                                     Expr::Ident(name) => name.clone(),
@@ -209,13 +323,13 @@ impl<'a> Executor<'a> {
                 }).collect())
             }
             PlanNode::Aggregate { input, group_by, aggregates } => {
-                let tuples = self.execute_node_with_context(input, parent_tuple)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple, write)?;
                 
                 if group_by.is_empty() {
                     // Global aggregation (no GROUP BY)
                     let mut result = HashMap::new();
                     for (alias, agg_expr) in aggregates {
-                        let val = self.eval_aggregate(agg_expr, &tuples)?;
+                        let val = self.eval_aggregate(agg_expr, &tuples, None)?;
                         result.insert(alias.clone(), val);
                     }
                     Ok(vec![result])
@@ -227,7 +341,7 @@ impl<'a> Executor<'a> {
                     for tuple in tuples {
                         let mut group_key = Vec::new();
                         for expr in group_by {
-                            let val = self.eval_expr(expr, &tuple)?;
+                            let val = self.eval_expr(expr, &tuple, None)?;
                             group_key.push(format!("{:?}", val)); // Simple key serialization
                         }
                         groups.entry(group_key).or_insert_with(Vec::new).push(tuple);
@@ -241,7 +355,7 @@ impl<'a> Executor<'a> {
                         // Add GROUP BY columns (from first tuple of group)
                         if let Some(first) = group_tuples.first() {
                             for (idx, expr) in group_by.iter().enumerate() {
-                                let val = self.eval_expr(expr, first)?;
+                                let val = self.eval_expr(expr, first, None)?;
                                 let key = match expr {
                                     Expr::Ident(name) => name.clone(),
                                     Expr::Property(var, prop) => format!("{}.{}", var, prop),
@@ -253,7 +367,7 @@ impl<'a> Executor<'a> {
                         
                         // Compute aggregates
                         for (alias, agg_expr) in aggregates {
-                            let val = self.eval_aggregate(agg_expr, &group_tuples)?;
+                            let val = self.eval_aggregate(agg_expr, &group_tuples, None)?;
                             result.insert(alias.clone(), val);
                         }
                         
@@ -264,11 +378,11 @@ impl<'a> Executor<'a> {
                 }
             }
             PlanNode::OrderBy { input, items } => {
-                let mut tuples = self.execute_node_with_context(input, parent_tuple)?;
+                let mut tuples = self.execute_node_with_context(input, parent_tuple, write)?;
                 tuples.sort_by(|a, b| {
                     for item in items {
-                        let val_a = self.eval_expr(&item.expr, a).ok();
-                        let val_b = self.eval_expr(&item.expr, b).ok();
+                        let val_a = self.eval_expr(&item.expr, a, None).ok();
+                        let val_b = self.eval_expr(&item.expr, b, None).ok();
                         let cmp = match (val_a, val_b) {
                             (Some(Value::Int(ia)), Some(Value::Int(ib))) => ia.cmp(&ib),
                             (Some(Value::Float(fa)), Some(Value::Float(fb))) => {
@@ -286,14 +400,16 @@ impl<'a> Executor<'a> {
                 Ok(tuples)
             }
             PlanNode::Limit { input, count } => {
-                let tuples = self.execute_node_with_context(input, parent_tuple)?;
+                let tuples = self.execute_node_with_context(input, parent_tuple, write)?;
                 Ok(tuples.into_iter().take(*count as usize).collect())
             }
             PlanNode::Expand { input, from_var, edge_var, to_var, edge_type, direction, depth } => {
                 use super::ast::Direction;
                 
-                let input_tuples = self.execute_node_with_context(input, parent_tuple)?;
+                let input_tuples = { self.execute_node_with_context(input, parent_tuple, write)? };
                 let mut result = Vec::new();
+                // Resolve reader once to avoid repeated mutable borrows of `write`
+                let reader: &dyn GraphReadStore = if let Some(r) = self.read { r } else if let Some(w) = write.as_deref_mut() { w } else { return Ok(result) };
 
                 for tuple in input_tuples {
                     // Get from_node_id
@@ -302,10 +418,11 @@ impl<'a> Executor<'a> {
                         if let Some(depth_range) = depth {
                             // Variable-length traversal
                             let reachable = self.traverse_variable_length(
+                                reader,
                                 *from_id,
                                 edge_type.as_deref(),
                                 depth_range.min,
-                                depth_range.max
+                                depth_range.max,
                             )?;
                             
                             for to_node in reachable {
@@ -325,30 +442,27 @@ impl<'a> Executor<'a> {
                             } else {
                                 vec![]
                             };
-                            
                             let mut neighbors = match direction {
                                 Direction::Right => {
                                     // Outgoing: (from)-[:REL]->(to)
-                                    self.store.get_neighbors(*from_id, None)?
+                                    reader.get_neighbors(*from_id, None)?
                                 }
                                 Direction::Left => {
                                     // Incoming: (to)-[:REL]->(from) donc on cherche incoming
-                                    self.store.get_neighbors_incoming(*from_id, None)?
+                                    reader.get_neighbors_incoming(*from_id, None)?
                                 }
                                 Direction::Both => {
                                     // Both directions: combine outgoing + incoming
-                                    let mut out = self.store.get_neighbors(*from_id, None)?;
-                                    let incoming = self.store.get_neighbors_incoming(*from_id, None)?;
+                                    let mut out = reader.get_neighbors(*from_id, None)?;
+                                    let incoming = reader.get_neighbors_incoming(*from_id, None)?;
                                     out.extend(incoming);
                                     out
                                 }
                             };
-                            
                             // Filter by edge types if union specified
                             if !edge_types.is_empty() {
                                 neighbors.retain(|(edge, _)| edge_types.contains(&edge.edge_type.as_str()));
                             }
-                            
                             for (edge, to_node) in neighbors {
                                 let mut new_tuple = tuple.clone();
                                 
@@ -385,10 +499,11 @@ impl<'a> Executor<'a> {
     /// Traverse variable-length paths using BFS
     fn traverse_variable_length(
         &self,
+        reader: &dyn GraphReadStore,
         start_id: u64,
         edge_type: Option<&str>,
         min_depth: u32,
-        max_depth: u32
+        max_depth: u32,
     ) -> Result<Vec<crate::index::Node>, EngineError> {
         use std::collections::{HashSet, VecDeque};
         
@@ -407,7 +522,7 @@ impl<'a> Executor<'a> {
             }
             
             // Get neighbors
-            let neighbors = self.store.get_neighbors(node_id, edge_type)?;
+            let neighbors = reader.get_neighbors(node_id, edge_type)?;
             
             for (_edge, to_node) in neighbors {
                 if !visited.contains(&to_node.id) {
@@ -430,7 +545,7 @@ impl<'a> Executor<'a> {
         Ok(result)
     }
 
-    fn eval_expr(&self, expr: &Expr, tuple: &Tuple) -> Result<Value, EngineError> {
+    fn eval_expr<'w>(&'w self, expr: &Expr, tuple: &Tuple, mut write: Option<&'w mut dyn GraphWriteStore>) -> Result<Value, EngineError> {
         match expr {
             Expr::Literal(lit) => Ok(match lit {
                 Literal::String(s) => Value::String(s.clone()),
@@ -449,12 +564,12 @@ impl<'a> Executor<'a> {
                     .ok_or_else(|| EngineError::InvalidArgument(format!("property not found: {}", key)))
             }
             Expr::BinaryOp(left, op, right) => {
-                let l = self.eval_expr(left, tuple)?;
-                let r = self.eval_expr(right, tuple)?;
+                let l = self.eval_expr(left, tuple, None)?;
+                let r = self.eval_expr(right, tuple, None)?;
                 self.eval_binary_op(&l, op, &r)
             }
             Expr::UnaryOp(op, operand) => {
-                let val = self.eval_expr(operand, tuple)?;
+                let val = self.eval_expr(operand, tuple, None)?;
                 match op {
                     UnOp::Not => match val {
                         Value::Bool(b) => Ok(Value::Bool(!b)),
@@ -472,11 +587,11 @@ impl<'a> Executor<'a> {
                     )))
             }
             Expr::IsNull(expr) => {
-                let val = self.eval_expr(expr, tuple)?;
+                let val = self.eval_expr(expr, tuple, None)?;
                 Ok(Value::Bool(matches!(val, Value::Null)))
             }
             Expr::IsNotNull(expr) => {
-                let val = self.eval_expr(expr, tuple)?;
+                let val = self.eval_expr(expr, tuple, None)?;
                 Ok(Value::Bool(!matches!(val, Value::Null)))
             }
             Expr::FunctionCall(name, args) => {
@@ -486,7 +601,7 @@ impl<'a> Executor<'a> {
                         if args.len() != 1 {
                             return Err(EngineError::InvalidArgument("ID() requires exactly 1 argument".into()));
                         }
-                        let arg_val = self.eval_expr(&args[0], tuple)?;
+                        let arg_val = self.eval_expr(&args[0], tuple, None)?;
                         match arg_val {
                             Value::NodeId(id) => Ok(Value::Int(id as i64)),
                             _ => Err(EngineError::InvalidArgument("ID() requires a node argument".into())),
@@ -496,48 +611,59 @@ impl<'a> Executor<'a> {
                 }
             }
             Expr::Exists(subquery) => {
-                // Only use fast-path if there is no WHERE clause inside the subquery
-                if subquery.where_clause.is_none() {
-                    // Fast-path: if subquery is a simple edge pattern starting from a variable
-                    if let Some(first_pat) = subquery.match_clause.patterns.get(0) {
-                        if let super::ast::Pattern::Edge(edge) = first_pat {
+                // Fast-path for simple pattern EXISTS { MATCH (x)-[:TYPE]->(:Label) }
+                if subquery.where_clause.is_none() && subquery.match_clause.is_some() {
+                    let patterns = &subquery.match_clause.as_ref().unwrap().patterns;
+                    if let Some(first) = patterns.get(0) {
+                        if let super::ast::Pattern::Edge(edge) = first {
                             if let Some(ref from_var) = edge.from_node.variable {
                                 if let Some(Value::NodeId(from_id)) = tuple.get(from_var) {
-                                    // Optional target labels to enforce
-                                    let target_labels = &edge.to_node.labels;
+                                    // Select reader
+                                    let reader: &dyn GraphReadStore = if let Some(r) = self.read { r } else if let Some(w) = write.as_deref_mut() { w } else { return Ok(Value::Bool(false)); };
+                                    // To-node label filter
                                     let label_matches = |node: &crate::index::Node| -> bool {
-                                        if target_labels.is_empty() { return true; }
-                                        target_labels.iter().any(|lbl| node.labels.contains(lbl))
+                                        if edge.to_node.labels.is_empty() { return true; }
+                                        edge.to_node.labels.iter().any(|lbl| node.labels.contains(lbl))
                                     };
-                                    // Handle variable-length or single-hop
-                                    let has_any = if let Some(depth_range) = &edge.depth {
+                                    // Variable-length
+                                    if let Some(depth) = &edge.depth {
                                         let reachable = self.traverse_variable_length(
+                                            reader,
                                             *from_id,
                                             edge.edge_type.as_deref(),
-                                            depth_range.min,
-                                            depth_range.max,
+                                            depth.min,
+                                            depth.max,
                                         )?;
-                                        reachable.into_iter().any(|n| label_matches(&n))
-                                    } else {
-                                        let neighbors = self.store.get_neighbors(*from_id, edge.edge_type.as_deref())?;
-                                        neighbors.into_iter().any(|(_e, to)| label_matches(&to))
+                                        let any = reachable.into_iter().any(|n| label_matches(&n));
+                                        return Ok(Value::Bool(any));
+                                    }
+                                    // Single-hop with direction and type union
+                                    use super::ast::Direction;
+                                    let mut neighbors = match edge.direction {
+                                        Direction::Right => reader.get_neighbors(*from_id, edge.edge_type.as_deref())?,
+                                        Direction::Left => reader.get_neighbors_incoming(*from_id, edge.edge_type.as_deref())?,
+                                        Direction::Both => {
+                                            let mut out = reader.get_neighbors(*from_id, edge.edge_type.as_deref())?;
+                                            let incoming = reader.get_neighbors_incoming(*from_id, edge.edge_type.as_deref())?;
+                                            out.extend(incoming);
+                                            out
+                                        }
                                     };
-                                    return Ok(Value::Bool(has_any));
+                                    // Filter to-node labels
+                                    neighbors.retain(|(_e, to)| label_matches(to));
+                                    return Ok(Value::Bool(!neighbors.is_empty()));
                                 }
                             }
                         }
                     }
                 }
-
-                // Fallback: Execute the subquery plan in the context of current tuple
+                // General fallback: execute subquery plan
                 let plan = crate::exec::planner::Planner::plan(subquery)
                     .map_err(|e| EngineError::InvalidArgument(format!("EXISTS subquery planning error: {:?}", e)))?;
-                let sub_executor = if self.parameters.is_empty() {
-                    Executor::new(self.store)
-                } else {
-                    Executor::with_parameters(self.store, self.parameters.clone())
-                };
-                let sub_tuples = sub_executor.execute_node_with_context(&plan.root, tuple)?;
+                let reader: &dyn GraphReadStore = if let Some(r) = self.read { r } else if let Some(w) = write.as_deref_mut() { w } else { return Ok(Value::Bool(false)); };
+                let mut sub_executor = Executor { read: Some(reader), parameters: self.parameters.clone() };
+                let mut none: Option<&mut dyn GraphWriteStore> = None;
+                let sub_tuples = sub_executor.execute_node_with_context(&plan.root, tuple, &mut none)?;
                 Ok(Value::Bool(!sub_tuples.is_empty()))
             }
             Expr::Aggregate(_, _) => Err(EngineError::InvalidArgument("aggregate must be evaluated at Project".into())),
@@ -660,14 +786,14 @@ impl<'a> Executor<'a> {
         }
     }
     
-    fn eval_aggregate(&self, expr: &Expr, tuples: &[Tuple]) -> Result<Value, EngineError> {
+    fn eval_aggregate(&self, expr: &Expr, tuples: &[Tuple], _write: Option<&mut dyn GraphWriteStore>) -> Result<Value, EngineError> {
         match expr {
             Expr::Aggregate(func, arg) => match func {
                 AggFunc::Count => Ok(Value::Int(tuples.len() as i64)),
                 AggFunc::Sum => {
                     let mut sum = 0.0f64;
                     for t in tuples {
-                        if let Ok(v) = self.eval_expr(arg, t) {
+                        if let Ok(v) = self.eval_expr(arg, t, None) {
                             match v {
                                 Value::Int(i) => sum += i as f64,
                                 Value::Float(f) => sum += f,
@@ -681,7 +807,7 @@ impl<'a> Executor<'a> {
                     let mut sum = 0.0f64;
                     let mut cnt = 0usize;
                     for t in tuples {
-                        if let Ok(v) = self.eval_expr(arg, t) {
+                        if let Ok(v) = self.eval_expr(arg, t, None) {
                             match v {
                                 Value::Int(i) => { sum += i as f64; cnt += 1; }
                                 Value::Float(f) => { sum += f; cnt += 1; }
@@ -694,7 +820,7 @@ impl<'a> Executor<'a> {
                 AggFunc::Min => {
                     let mut best: Option<f64> = None;
                     for t in tuples {
-                        if let Ok(v) = self.eval_expr(arg, t) {
+                        if let Ok(v) = self.eval_expr(arg, t, None) {
                             let cur = match v { Value::Int(i) => i as f64, Value::Float(f) => f, _ => continue };
                             best = Some(match best { Some(b) => b.min(cur), None => cur });
                         }
@@ -704,7 +830,7 @@ impl<'a> Executor<'a> {
                 AggFunc::Max => {
                     let mut best: Option<f64> = None;
                     for t in tuples {
-                        if let Ok(v) = self.eval_expr(arg, t) {
+                        if let Ok(v) = self.eval_expr(arg, t, None) {
                             let cur = match v { Value::Int(i) => i as f64, Value::Float(f) => f, _ => continue };
                             best = Some(match best { Some(b) => b.max(cur), None => cur });
                         }
@@ -714,5 +840,92 @@ impl<'a> Executor<'a> {
             },
             _ => Err(EngineError::InvalidArgument("expected aggregate expression".into())),
         }
+    }
+    
+    fn execute_create(&self, patterns: &[Pattern], parent_tuple: &Tuple, write: Option<&mut dyn GraphWriteStore>) -> Result<Vec<Tuple>, EngineError> {
+        let write = write.ok_or_else(|| EngineError::InvalidArgument("CREATE requires a write-capable store".into()))?;
+        let mut created_vars: HashMap<String, u64> = HashMap::new();
+        let mut result_tuple = parent_tuple.clone();
+        
+        for pattern in patterns {
+            match pattern {
+                Pattern::Node(node_pattern) => {
+                    // Evaluate properties (may contain expressions from parent tuple)
+                    let mut props = HashMap::new();
+                    for (key, lit) in &node_pattern.properties {
+                        let value = self.eval_literal(lit)?;
+                        props.insert(key.clone(), value);
+                    }
+                    
+                    // Create the node
+                    let node_id = write.add_node(node_pattern.labels.clone(), props)?;
+                    
+                    // Store in created_vars if it has a variable
+                    if let Some(ref var) = node_pattern.variable {
+                        created_vars.insert(var.clone(), node_id);
+                        result_tuple.insert(var.clone(), Value::NodeId(node_id));
+                    }
+                }
+                Pattern::Edge(edge_pattern) => {
+                    // Resolve from_node
+                    let from_id = if let Some(ref var) = edge_pattern.from_node.variable {
+                        created_vars.get(var).copied()
+                            .or_else(|| {
+                                parent_tuple.get(var).and_then(|v| match v {
+                                    Value::NodeId(id) => Some(*id),
+                                    _ => None,
+                                })
+                            })
+                            .ok_or_else(|| EngineError::InvalidArgument(format!("undefined variable: {}", var)))?
+                    } else {
+                        return Err(EngineError::InvalidArgument("edge from_node must have variable".into()));
+                    };
+                    
+                    // Resolve to_node
+                    let to_id = if let Some(ref var) = edge_pattern.to_node.variable {
+                        created_vars.get(var).copied()
+                            .or_else(|| {
+                                parent_tuple.get(var).and_then(|v| match v {
+                                    Value::NodeId(id) => Some(*id),
+                                    _ => None,
+                                })
+                            })
+                            .ok_or_else(|| EngineError::InvalidArgument(format!("undefined variable: {}", var)))?
+                    } else {
+                        return Err(EngineError::InvalidArgument("edge to_node must have variable".into()));
+                    };
+                    
+                    // Evaluate edge properties
+                    let mut props = HashMap::new();
+                    for (key, lit) in &edge_pattern.properties {
+                        let value = self.eval_literal(lit)?;
+                        props.insert(key.clone(), value);
+                    }
+                    
+                    // Create the edge
+                    let edge_type = edge_pattern.edge_type.clone()
+                        .ok_or_else(|| EngineError::InvalidArgument("edge must have type".into()))?;
+                    let edge_id = write.add_edge(from_id, to_id, edge_type, props)?;
+                    
+                    // Store edge variable if present (as Int for now)
+                    if let Some(ref var) = edge_pattern.variable {
+                        result_tuple.insert(var.clone(), Value::Int(edge_id as i64));
+                    }
+                }
+            }
+        }
+        
+        // Return single tuple with all created variables
+        Ok(vec![result_tuple])
+    }
+    
+    fn eval_literal(&self, lit: &Literal) -> Result<Value, EngineError> {
+        Ok(match lit {
+            Literal::String(s) => Value::String(s.clone()),
+            Literal::Int(i) => Value::Int(*i),
+            Literal::Float(f) => Value::Float(*f),
+            Literal::Bool(b) => Value::Bool(*b),
+            Literal::Null => Value::Null,
+        })
     }
 }

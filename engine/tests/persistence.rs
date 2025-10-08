@@ -1,4 +1,5 @@
-use casys::index::{InMemoryGraphStore, GraphStore, persistence::WalRecord};
+use casys::index::{InMemoryGraphStore, persistence::WalRecord};
+use casys::index::{GraphReadStore, GraphWriteStore};
 use casys::exec::executor::Value;
 use casys::types::{DatabaseName, BranchName};
 use std::collections::HashMap;

@@ -25,15 +25,19 @@ pub struct Edge {
     pub properties: HashMap<String, Value>,
 }
 
-/// Graph storage interface
-pub trait GraphStore {
+/// Read-only graph storage interface
+pub trait GraphReadStore {
     fn scan_all(&self) -> Result<Vec<Node>, EngineError>;
     fn scan_by_label(&self, label: &str) -> Result<Vec<Node>, EngineError>;
     fn get_node(&self, id: NodeId) -> Result<Option<Node>, EngineError>;
-    fn add_node(&mut self, labels: Vec<String>, properties: HashMap<String, Value>) -> Result<NodeId, EngineError>;
-    fn add_edge(&mut self, from: NodeId, to: NodeId, edge_type: String, properties: HashMap<String, Value>) -> Result<EdgeId, EngineError>;
     fn get_neighbors(&self, node_id: NodeId, edge_type: Option<&str>) -> Result<Vec<(Edge, Node)>, EngineError>;
     fn get_neighbors_incoming(&self, node_id: NodeId, edge_type: Option<&str>) -> Result<Vec<(Edge, Node)>, EngineError>;
+}
+
+/// Write-capable storage interface (extends read)
+pub trait GraphWriteStore: GraphReadStore {
+    fn add_node(&mut self, labels: Vec<String>, properties: HashMap<String, Value>) -> Result<NodeId, EngineError>;
+    fn add_edge(&mut self, from: NodeId, to: NodeId, edge_type: String, properties: HashMap<String, Value>) -> Result<EdgeId, EngineError>;
 }
 
 /// In-memory graph store with indexes
@@ -61,7 +65,7 @@ impl InMemoryGraphStore {
     }
 }
 
-impl GraphStore for InMemoryGraphStore {
+impl GraphReadStore for InMemoryGraphStore {
     fn scan_all(&self) -> Result<Vec<Node>, EngineError> {
         Ok(self.nodes.values().cloned().collect())
     }
@@ -78,41 +82,6 @@ impl GraphStore for InMemoryGraphStore {
 
     fn get_node(&self, id: NodeId) -> Result<Option<Node>, EngineError> {
         Ok(self.nodes.get(&id).cloned())
-    }
-
-    fn add_node(&mut self, labels: Vec<String>, properties: HashMap<String, Value>) -> Result<NodeId, EngineError> {
-        let id = self.next_node_id;
-        self.next_node_id += 1;
-
-        let node = Node { id, labels: labels.clone(), properties };
-        self.nodes.insert(id, node);
-
-        // Update label index
-        for label in labels {
-            self.label_index.entry(label).or_insert_with(Vec::new).push(id);
-        }
-
-        Ok(id)
-    }
-
-    fn add_edge(&mut self, from: NodeId, to: NodeId, edge_type: String, properties: HashMap<String, Value>) -> Result<EdgeId, EngineError> {
-        let id = self.next_edge_id;
-        self.next_edge_id += 1;
-
-        let edge = Edge {
-            id,
-            from_node: from,
-            to_node: to,
-            edge_type,
-            properties,
-        };
-        self.edges.insert(id, edge);
-
-        // Update adjacency indexes
-        self.adjacency_out.entry(from).or_insert_with(Vec::new).push(id);
-        self.adjacency_in.entry(to).or_insert_with(Vec::new).push(id);
-
-        Ok(id)
     }
 
     fn get_neighbors(&self, node_id: NodeId, edge_type: Option<&str>) -> Result<Vec<(Edge, Node)>, EngineError> {
@@ -155,5 +124,42 @@ impl GraphStore for InMemoryGraphStore {
         }
 
         Ok(result)
+    }
+}
+
+impl GraphWriteStore for InMemoryGraphStore {
+    fn add_node(&mut self, labels: Vec<String>, properties: HashMap<String, Value>) -> Result<NodeId, EngineError> {
+        let id = self.next_node_id;
+        self.next_node_id += 1;
+
+        let node = Node { id, labels: labels.clone(), properties };
+        self.nodes.insert(id, node);
+
+        // Update label index
+        for label in labels {
+            self.label_index.entry(label).or_insert_with(Vec::new).push(id);
+        }
+
+        Ok(id)
+    }
+
+    fn add_edge(&mut self, from: NodeId, to: NodeId, edge_type: String, properties: HashMap<String, Value>) -> Result<EdgeId, EngineError> {
+        let id = self.next_edge_id;
+        self.next_edge_id += 1;
+
+        let edge = Edge {
+            id,
+            from_node: from,
+            to_node: to,
+            edge_type,
+            properties,
+        };
+        self.edges.insert(id, edge);
+
+        // Update adjacency indexes
+        self.adjacency_out.entry(from).or_insert_with(Vec::new).push(id);
+        self.adjacency_in.entry(to).or_insert_with(Vec::new).push(id);
+
+        Ok(id)
     }
 }

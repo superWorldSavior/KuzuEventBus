@@ -9,6 +9,9 @@ use std::collections::HashMap;
 enum Token {
     // Keywords
     Match,
+    Create,       // CREATE (for data modification)
+    Set,          // SET (for updates)
+    Delete,       // DELETE (for deletions)
     Where,
     With,         // WITH (for pipeline transformations)
     As,           // AS (for aliases)
@@ -237,6 +240,9 @@ impl Lexer {
                 let upper = ident.to_uppercase();
                 Ok(match upper.as_str() {
                     "MATCH" => Token::Match,
+                    "CREATE" => Token::Create,
+                    "SET" => Token::Set,
+                    "DELETE" => Token::Delete,
                     "WHERE" => Token::Where,
                     "WITH" => Token::With,
                     "AS" => Token::As,
@@ -305,7 +311,24 @@ impl Parser {
     }
 
     pub fn parse_query(&mut self) -> Result<Query, EngineError> {
-        let match_clause = self.parse_match()?;
+        // Parse optional MATCH clause
+        let match_clause = if *self.peek() == Token::Match {
+            Some(self.parse_match()?)
+        } else {
+            None
+        };
+        
+        // Parse optional CREATE clause (can follow MATCH)
+        let create_clause = if *self.peek() == Token::Create {
+            Some(self.parse_create()?)
+        } else {
+            None
+        };
+        
+        // At least one of MATCH or CREATE must be present
+        if match_clause.is_none() && create_clause.is_none() {
+            return Err(EngineError::InvalidArgument(format!("expected MATCH or CREATE, got {:?}", self.peek())));
+        }
         
         // WITH clause (optional pipeline transformation)
         let with_clause = if *self.peek() == Token::With {
@@ -320,7 +343,14 @@ impl Parser {
         } else {
             None
         };
-        let return_clause = self.parse_return()?;
+        
+        // RETURN clause (optional for CREATE)
+        let return_clause = if *self.peek() == Token::Return {
+            Some(self.parse_return()?)
+        } else {
+            None
+        };
+        
         let order_by = if *self.peek() == Token::Order {
             Some(self.parse_order_by()?)
         } else {
@@ -336,30 +366,50 @@ impl Parser {
         } else {
             None
         };
-        Ok(Query { match_clause, with_clause, where_clause, return_clause, order_by, limit })
+        Ok(Query { match_clause, create_clause, with_clause, where_clause, return_clause, order_by, limit })
     }
 
     fn parse_match(&mut self) -> Result<MatchClause, EngineError> {
         self.expect(Token::Match)?;
-        let mut patterns = Vec::new();
-        
-        // Parse first node
-        let mut from_node = self.parse_node_pattern()?;
-        
-        // Parse zero or more edge patterns as a chain: (a)-[:R]->(b)-[:S]->(c)
-        while matches!(self.peek(), Token::Minus | Token::LeftArrow) {
-            let edge_pattern = self.parse_edge_pattern(from_node)?;
-            // Next from_node becomes the to_node of the parsed edge
-            from_node = (*edge_pattern.to_node).clone();
-            patterns.push(Pattern::Edge(edge_pattern));
-        }
-        
-        // If no edges parsed, keep the standalone node pattern
-        if patterns.is_empty() {
-            patterns.push(Pattern::Node(from_node));
-        }
-        
+        let patterns = self.parse_patterns()?;
         Ok(MatchClause { patterns })
+    }
+    
+    fn parse_create(&mut self) -> Result<CreateClause, EngineError> {
+        self.expect(Token::Create)?;
+        let patterns = self.parse_patterns()?;
+        Ok(CreateClause { patterns })
+    }
+    
+    fn parse_patterns(&mut self) -> Result<Vec<Pattern>, EngineError> {
+        let mut all_patterns = Vec::new();
+        
+        loop {
+            // Parse a pattern chain (node or node-edge-node-edge...)
+            let mut from_node = self.parse_node_pattern()?;
+            
+            // Parse zero or more edge patterns as a chain: (a)-[:R]->(b)-[:S]->(c)
+            while matches!(self.peek(), Token::Minus | Token::LeftArrow) {
+                let edge_pattern = self.parse_edge_pattern(from_node)?;
+                // Next from_node becomes the to_node of the parsed edge
+                from_node = (*edge_pattern.to_node).clone();
+                all_patterns.push(Pattern::Edge(edge_pattern));
+            }
+            // Add final node if not consumed by edge
+            if all_patterns.is_empty() || !matches!(all_patterns.last(), Some(Pattern::Edge(_))) {
+                all_patterns.push(Pattern::Node(from_node));
+            }
+            
+            // Check for comma (multiple patterns)
+            if *self.peek() == Token::Comma {
+                self.advance(); // consume comma
+                continue; // parse next pattern
+            } else {
+                break; // done parsing patterns
+            }
+        }
+        
+        Ok(all_patterns)
     }
     
     fn parse_edge_pattern(&mut self, from_node: NodePattern) -> Result<EdgePattern, EngineError> {

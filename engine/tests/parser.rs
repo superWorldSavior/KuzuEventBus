@@ -6,9 +6,12 @@ fn parse_simple_match_return() {
     let query = "MATCH (n:Person) RETURN n";
     let ast = parser::parse(query).expect("parse failed");
     
-    assert_eq!(ast.match_clause.patterns.len(), 1);
+    assert!(ast.match_clause.is_some());
+    assert_eq!(ast.match_clause.as_ref().unwrap().patterns.len(), 1);
+    assert!(ast.create_clause.is_none());
     assert!(ast.where_clause.is_none());
-    assert_eq!(ast.return_clause.items.len(), 1);
+    assert!(ast.return_clause.is_some());
+    assert_eq!(ast.return_clause.as_ref().unwrap().items.len(), 1);
     assert!(ast.limit.is_none());
 }
 
@@ -17,7 +20,9 @@ fn parse_match_with_properties() {
     let query = "MATCH (p:Person {name: 'Alice', age: 30}) RETURN p";
     let ast = parser::parse(query).expect("parse failed");
     
-    if let Pattern::Node(node) = &ast.match_clause.patterns[0] {
+    let match_clause = ast.match_clause.as_ref().expect("Expected MATCH clause");
+    
+    if let Pattern::Node(node) = &match_clause.patterns[0] {
         assert_eq!(node.labels, vec!["Person"]);
         assert_eq!(node.properties.len(), 2);
         assert_eq!(node.properties.get("name"), Some(&Literal::String("Alice".into())));
@@ -83,16 +88,17 @@ fn parse_return_multiple_columns() {
     let query = "MATCH (n:Person) RETURN n.name, n.age";
     let ast = parser::parse(query).expect("parse failed");
     
-    assert_eq!(ast.return_clause.items.len(), 2);
+    let return_clause = ast.return_clause.as_ref().unwrap();
+    assert_eq!(return_clause.items.len(), 2);
     
-    if let Expr::Property(var, prop) = &ast.return_clause.items[0].expr {
+    if let Expr::Property(var, prop) = &return_clause.items[0].expr {
         assert_eq!(var, "n");
         assert_eq!(prop, "name");
     } else {
         panic!("expected property in first return item");
     }
     
-    if let Expr::Property(var, prop) = &ast.return_clause.items[1].expr {
+    if let Expr::Property(var, prop) = &return_clause.items[1].expr {
         assert_eq!(var, "n");
         assert_eq!(prop, "age");
     } else {

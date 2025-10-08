@@ -1,7 +1,8 @@
 use casys::exec::parser::parse;
 use casys::exec::planner::Planner;
 use casys::exec::executor::{Executor, Value};
-use casys::index::{InMemoryGraphStore, GraphStore};
+use casys::index::InMemoryGraphStore;
+use casys::index::GraphWriteStore;
 use std::collections::HashMap;
 
 #[test]
@@ -24,7 +25,7 @@ fn test_with_simple_transformation() {
     let ast = parse(query).unwrap();
     let plan = Planner::plan(&ast).unwrap();
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).unwrap();
+    let result = executor.execute(&plan, None).unwrap();
     
     // Doit retourner seulement Bob (age=30)
     assert_eq!(result.rows.len(), 1);
@@ -51,7 +52,7 @@ fn test_with_arithmetic_expression() {
     let ast = parse(query).unwrap();
     let plan = Planner::plan(&ast).unwrap();
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).unwrap();
+    let result = executor.execute(&plan, None).unwrap();
     
     // Doit retourner seulement Item2 (20*2=40 > 25)
     assert_eq!(result.rows.len(), 1);
@@ -73,7 +74,7 @@ fn test_with_multiple_items() {
     let ast = parse(query).unwrap();
     let plan = Planner::plan(&ast).unwrap();
     let executor = Executor::new(&store);
-    let result = executor.execute(&plan).unwrap();
+    let result = executor.execute(&plan, None).unwrap();
     
     assert_eq!(result.rows.len(), 1);
     assert_eq!(result.columns.len(), 2);
@@ -102,7 +103,7 @@ fn test_with_parameter() {
     params.insert("bonus".to_string(), Value::Int(10));
     
     let executor = Executor::with_parameters(&store, params);
-    let result = executor.execute(&plan).unwrap();
+    let result = executor.execute(&plan, None).unwrap();
     
     // Alice: 50+10=60 (non), Bob: 70+10=80 (oui)
     assert_eq!(result.rows.len(), 1);

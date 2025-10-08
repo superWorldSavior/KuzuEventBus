@@ -7,7 +7,7 @@ use crate::storage::catalog;
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// WAL record pour mutations graph
 #[derive(Debug, Clone)]

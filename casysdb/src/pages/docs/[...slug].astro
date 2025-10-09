@@ -1,0 +1,10 @@
+---
+import StarlightStatic from '@astrojs/starlight/routes/static/index.astro';
+export { getStaticPaths } from '@astrojs/starlight/routes/static/index.astro';
+
+// Build statique des pages docs (Vercel)
+export const prerender = true;
+export const trailingSlash = 'always';
+---
+
+<StarlightStatic />

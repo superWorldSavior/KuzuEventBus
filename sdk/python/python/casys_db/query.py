@@ -4,6 +4,7 @@ Query builder for Casys ORM - LINQ-style fluent API with lambdas.
 """
 
 from typing import Optional, List, Callable, Any, Type
+from types import SimpleNamespace
 from .orm import NodeEntity, PropertyRef, ComparisonExpr, LogicalExpr, OrderByExpr
 import inspect
 import warnings
@@ -450,12 +451,27 @@ class QueryBuilder:
         # Pass named parameters to the engine if provided
         result = self.branch.query(gql, self._params if self._params else None)
         
-        # Convert result rows to entity instances
-        entities = []
+        # If projection (select/with) is used, return attribute-like rows
+        if self._return_fields:
+            rows_out: list[Any] = []
+            rows = result.get('rows', []) if isinstance(result, dict) else []
+            for row in rows:
+                if isinstance(row, dict):
+                    rows_out.append(SimpleNamespace(**row))
+                elif isinstance(row, (list, tuple)):
+                    data = {alias: row[i] if i < len(row) else None for i, alias in enumerate(self._return_fields)}
+                    rows_out.append(SimpleNamespace(**data))
+                else:
+                    # Fallback: wrap as single value under first alias
+                    data = {self._return_fields[0]: row}
+                    rows_out.append(SimpleNamespace(**data))
+            return rows_out
+
+        # Else: convert rows to entity instances
+        entities: list[NodeEntity] = []
         for row in result['rows']:
             entity = self._row_to_entity(row, result['columns'])
             entities.append(entity)
-        
         return entities
     
     def first(self) -> Optional[NodeEntity]:
@@ -472,6 +488,44 @@ class QueryBuilder:
         gql = self._build_count_gql()
         result = self.branch.query(gql, self._params if self._params else None)
         return result['rows'][0][0] if result['rows'] else 0
+
+    def update(self, **fields: Any) -> int:
+        """Update properties on matched entities using the current where() filter.
+
+        Example:
+            session.Person.where(lambda p: p.name == "Alice").update(age=31)
+
+        Returns:
+            Number of nodes updated
+        """
+        label = self.entity_class._get_label()
+        var = label[0].lower()
+
+        # Base MATCH
+        gql = f"MATCH ({var}:{label})"
+
+        # WHERE
+        if self._where_clause:
+            where_str = self._lambda_to_gql(self._where_clause, var)
+            if where_str:
+                gql += f" WHERE {where_str}"
+
+        # SET with parameter binding
+        if not fields:
+            raise ValueError("update() requires at least one field=value to set")
+
+        params: dict[str, Any] = dict(self._params) if self._params else {}
+        set_parts: list[str] = []
+        for key, value in fields.items():
+            param_key = f"u_{key}"
+            set_parts.append(f"{var}.{key} = ${param_key}")
+            params[param_key] = value
+
+        gql += " SET " + ", ".join(set_parts)
+        gql += f" RETURN COUNT({var})"
+
+        result = self.branch.query(gql, params if params else None)
+        return result['rows'][0][0] if result and result.get('rows') else 0
     
     def _build_gql(self) -> str:
         """Build the ISO GQL query string from the builder state."""

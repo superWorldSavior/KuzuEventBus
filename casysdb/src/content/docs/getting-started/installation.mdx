@@ -2,139 +2,107 @@
 title: Installation
 description: Installer CasysDB pour Python ou TypeScript
 head: []
+sidebar:
+  order: 1
 
 ---
-import I18n from '../../../features/i18n/I18n.astro';
 
+CasysDB is available as a native library for **Python** and **TypeScript/Node.js**.
 
-<I18n>
-  <Fragment slot="en">
+### Python (pip)
 
-  ## Installation (English)
+```bash
+pip install casys-db
+```
 
-  CasysDB is available as a native library for **Python** and **TypeScript/Node.js**.
+### From sources (Python)
 
-  ### Python (pip)
+```bash
+git clone https://github.com/casysai/casysdb.git
+cd casysdb/sdk/python
+pip install maturin
+maturin develop --release
+```
 
-  ```bash
-  pip install casys-db
-  ```
+#### Requirements
 
-  ### From sources (Python)
+- Python 3.8+
+- pip or poetry
 
-  ```bash
-  git clone https://github.com/casysai/casysdb.git
-  cd casysdb/sdk/python
-  pip install maturin
-  maturin develop --release
-  ```
+### TypeScript/Node.js (coming soon)
 
-  #### Requirements
+TypeScript SDK is under development and will be available soon.
 
-  - Python 3.8+
-  - pip or poetry
+### Verify installation
 
-  ### TypeScript/Node.js
+```python
+from casys_db import Database
 
-  ```bash
-  npm install casys-db
-  # or
-  pnpm add casys-db
-  # or
-  yarn add casys-db
-  ```
+print("CasysDB installed!")
+db = Database(":memory:")
+print(f"DB created: {db}")
+```
 
-  #### Requirements
+```ts
+import { Database } from 'casys-db';
 
-  - Node.js 18+
-  - npm, pnpm, or yarn
+console.log('CasysDB installed!');
+const db = new Database(':memory:');
+console.log(`DB created: ${db}`);
+```
 
-  ### Verify installation
+### Next steps
 
-  ```python
-  from casys_db import Database
+- [Quickstart](/docs/getting-started/quickstart/)
 
-  print("CasysDB installed!")
-  db = Database(":memory:")
-  print(f"DB created: {db}")
-  ```
+---
 
-  ```ts
-  import { Database } from 'casys-db';
+## Installation (Français)
 
-  console.log('CasysDB installed!');
-  const db = new Database(':memory:');
-  console.log(`DB created: ${db}`);
-  ```
+CasysDB est disponible comme bibliothèque native pour **Python** et **TypeScript/Node.js**.
 
-  ### Next steps
+### Installation Python (pip)
 
-  - [Quickstart](/getting-started/quickstart/)
+```bash
+pip install casys-db
+```
 
-  </Fragment>
+### Depuis les sources (Python)
 
-  <Fragment slot="fr">
+```bash
+git clone https://github.com/casysai/casysdb.git
+cd casysdb/sdk/python
+pip install maturin
+maturin develop --release
+```
 
-  ## Installation (Français)
+#### Prérequis
 
-  CasysDB est disponible comme bibliothèque native pour **Python** et **TypeScript/Node.js**.
+- Python 3.8+
+- pip ou poetry
 
-  ### Installation Python (pip)
+### TypeScript/Node.js (à venir)
 
-  ```bash
-  pip install casys-db
-  ```
+Le SDK TypeScript est en cours de développement et sera disponible prochainement.
 
-  ### Depuis les sources (Python)
+### Vérifier l'installation
 
-  ```bash
-  git clone https://github.com/casysai/casysdb.git
-  cd casysdb/sdk/python
-  pip install maturin
-  maturin develop --release
-  ```
+```python
+from casys_db import Database
 
-  #### Prérequis
+print("CasysDB installé avec succès !")
+db = Database(":memory:")
+print(f"Base de données créée : {db}")
+```
 
-  - Python 3.8+
-  - pip ou poetry
+```ts
+import { Database } from 'casys-db';
 
-  ### TypeScript/Node.js
+console.log('CasysDB installé avec succès !');
+const db = new Database(':memory:');
+console.log(`Base de données créée : ${db}`);
+```
 
-  ```bash
-  npm install casys-db
-  # ou
-  pnpm add casys-db
-  # ou
-  yarn add casys-db
-  ```
+### Prochaines étapes
 
-  #### Prérequis
-
-  - Node.js 18+
-  - npm, pnpm, ou yarn
-
-  ### Vérifier l'installation
-
-  ```python
-  from casys_db import Database
-
-  print("CasysDB installé avec succès !")
-  db = Database(":memory:")
-  print(f"Base de données créée : {db}")
-  ```
-
-  ```typescript
-  import { Database } from 'casys-db';
-
-  console.log('CasysDB installé avec succès !');
-  const db = new Database(':memory:');
-  console.log(`Base de données créée : ${db}`);
-  ```
-
-  ### Prochaines étapes
-
-  - [Guide de Démarrage Rapide](/getting-started/quickstart/)
-
-  </Fragment>
-</I18n>
+- [Guide de Démarrage Rapide](/docs/getting-started/quickstart/)

@@ -1,0 +1,10 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+// Prérendu des pages docs pour sortie statique (Vercel)
+export const prerender = true;
+// Garantit les URLs avec slash final et génération d'index.html par dossier
+export const trailingSlash = 'always';
+---
+
+<StarlightPage />

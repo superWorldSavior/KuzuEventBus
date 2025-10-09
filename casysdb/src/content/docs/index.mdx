@@ -8,7 +8,7 @@ hero:
     file: ../../../public/icons/logo.svg
   actions:
     - text: Get Started
-      link: /getting-started/installation/
+      link: /docs/getting-started/installation/
       icon: right-arrow
       variant: primary
     - text: View on GitHub
@@ -35,32 +35,28 @@ CasysDB is a modern, embedded graph database engine built in Rust with native bi
     Multi-version concurrency control for isolated, consistent reads and writes.
   </Card>
   
-  <Card title="🐍 Python & TypeScript" icon="laptop">
-    First-class SDKs with fluent APIs and type-safe query builders (ORM-style).
+  <Card title="🐍 Python SDK" icon="laptop">
+    Primary SDK today. TypeScript SDK à venir.
   </Card>
 </CardGrid>
 
 ## Quick Example
 
 ```python
-from casys_db import Database, NodeEntity
-
-class Person(NodeEntity):
-    pass
+from casys_db import Database
 
 # Open database
 db = Database("path/to/db")
 branch = db.default_branch()
-session = branch.session()
 
 # Create nodes
-session.execute("""
+result = branch.query("""
   CREATE (p:Person {name: 'Alice', age: 30})
   RETURN p
 """)
 
-# Query with fluent API
-adults = session.Person.where(lambda p: p.age >= 18).all()
+# Query data
+adults = branch.query("MATCH (p:Person) WHERE p.age >= 18 RETURN p")
 ```
 
 ## Key Features
@@ -69,7 +65,7 @@ adults = session.Person.where(lambda p: p.age >= 18).all()
 - **ISO GQL**: Standards-compliant graph query language
 - **MVCC**: Snapshot isolation for transactions
 - **Point-in-Time Recovery (PITR)**: Branch from any historical commit
-- **Python & TypeScript SDKs**: Fluent query builders with type safety
+- **Python SDK**: Fluent query builder with type safety (TypeScript à venir)
 - **Zero dependencies**: Single binary, minimal footprint
 
 ## Next Steps
@@ -78,24 +74,24 @@ adults = session.Person.where(lambda p: p.age >= 18).all()
   <Card title="Installation" icon="add-document">
     Install CasysDB via pip or npm
     
-    [Install Guide →](/getting-started/installation/)
+    [Install Guide →](/docs/getting-started/installation/)
   </Card>
   
   <Card title="Quick Start" icon="rocket">
     Get up and running in 5 minutes
     
-    [Quick Start →](/getting-started/quickstart/)
+    [Quick Start →](/docs/getting-started/quickstart/)
   </Card>
   
-  <Card title="ORM" icon="pencil">
-    Build graph queries with a fluent, type-friendly API (no GQL needed)
+  <Card title="ORM (aperçu)" icon="pencil">
+    Fluent API disponible en avant-première (where/select/any/with_relations, depth, params). Interfaces susceptibles d'évoluer.
     
-    [ORM Basics →](/orm/basics/)
+    [Python ORM →](/docs/sdk/python/orm/)
   </Card>
   
   <Card title="SDK Reference" icon="laptop">
-    Explore Python and TypeScript APIs
+    Explore Python SDK API
     
-    [Python SDK →](/sdk/python/basics/)
+    [Python SDK →](/docs/sdk/python/basics/)
   </Card>
 </CardGrid>

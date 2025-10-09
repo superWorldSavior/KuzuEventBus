@@ -146,7 +146,9 @@ for row in result['rows']:
     print(f"{name} is {age} years old")
 ```
 
-## Session & ORM
+## Session & ORM (aperçu — WIP)
+
+> Note: l'ORM est en cours de développement. L'API est susceptible d'évoluer et n'est pas encore stabilisée.
 
 Pour une API plus fluente, utilisez l'ORM :
 
@@ -285,6 +287,6 @@ def search(query_embedding, top_k=5):
 
 ## Prochaines étapes
 
-- [ORM Documentation →](/sdk/python/orm/)
-- [GQL Basics →](/gql/basics/)
-- [Transactions →](/core/transactions/)
+- [ORM Documentation →](/docs/sdk/python/orm/)
+- [GQL Basics →](/docs/gql/basics/)
+- [Transactions →](/docs/core/transactions/)

@@ -28,16 +28,16 @@ const ogLocale = 'en_US';
       // Auto theme sync with system (no localStorage override)
       (function () {
         try {
-          var root = document.documentElement;
-          var mql = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-          var apply = function () {
-            if (mql && mql.matches) root.classList.add('dark');
+          const root = document.documentElement;
+          const mql = (window.matchMedia?.('(prefers-color-scheme: dark)') ?? null) as MediaQueryList | null;
+          const apply = () => {
+            if (mql?.matches) root.classList.add('dark');
             else root.classList.remove('dark');
             root.dataset.theme = root.classList.contains('dark') ? 'dark' : 'light';
           };
           apply();
-          if (mql && 'addEventListener' in mql) mql.addEventListener('change', apply);
-          else if (mql && 'addListener' in mql) mql.addListener(apply);
+          if (mql?.addEventListener) mql.addEventListener('change', apply as EventListener);
+          else if ((mql as any)?.addListener) (mql as any).addListener(apply);
         } catch (_) { /* no-op */ }
       })();
     </script>
@@ -69,7 +69,7 @@ const ogLocale = 'en_US';
 
           <!-- Navigation -->
           <nav class="hidden md:flex space-x-8">
-            <a href="/getting-started/installation/" class="text-gray-800 hover:text-gray-900 dark:text-white/80 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors">
+            <a href="/docs/getting-started/installation/" class="text-gray-800 hover:text-gray-900 dark:text-white/80 dark:hover:text-white px-3 py-2 text-sm font-medium transition-colors">
               <I18n>
                 <Fragment slot="en">Documentation</Fragment>
                 <Fragment slot="fr">Documentation</Fragment>
@@ -142,9 +142,9 @@ const ogLocale = 'en_US';
               </I18n>
             </h4>
             <ul class="space-y-2 text-sm" style="color: var(--text-secondary);">
-              <li><a href="/getting-started/installation/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Installation</a></li>
-              <li><a href="/getting-started/quickstart/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Quick Start</a></li>
-              <li><a href="/gql/basics/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">GQL Syntax</a></li>
+              <li><a href="/docs/getting-started/installation/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Installation</a></li>
+              <li><a href="/docs/getting-started/quickstart/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Quick Start</a></li>
+              <li><a href="/docs/gql/basics/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">GQL Syntax</a></li>
               <li><a href="#features" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Features</a></li>
             </ul>
           </div>
@@ -161,7 +161,7 @@ const ogLocale = 'en_US';
               <li><a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">GitHub</a></li>
               <li><a href="https://github.com/casysai/casysdb/issues" target="_blank" rel="noopener noreferrer" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Issues</a></li>
               <li><a href="https://github.com/casysai/casysdb/discussions" target="_blank" rel="noopener noreferrer" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Discussions</a></li>
-              <li><a href="/getting-started/installation/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Documentation</a></li>
+              <li><a href="/docs/getting-started/installation/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Documentation</a></li>
             </ul>
           </div>
         </div>

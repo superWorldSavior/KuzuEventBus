@@ -13,143 +13,56 @@ This guide will get you up and running with CasysDB in less than 5 minutes.
 ```bash
 # Python
 pip install casys-db
-
-# TypeScript/Node.js
-npm install casys-db
 ```
 
 ## 2. Create Your First Database
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
+```python
+from casys_db import Database
 
-<Tabs>
-  <TabItem label="Python">
-    ```python
-    from casys_db import Database, NodeEntity
+# Create an in-memory database
+db = Database(":memory:")
 
-    # Create an in-memory database
-    db = Database(":memory:")
-    
-    # Or persist to disk
-    # db = Database("path/to/my_graph.db")
-    
-    # Get the default branch
-    branch = db.default_branch()
-    
-    # Start a session
-    session = branch.session()
-    ```
-  </TabItem>
-  
-  <TabItem label="TypeScript">
-    ```typescript
-    import { Database } from 'casys-db';
+# Or persist to disk
+# db = Database("path/to/my_graph.db")
 
-    // Create an in-memory database
-    const db = new Database(':memory:');
-    
-    // Or persist to disk
-    // const db = new Database('path/to/my_graph.db');
-    
-    // Get the default branch
-    const branch = db.defaultBranch();
-    
-    // Start a session
-    const session = branch.session();
-    ```
-  </TabItem>
-</Tabs>
+# Get the default branch
+branch = db.default_branch()
+```
 
 ## 3. Create Nodes with GQL
 
-<Tabs>
-  <TabItem label="Python">
-    ```python
-    # Execute raw GQL
-    result = session.execute("""
-      CREATE (alice:Person {name: 'Alice', age: 30})
-      CREATE (bob:Person {name: 'Bob', age: 25})
-      CREATE (alice)-[:KNOWS]->(bob)
-      RETURN alice, bob
-    """)
-    
-    for row in result:
-        print(row)
-    ```
-  </TabItem>
-  
-  <TabItem label="TypeScript">
-    ```typescript
-    // Execute raw GQL
-    const result = session.execute(`
-      CREATE (alice:Person {name: 'Alice', age: 30})
-      CREATE (bob:Person {name: 'Bob', age: 25})
-      CREATE (alice)-[:KNOWS]->(bob)
-      RETURN alice, bob
-    `);
-    
-    for (const row of result) {
-      console.log(row);
-    }
-    ```
-  </TabItem>
-</Tabs>
+```python
+# Execute raw GQL
+result = branch.query("""
+  CREATE (alice:Person {name: 'Alice', age: 30})
+  CREATE (bob:Person {name: 'Bob', age: 25})
+  CREATE (alice)-[:KNOWS]->(bob)
+  RETURN alice, bob
+""")
 
-## 4. Query with Fluent API (Python ORM)
+for row in result['rows']:
+    print(row)
+```
 
-Python SDK includes a fluent query builder:
+## 4. Query data
 
 ```python
-from typing import Self
-
-class Person(NodeEntity):
-    knows = HasMany(Self)
-
-# Query all adults
-adults = session.Person.where(lambda p: p.age >= 18).all()
-
-# Query with joins
-results = (
-    session.Person
-    .where(lambda p: p.name == 'Alice')
-    .join_out(lambda p: p.knows)
-    .select(
-        person_name=lambda p: p.name,
-        friend_name=lambda f: f.name
-    )
-    .all()
-)
-
-for row in results:
-    print(f"{row['person_name']} knows {row['friend_name']}")
+# Simple query
+result = branch.query("MATCH (p:Person) WHERE p.age >= 18 RETURN p")
+for row in result['rows']:
+    print(row)
 ```
 
 ## 5. Commit Changes
 
-<Tabs>
-  <TabItem label="Python">
-    ```python
-    # Commit the transaction
-    session.commit()
-    
-    # Or rollback
-    # session.rollback()
-    ```
-  </TabItem>
-  
-  <TabItem label="TypeScript">
-    ```typescript
-    // Commit the transaction
-    session.commit();
-    
-    // Or rollback
-    // session.rollback();
-    ```
-  </TabItem>
-</Tabs>
+```python
+# Commit the transaction (creates a snapshot)
+branch.commit()
+```
 
 ## What's Next?
 
-- Learn the [ORM Basics](/orm/basics/)
-- Understand [Transactions & MVCC](/core/transactions/)
-- Check out [Examples](/examples/social-network/)
+- Understand [Transactions & MVCC](/docs/core/transactions/)
+- Learn [GQL Basics](/docs/gql/basics/)
+- ORM (à venir)

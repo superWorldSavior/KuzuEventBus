@@ -29,6 +29,14 @@ class KnowsRel(Relation):
     strength: float
     since: int
 
+# Relations supplémentaires (zéro strings)
+class BossRel(Relation):
+    title: str
+    since: int
+
+class BornInRel(Relation):
+    since: int
+
 
 class City(NodeEntity):
     name: str
@@ -209,6 +217,29 @@ first_age = session.execute_scalar(
 )
 ```
 
+## 13) Update (ORM — zéro strings)
+
+**Simple**
+```python
+# Mettre à jour une propriété via filtre ORM
+updated = session.Person \
+    .where(lambda p: p.name == "Alice") \
+    .update(age=31)
+```
+
+**Batch à partir d'une projection (ex: embeddings)**
+```python
+rows = (session.Document
+    .select(title=lambda d: d.title, content=lambda d: d.content)
+    .all())
+
+for row in rows:
+    new_emb = compute_llama3(row.content)
+    session.Document \
+        .where(lambda d: d.title == row.title) \
+        .update(embedding=new_emb)
+```
+
 ---
 
 ## Notes
@@ -222,7 +253,7 @@ first_age = session.execute_scalar(
 - **Params nommés**: `.params({})` passés au moteur
 - **Validation HasOne**: `session.validate_has_one_constraints()` vérifie cardinalité
 
-## 13) Joins (navigation par relation, alias auto)
+## 14) Joins (navigation par relation, alias auto)
 
 **Join 1-hop (alias auto)**
 ```python

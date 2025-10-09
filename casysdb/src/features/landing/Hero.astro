@@ -47,7 +47,7 @@ import I18n from '../i18n/I18n.astro';
         <!-- CTAs - Style normal -->
         <div class="flex flex-col sm:flex-row gap-4">
           <a
-            href="/getting-started/installation/"
+            href="/docs/getting-started/installation/"
             class="inline-block text-center px-8 py-4 rounded-lg font-semibold border border-[#5B2E7E] text-white bg-[linear-gradient(135deg,#5B2E7E,#6C3A94)] hover:bg-[linear-gradient(135deg,#6C3A94,#7C4BB2)] transition-colors">
             <I18n>
               <Fragment slot="en">Documentation</Fragment>
@@ -102,20 +102,20 @@ import I18n from '../i18n/I18n.astro';
         </p>
         
         <!-- Workflow tabs -->
-        <div class="flex gap-2 flex-wrap">
-          <button class="px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="1" data-active="true">
+        <div class="flex gap-2 flex-wrap" role="tablist" aria-label="Workflow steps">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="1" data-active="true">
             1. Setup
           </button>
-          <button class="px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="2">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="2">
             2. Insert
           </button>
-          <button class="px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="3">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="3">
             3. Branch
           </button>
-          <button class="px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="4">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="4">
             4. Update
           </button>
-          <button class="px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="5">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="5">
             5. Time Travel
           </button>
         </div>
@@ -139,8 +139,8 @@ prod = Database(<span class="string">"knowledge_graph.db"</span>)
     related = HasMany(Topic, via=<span class="string">"ABOUT"</span>)  <span class="comment"># override</span>
 
 <span class="comment"># Créer branche main si besoin</span>
-main = prod.create_branch(<span class="string">"main"</span>)
-</code></pre></invoke>
+main = prod.branch(<span class="string">"main"</span>)
+</code></pre>
 
           <!-- Step 2: Insert -->
           <pre class="m-0 hidden" data-content="2"><code><span class="comment"># Insérer documents + embeddings (OpenAI/LLaMA)</span>
@@ -182,16 +182,20 @@ snapshots = prod.snapshots()
           <pre class="m-0 hidden" data-content="4"><code><span class="comment"># Re-calculer embeddings avec LLaMA 3</span>
 <span class="keyword">import</span> numpy <span class="keyword">as</span> np
 
-<span class="comment"># Récupérer tous les docs</span>
-docs = experiment.query(<span class="string">"MATCH (d:Document) RETURN d"</span>)
+<span class="comment"># Récupérer tous les docs via ORM (aperçu)</span>
+session = Session(experiment)
+rows = (
+  session.Document
+    .select(title=<span class="keyword">lambda</span> d: d.title, content=<span class="keyword">lambda</span> d: d.content)
+    .all()
+)
 
-<span class="keyword">for</span> doc <span class="keyword">in</span> docs[<span class="string">'rows'</span>]:
-    new_emb = compute_llama3(doc[<span class="string">'content'</span>])
-    experiment.query(<span class="string">"""
-      MATCH (d:Document)
-      WHERE d.title = $title
-      SET d.embedding = $emb
-    """</span>, {'{'}<span class="string">'title'</span>: doc[<span class="string">'title'</span>], <span class="string">'emb'</span>: new_emb{'}'})
+<span class="comment"># Full ORM: read + update</span>
+<span class="keyword">for</span> row <span class="keyword">in</span> rows:
+    new_emb = compute_llama3(row.content)
+    session.Document 
+      .where(<span class="keyword">lambda</span> d: d.title == row.title) 
+      .update(embedding=new_emb)
 
 experiment.commit()
 

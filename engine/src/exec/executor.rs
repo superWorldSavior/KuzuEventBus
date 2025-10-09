@@ -4,7 +4,7 @@ use super::planner::{ExecutionPlan, PlanNode};
 use super::ast::{Expr, BinOp, UnOp, Literal, AggFunc, Pattern};
 use crate::types::{EngineError, QueryResult, ColumnMeta};
 use crate::index::{GraphReadStore, GraphWriteStore, NodeId};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub type Tuple = HashMap<String, Value>;
 
@@ -192,7 +192,11 @@ impl<'a> Executor<'a> {
             PlanNode::MatchCreate { match_input, create_patterns } => {
                 // For each matched tuple, execute CREATE with that context
                 let match_tuples = {
-                    self.execute_node_with_context(match_input, parent_tuple, write, counters)?
+                    let t = self.execute_node_with_context(match_input, parent_tuple, write, counters)?;
+                    if std::env::var("CASYS_DEBUG_PLAN").ok().as_deref() == Some("1") {
+                        println!("MATCH tuples for CREATE: {}", t.len());
+                    }
+                    t
                 };
                 if let Some(wi) = write.as_deref_mut() {
                     let mut all_results = Vec::new();
@@ -448,9 +452,27 @@ impl<'a> Executor<'a> {
                                 depth_range.min,
                                 depth_range.max,
                             )?;
+                            let debug = std::env::var("CASYS_DEBUG_EXPAND").ok().as_deref() == Some("1");
+                            if debug {
+                                println!(
+                                    "EXPAND varlen from {} to {} depth {}..{} -> {} nodes",
+                                    from_var,
+                                    to_var,
+                                    depth_range.min,
+                                    depth_range.max,
+                                    reachable.len()
+                                );
+                            }
                             counters.expanded += reachable.len() as u64;
-                            
+                            // Deduplicate and ensure we never emit the origin node
+                            let mut emitted: HashSet<u64> = HashSet::new();
                             for to_node in reachable {
+                                if to_node.id == *from_id { continue; }
+                                if !emitted.insert(to_node.id) { continue; }
+                                // If to_var already bound in incoming tuple and equals this node, skip
+                                if let Some(Value::NodeId(existing)) = tuple.get(to_var) {
+                                    if *existing == to_node.id { continue; }
+                                }
                                 let mut new_tuple = tuple.clone();
                                 new_tuple.insert(to_var.clone(), Value::NodeId(to_node.id));
                                 for (k, v) in &to_node.properties {
@@ -491,6 +513,10 @@ impl<'a> Executor<'a> {
                             counters.expanded += neighbors.len() as u64;
                             for (edge, to_node) in neighbors {
                                 let mut new_tuple = tuple.clone();
+                                // If to_var already bound in incoming tuple and equals this node, skip
+                                if let Some(Value::NodeId(existing)) = tuple.get(to_var) {
+                                    if *existing == to_node.id { continue; }
+                                }
                                 
                                 // Add to_node to tuple
                                 new_tuple.insert(to_var.clone(), Value::NodeId(to_node.id));
@@ -543,7 +569,11 @@ impl<'a> Executor<'a> {
         queue.push_back((start_id, 0));
         visited.insert(start_id);
         
+        let debug = std::env::var("CASYS_DEBUG_EXPAND").ok().as_deref() == Some("1");
         while let Some((node_id, depth)) = queue.pop_front() {
+            if debug {
+                println!("BFS pop node {} at depth {}", node_id, depth);
+            }
             // If we've reached max depth, stop expanding from this node
             if depth >= max_depth {
                 continue;
@@ -560,10 +590,25 @@ impl<'a> Executor<'a> {
                     out
                 }
             };
+            if debug {
+                println!(
+                    "Neighbors before type filter for node {}: {}",
+                    node_id,
+                    neighbors.len()
+                );
+            }
             
             // Filter by edge types if provided
             if !edge_types.is_empty() {
                 neighbors.retain(|(edge, _)| edge_types.contains(&edge.edge_type.as_str()));
+                if debug {
+                    println!(
+                        "Neighbors after type filter (types={:?}) for node {}: {}",
+                        edge_types,
+                        node_id,
+                        neighbors.len()
+                    );
+                }
             }
             
             for (_edge, to_node) in neighbors {
@@ -575,10 +620,20 @@ impl<'a> Executor<'a> {
                 let next_depth = depth + 1;
                 // Add to result if within depth range and exclude the origin node
                 if next_depth >= min_depth && next_depth <= max_depth && to_node.id != start_id {
+                    if debug {
+                        println!(
+                            "Add node {} to results at depth {}",
+                            to_node.id,
+                            next_depth
+                        );
+                    }
                     result.push(to_node.clone());
                 }
                 // Continue BFS if haven't reached max depth
                 if next_depth < max_depth {
+                    if debug {
+                        println!("Queue node {} at depth {}", to_node.id, next_depth);
+                    }
                     queue.push_back((to_node.id, next_depth));
                 }
             }
@@ -712,7 +767,8 @@ impl<'a> Executor<'a> {
                 let reader: &dyn GraphReadStore = if let Some(r) = self.read { r } else if let Some(w) = write.as_deref_mut() { w } else { return Ok(Value::Bool(false)); };
                 let mut sub_executor = Executor { read: Some(reader), parameters: self.parameters.clone() };
                 let mut none: Option<&mut dyn GraphWriteStore> = None;
-                let sub_tuples = sub_executor.execute_node_with_context(&plan.root, tuple, &mut none)?;
+                let mut sub_counters = ExecCounters::default();
+                let sub_tuples = sub_executor.execute_node_with_context(&plan.root, tuple, &mut none, &mut sub_counters)?;
                 Ok(Value::Bool(!sub_tuples.is_empty()))
             }
             Expr::Aggregate(_, _) => Err(EngineError::InvalidArgument("aggregate must be evaluated at Project".into())),
@@ -954,7 +1010,10 @@ impl<'a> Executor<'a> {
                     // Create the edge
                     let edge_type = edge_pattern.edge_type.clone()
                         .ok_or_else(|| EngineError::InvalidArgument("edge must have type".into()))?;
-                    let edge_id = write.add_edge(from_id, to_id, edge_type, props)?;
+                    let edge_id = write.add_edge(from_id, to_id, edge_type.clone(), props)?;
+                    if std::env::var("CASYS_DEBUG_PLAN").ok().as_deref() == Some("1") {
+                        println!("CREATE edge id={} {} -> {} type={} ", edge_id, from_id, to_id, edge_type);
+                    }
                     
                     // Store edge variable if present (as Int for now)
                     if let Some(ref var) = edge_pattern.variable {

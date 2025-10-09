@@ -133,3 +133,18 @@ backups/
 
 # Redis dumps
 dump.rdb
+ 
+# --- Rust (workspace) ---
+**/target/
+ 
+# --- Node/Astro frontend ---
+casysdb/node_modules/
+casysdb/dist/
+casysdb/.astro/
+casysdb/.vite/
+casysdb/.vercel/
+ 
+# --- Python sdk local build ---
+sdk/python/target/
+sdk/python/*.so
+sdk/python/.venv/

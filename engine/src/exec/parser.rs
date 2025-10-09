@@ -371,44 +371,47 @@ impl Parser {
 
     fn parse_match(&mut self) -> Result<MatchClause, EngineError> {
         self.expect(Token::Match)?;
-        let patterns = self.parse_patterns()?;
+        let patterns = self.parse_patterns_match()?;
         Ok(MatchClause { patterns })
     }
     
     fn parse_create(&mut self) -> Result<CreateClause, EngineError> {
         self.expect(Token::Create)?;
-        let patterns = self.parse_patterns()?;
+        let patterns = self.parse_patterns_create()?;
         Ok(CreateClause { patterns })
     }
     
-    fn parse_patterns(&mut self) -> Result<Vec<Pattern>, EngineError> {
+    // MATCH: emit starting node, then edges (no trailing node push)
+    fn parse_patterns_match(&mut self) -> Result<Vec<Pattern>, EngineError> {
         let mut all_patterns = Vec::new();
-        
         loop {
-            // Parse a pattern chain (node or node-edge-node-edge...)
             let mut from_node = self.parse_node_pattern()?;
-            
-            // Parse zero or more edge patterns as a chain: (a)-[:R]->(b)-[:S]->(c)
+            all_patterns.push(Pattern::Node(from_node.clone()));
             while matches!(self.peek(), Token::Minus | Token::LeftArrow) {
                 let edge_pattern = self.parse_edge_pattern(from_node)?;
-                // Next from_node becomes the to_node of the parsed edge
                 from_node = (*edge_pattern.to_node).clone();
                 all_patterns.push(Pattern::Edge(edge_pattern));
             }
-            // Add final node if not consumed by edge
+            if *self.peek() == Token::Comma { self.advance(); continue; } else { break; }
+        }
+        Ok(all_patterns)
+    }
+
+    // CREATE: original behavior - do not emit starting node preemptively, but add trailing node if no edge parsed
+    fn parse_patterns_create(&mut self) -> Result<Vec<Pattern>, EngineError> {
+        let mut all_patterns = Vec::new();
+        loop {
+            let mut from_node = self.parse_node_pattern()?;
+            while matches!(self.peek(), Token::Minus | Token::LeftArrow) {
+                let edge_pattern = self.parse_edge_pattern(from_node)?;
+                from_node = (*edge_pattern.to_node).clone();
+                all_patterns.push(Pattern::Edge(edge_pattern));
+            }
             if all_patterns.is_empty() || !matches!(all_patterns.last(), Some(Pattern::Edge(_))) {
                 all_patterns.push(Pattern::Node(from_node));
             }
-            
-            // Check for comma (multiple patterns)
-            if *self.peek() == Token::Comma {
-                self.advance(); // consume comma
-                continue; // parse next pattern
-            } else {
-                break; // done parsing patterns
-            }
+            if *self.peek() == Token::Comma { self.advance(); continue; } else { break; }
         }
-        
         Ok(all_patterns)
     }
     

@@ -1,0 +1,12 @@
+[package]
+name = "casys_ffi"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "casys_ffi"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+casys = { path = "../../engine" }
+once_cell = "1"

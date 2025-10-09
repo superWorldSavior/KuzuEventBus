@@ -116,6 +116,9 @@ impl CasysBranch {
         // Parse la requête GQL
         let ast = parser::parse(&gql)
             .map_err(|e| PyValueError::new_err(format!("Parse error: {:?}", e)))?;
+        if std::env::var("CASYS_DEBUG_PLAN").ok().as_deref() == Some("1") {
+            println!("AST create_clause present? {}", ast.create_clause.is_some());
+        }
         
         // Extract required parameters from AST
         let required_params = ast.extract_parameters();
@@ -123,6 +126,23 @@ impl CasysBranch {
         // Planifie l'exécution
         let plan = Planner::plan(&ast)
             .map_err(|e| PyRuntimeError::new_err(format!("Planning error: {:?}", e)))?;
+        if std::env::var("CASYS_DEBUG_PLAN").ok().as_deref() == Some("1") {
+            use engine::exec::planner::PlanNode;
+            let kind = match &plan.root {
+                PlanNode::Create { .. } => "Create",
+                PlanNode::MatchCreate { .. } => "MatchCreate",
+                PlanNode::Filter { .. } => "Filter",
+                PlanNode::Project { .. } => "Project",
+                PlanNode::OrderBy { .. } => "OrderBy",
+                PlanNode::Aggregate { .. } => "Aggregate",
+                PlanNode::Limit { .. } => "Limit",
+                PlanNode::Expand { .. } => "Expand",
+                PlanNode::CartesianProduct { .. } => "CartesianProduct",
+                PlanNode::LabelScan { .. } => "LabelScan",
+                PlanNode::FullScan { .. } => "FullScan",
+            };
+            println!("PLAN ROOT: {}", kind);
+        }
         
         // Convert params to HashMap<String, Value>
         let mut parameters = std::collections::HashMap::new();

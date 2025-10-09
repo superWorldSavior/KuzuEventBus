@@ -1,97 +1,84 @@
 ---
 title: Welcome to CasysDB
-description: An embedded graph database with ISO GQL support
+description: Documentation hub for the CasysDB embedded graph database
 template: splash
 hero:
-  tagline: Fast, embedded graph database with ISO GQL syntax and MVCC transactions
+  tagline: Embedded graph database with ISO GQL support and MVCC transactions
   image:
     file: ../../../public/icons/logo.svg
   actions:
-    - text: Get Started
+    - text: Install CasysDB
       link: /docs/getting-started/installation/
       icon: right-arrow
       variant: primary
-    - text: View on GitHub
+    - text: GitHub Repository
       link: https://github.com/casysai/casysdb
       icon: external
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-## What is CasysDB?
+## About CasysDB
 
-CasysDB is a modern, embedded graph database engine built in Rust with native bindings for Python and TypeScript. It implements **ISO GQL** (Graph Query Language) and provides MVCC-based transactions for reliable concurrent access.
+CasysDB is an embedded graph database written in Rust. It links directly into your application process, ships as a single native library, and exposes bindings for Python (TypeScript bindings are in development). The engine speaks the ISO Graph Query Language (GQL) and relies on MVCC with snapshot isolation to provide consistent reads, Git-like branching, and point-in-time recovery.
 
-<CardGrid>
-  <Card title="🚀 Fast & Embedded" icon="rocket">
-    Zero-server architecture. Runs directly in your application process with minimal overhead.
-  </Card>
-  
-  <Card title="📊 ISO GQL Support" icon="open-book">
-    Standard graph query language with MATCH, WHERE, RETURN, and advanced pattern matching.
-  </Card>
-  
-  <Card title="🔄 MVCC Transactions" icon="refresh">
-    Multi-version concurrency control for isolated, consistent reads and writes.
-  </Card>
-  
-  <Card title="🐍 Python SDK" icon="laptop">
-    Primary SDK today. TypeScript SDK à venir.
-  </Card>
-</CardGrid>
+Key properties:
 
-## Quick Example
+- **Embedded runtime** — no external server to deploy or operate.
+- **ISO GQL support** — standards-based query surface with familiar `MATCH / WHERE / RETURN` semantics.
+- **MVCC transactions** — consistent snapshots, safe concurrent reads, point-in-time recovery.
+- **Branching workflow** — create isolated branches for experiments, apply PITR to recover known good states.
+- **Python SDK** — native bindings with an idiomatic session/ORM layer; TypeScript SDK in progress.
 
 ```python
 from casys_db import Database
 
-# Open database
-db = Database("path/to/db")
+db = Database(":memory:")
 branch = db.default_branch()
 
-# Create nodes
-result = branch.query("""
-  CREATE (p:Person {name: 'Alice', age: 30})
-  RETURN p
+branch.query("""
+  CREATE (alice:Person {name: 'Alice', age: 30})
+  RETURN alice
 """)
 
-# Query data
-adults = branch.query("MATCH (p:Person) WHERE p.age >= 18 RETURN p")
+rows = branch.query("""
+  MATCH (p:Person)
+  WHERE p.age >= 18
+  RETURN p.name
+""")
 ```
 
-## Key Features
-
-- **Embedded**: No separate server process required
-- **ISO GQL**: Standards-compliant graph query language
-- **MVCC**: Snapshot isolation for transactions
-- **Point-in-Time Recovery (PITR)**: Branch from any historical commit
-- **Python SDK**: Fluent query builder with type safety (TypeScript à venir)
-- **Zero dependencies**: Single binary, minimal footprint
-
-## Next Steps
+## Documentation map
 
 <CardGrid>
-  <Card title="Installation" icon="add-document">
-    Install CasysDB via pip or npm
-    
-    [Install Guide →](/docs/getting-started/installation/)
+  <Card title="Getting Started" icon="rocket">
+    Installation instructions, environment requirements, and a five-minute quick start.
+
+    [Start here →](/docs/getting-started/installation/)
   </Card>
-  
-  <Card title="Quick Start" icon="rocket">
-    Get up and running in 5 minutes
-    
-    [Quick Start →](/docs/getting-started/quickstart/)
+  <Card title="Core Concepts" icon="layers">
+    Storage layout, MVCC transactions, branching model, and durability guarantees.
+
+    [Read concepts →](/docs/core/index/)
   </Card>
-  
-  <Card title="ORM (aperçu)" icon="pencil">
-    Fluent API disponible en avant-première (where/select/any/with_relations, depth, params). Interfaces susceptibles d'évoluer.
-    
-    [Python ORM →](/docs/sdk/python/orm/)
+  <Card title="Graph Query Language" icon="open-book">
+    ISO GQL basics, pattern matching examples, and recommended query idioms.
+
+    [Explore GQL →](/docs/gql/basics/)
   </Card>
-  
-  <Card title="SDK Reference" icon="laptop">
-    Explore Python SDK API
-    
+  <Card title="Python SDK" icon="laptop">
+    Interacting with CasysDB from Python, including session management and the fluent ORM.
+
     [Python SDK →](/docs/sdk/python/basics/)
+  </Card>
+  <Card title="Branching & Recovery" icon="branch">
+    How snapshots, manifests, and branches work together for PITR and experimentation.
+
+    [Understand branching →](/docs/core/branches/)
+  </Card>
+  <Card title="Storage Reference" icon="database">
+    File layout, WAL structure, segment format, and catalog metadata.
+
+    [Storage reference →](/docs/core/storage/)
   </Card>
 </CardGrid>

@@ -1,21 +1,27 @@
 ---
 title: Installation
-description: Installer CasysDB pour Python ou TypeScript
+description: Install CasysDB for Python (and preview upcoming TypeScript support)
 head: []
 sidebar:
   order: 1
 
 ---
 
-CasysDB is available as a native library for **Python** and **TypeScript/Node.js**.
+CasysDB ships as a native library. Today the Python SDK is available via `pip`, and the TypeScript bindings are under active development.
 
-### Python (pip)
+## Python
+
+CasysDB provides prebuilt wheels for CPython 3.8 and newer on the major platforms.
+
+### Install from PyPI
 
 ```bash
 pip install casys-db
 ```
 
-### From sources (Python)
+### Build from source
+
+Use this workflow if you are contributing to the engine or targeting a platform that does not yet have prebuilt wheels.
 
 ```bash
 git clone https://github.com/casysai/casysdb.git
@@ -24,85 +30,25 @@ pip install maturin
 maturin develop --release
 ```
 
-#### Requirements
+**Prerequisites**
 
-- Python 3.8+
-- pip or poetry
+- Python 3.8 or newer
+- `pip`, `maturin`, and a Rust toolchain (for source builds)
 
-### TypeScript/Node.js (coming soon)
-
-TypeScript SDK is under development and will be available soon.
-
-### Verify installation
+### Verify the installation
 
 ```python
 from casys_db import Database
 
-print("CasysDB installed!")
 db = Database(":memory:")
-print(f"DB created: {db}")
+print("CasysDB ready:", db)
 ```
 
-```ts
-import { Database } from 'casys-db';
+## TypeScript / Node.js
 
-console.log('CasysDB installed!');
-const db = new Database(':memory:');
-console.log(`DB created: ${db}`);
-```
+The TypeScript SDK is currently in development. Follow the project on GitHub for release updates, or build the native engine and drive it via the low-level FFI if you need early access.
 
-### Next steps
+## Next steps
 
-- [Quickstart](/docs/getting-started/quickstart/)
-
----
-
-## Installation (Français)
-
-CasysDB est disponible comme bibliothèque native pour **Python** et **TypeScript/Node.js**.
-
-### Installation Python (pip)
-
-```bash
-pip install casys-db
-```
-
-### Depuis les sources (Python)
-
-```bash
-git clone https://github.com/casysai/casysdb.git
-cd casysdb/sdk/python
-pip install maturin
-maturin develop --release
-```
-
-#### Prérequis
-
-- Python 3.8+
-- pip ou poetry
-
-### TypeScript/Node.js (à venir)
-
-Le SDK TypeScript est en cours de développement et sera disponible prochainement.
-
-### Vérifier l'installation
-
-```python
-from casys_db import Database
-
-print("CasysDB installé avec succès !")
-db = Database(":memory:")
-print(f"Base de données créée : {db}")
-```
-
-```ts
-import { Database } from 'casys-db';
-
-console.log('CasysDB installé avec succès !');
-const db = new Database(':memory:');
-console.log(`Base de données créée : ${db}`);
-```
-
-### Prochaines étapes
-
-- [Guide de Démarrage Rapide](/docs/getting-started/quickstart/)
+- [Quick Start](/docs/getting-started/quickstart/)
+- [Core Concepts](/docs/core/index/)

@@ -61,8 +61,8 @@ for row in result['rows']:
 branch.commit()
 ```
 
-## What's Next?
+## What's next?
 
 - Understand [Transactions & MVCC](/docs/core/transactions/)
 - Learn [GQL Basics](/docs/gql/basics/)
-- ORM (à venir)
+- Explore the [Python ORM](/docs/sdk/python/orm/)

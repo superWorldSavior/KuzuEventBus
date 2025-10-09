@@ -4,22 +4,20 @@ import I18n from '../i18n/I18n.astro';
 
 <section id="use-cases" class="py-20 relative" style="background: var(--bg-social);">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+      <I18n>
+        <Fragment slot="en">Use Cases</Fragment>
+        <Fragment slot="fr">Cas d'usage</Fragment>
+      </I18n>
+    </h2>
+    <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+      <I18n>
+        <Fragment slot="en">CasysDB excels where data is connected</Fragment>
+        <Fragment slot="fr">CasysDB excelle là où les données sont connectées</Fragment>
+      </I18n>
+    </p>
 
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
-        <I18n>
-          <Fragment slot="en">Use Cases</Fragment>
-          <Fragment slot="fr">Cas d'usage</Fragment>
-        </I18n>
-      </h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
-        <I18n>
-          <Fragment slot="en">CasysDB excels where data is connected</Fragment>
-          <Fragment slot="fr">CasysDB excelle là où les données sont connectées</Fragment>
-        </I18n>
-      </p>
-    </div>
-
-    <div class="grid md:grid-cols-2 gap-8">
+    <div class="mt-12 grid gap-8 md:grid-cols-2">
       <!-- Social Networks -->
       <div class="flat-card p-8">
         <div class="flex items-start gap-4">

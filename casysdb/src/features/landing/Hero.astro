@@ -3,7 +3,7 @@ import { Icon } from 'astro-icon/components';
 import I18n from '../i18n/I18n.astro';
 ---
 
-<section class="relative min-h-screen flex flex-col items-center justify-center bg-[var(--bg-hero)]">
+<section class="relative flex flex-col justify-center bg-[var(--bg-hero)] py-24 sm:py-28">
   <!-- Background effects -->
   <div class="absolute inset-0 z-0">
     <!-- Light mode subtle pattern -->
@@ -21,7 +21,7 @@ import I18n from '../i18n/I18n.astro';
       <!-- Left column: Title + CTAs + Install -->
       <div class="flex flex-col justify-between space-y-8 h-full">
         <!-- Main heading -->
-        <h1 class="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight">
+        <h1 class="max-w-2xl text-4xl sm:text-5xl md:text-6xl xl:text-7xl font-black tracking-tight leading-tight">
           <span class="block mb-3 bg-clip-text text-transparent bg-[linear-gradient(90deg,#000,#5B2E7E)] dark:bg-[linear-gradient(90deg,#fff,#c4b5fd)]">
             <I18n>
               <Fragment slot="en">Your Data,</Fragment>
@@ -37,7 +37,7 @@ import I18n from '../i18n/I18n.astro';
         </h1>
 
         <!-- Subtitle -->
-        <p class="text-xl sm:text-2xl text-[var(--text-secondary)]">
+        <p class="max-w-xl text-lg sm:text-xl text-[var(--text-secondary)] leading-relaxed">
           <I18n>
             <Fragment slot="en">Embedded graph database with Git-like branches and time travel.</Fragment>
             <Fragment slot="fr">Base de données graphe embarquée avec branches Git-like et voyage dans le temps.</Fragment>
@@ -48,7 +48,7 @@ import I18n from '../i18n/I18n.astro';
         <div class="flex flex-col sm:flex-row gap-4">
           <a
             href="/docs/getting-started/installation/"
-            class="inline-block text-center px-8 py-4 rounded-lg font-semibold border border-[#5B2E7E] text-white bg-[linear-gradient(135deg,#5B2E7E,#6C3A94)] hover:bg-[linear-gradient(135deg,#6C3A94,#7C4BB2)] transition-colors">
+            class="inline-flex w-full sm:w-auto items-center justify-center px-8 py-4 rounded-lg font-semibold border border-[#5B2E7E] text-white bg-[linear-gradient(135deg,#5B2E7E,#6C3A94)] hover:bg-[linear-gradient(135deg,#6C3A94,#7C4BB2)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
             <I18n>
               <Fragment slot="en">Documentation</Fragment>
               <Fragment slot="fr">Documentation</Fragment>
@@ -58,7 +58,7 @@ import I18n from '../i18n/I18n.astro';
             href="https://github.com/casysai/casysdb"
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-block text-center px-8 py-4 rounded-lg font-semibold border border-[var(--border)] text-[var(--text-primary)] bg-[var(--surface)] hover:border-[var(--acc)] transition-colors">
+            class="inline-flex w-full sm:w-auto items-center justify-center px-8 py-4 rounded-lg font-semibold border border-[var(--border)] text-[var(--text-primary)] bg-[var(--surface)] hover:border-[var(--acc)] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
             <span class="flex items-center justify-center gap-2">
               <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
@@ -73,7 +73,7 @@ import I18n from '../i18n/I18n.astro';
 
         <!-- Quick install - Cards normales -->
         <div>
-          <p class="text-sm font-semibold mb-3 uppercase tracking-wide text-[var(--muted)]">
+          <p class="text-sm font-semibold mb-3 uppercase tracking-wide text-[var(--text-muted)]">
             <I18n>
               <Fragment slot="en">Installation</Fragment>
               <Fragment slot="fr">Installation</Fragment>
@@ -81,11 +81,11 @@ import I18n from '../i18n/I18n.astro';
           </p>
           <div class="flex flex-col gap-3">
             <div class="p-4 font-mono text-sm bg-[var(--card-bg)] border border-[var(--border)] rounded-xl transition-colors">
-              <span style="color: var(--muted);"># Python</span><br/>
+              <span style="color: var(--text-muted);"># Python</span><br/>
               <span style="color: var(--acc);">pip install</span> <span style="color: var(--text-primary);">casys-db</span>
             </div>
             <div class="p-4 font-mono text-sm bg-[var(--card-bg)] border border-[var(--border)] rounded-xl transition-colors">
-              <span style="color: var(--muted);"># TypeScript/Node.js</span><br/>
+              <span style="color: var(--text-muted);"># TypeScript/Node.js</span><br/>
               <span style="color: var(--acc);">npm install</span> <span style="color: var(--text-primary);">casys-db</span>
             </div>
           </div>
@@ -94,7 +94,7 @@ import I18n from '../i18n/I18n.astro';
 
       <!-- Right column: ML/AI workflow with tabs -->
       <div class="flex flex-col space-y-4 h-full">
-        <p class="text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+        <p class="text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
           <I18n>
             <Fragment slot="en">Complete Workflow</Fragment>
             <Fragment slot="fr">Workflow complet</Fragment>
@@ -103,27 +103,27 @@ import I18n from '../i18n/I18n.astro';
         
         <!-- Workflow tabs -->
         <div class="flex gap-2 flex-wrap" role="tablist" aria-label="Workflow steps">
-          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="1" data-active="true">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-step="1" data-active="true" aria-pressed="true">
             1. Setup
           </button>
-          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="2">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-step="2" aria-pressed="false">
             2. Insert
           </button>
-          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="3">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-step="3" aria-pressed="false">
             3. Branch
           </button>
-          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="4">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-step="4" aria-pressed="false">
             4. Update
           </button>
-          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)]" data-step="5">
+          <button type="button" class="workflow-tab px-4 py-2 rounded-md text-sm font-semibold transition-colors bg-[var(--card-bg)] border border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--acc)] data-[active=true]:bg-[var(--acc-soft)] data-[active=true]:text-[var(--text-primary)] data-[active=true]:border-[var(--acc)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-step="5" aria-pressed="false">
             5. Time Travel
           </button>
         </div>
 
         <!-- Code content - flex to fill remaining space -->
-        <div class="p-6 font-mono text-sm leading-relaxed flex-1 overflow-y-auto flex flex-col bg-[var(--card-bg)] border border-[var(--border)] rounded-xl">
+        <div class="p-6 font-mono text-sm leading-relaxed flex-1 overflow-y-auto flex flex-col bg-[var(--card-bg)] border border-[var(--border)] rounded-xl max-h-[28rem] sm:max-h-[32rem]">
           <!-- Step 1: Setup -->
-          <pre class="m-0 block" data-content="1"><code><span class="comment"># Setup: Knowledge Graph pour RAG</span>
+          <pre class="m-0 block" data-content="1" aria-hidden="false"><code><span class="comment"># Setup: Knowledge Graph pour RAG</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> Database, Session
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, HasMany
 
@@ -143,7 +143,7 @@ main = prod.branch(<span class="string">"main"</span>)
 </code></pre>
 
           <!-- Step 2: Insert -->
-          <pre class="m-0 hidden" data-content="2"><code><span class="comment"># Insérer documents + embeddings (OpenAI/LLaMA)</span>
+          <pre class="m-0 hidden" data-content="2" aria-hidden="true"><code><span class="comment"># Insérer documents + embeddings (OpenAI/LLaMA)</span>
 prod.query(<span class="string">"""  
   CREATE (doc:Document {'{'}
     title: 'RAG avec Casys',
@@ -165,7 +165,7 @@ adults = session.Document.where(
 </code></pre>
 
           <!-- Step 3: Branch -->
-          <pre class="m-0 hidden" data-content="3"><code><span class="comment"># Créer une branche pour tester nouveau modèle</span>
+          <pre class="m-0 hidden" data-content="3" aria-hidden="true"><code><span class="comment"># Créer une branche pour tester nouveau modèle</span>
 experiment = prod.create_branch(<span class="string">"test-llama3"</span>)
 
 <span class="comment"># Voir les snapshots disponibles</span>
@@ -179,7 +179,7 @@ snapshots = prod.snapshots()
 </code></pre>
 
           <!-- Step 4: Update -->
-          <pre class="m-0 hidden" data-content="4"><code><span class="comment"># Re-calculer embeddings avec LLaMA 3</span>
+          <pre class="m-0 hidden" data-content="4" aria-hidden="true"><code><span class="comment"># Re-calculer embeddings avec LLaMA 3</span>
 <span class="keyword">import</span> numpy <span class="keyword">as</span> np
 
 <span class="comment"># Récupérer tous les docs via ORM (aperçu)</span>
@@ -203,7 +203,7 @@ experiment.commit()
 </code></pre>
 
           <!-- Step 5: Time Travel -->
-          <pre class="m-0 hidden" data-content="5"><code><span class="comment"># PITR: Si experiment casse tout ⏰</span>
+          <pre class="m-0 hidden" data-content="5" aria-hidden="true"><code><span class="comment"># PITR: Si experiment casse tout ⏰</span>
 
 <span class="comment"># Voir l'historique complet</span>
 history = prod.history(from_time=<span class="string">"yesterday"</span>)
@@ -290,15 +290,38 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
 </style>
 
 <script>
-document.querySelectorAll('.workflow-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    const step = tab.getAttribute('data-step');
-    // Update tabs (data-active)
-    document.querySelectorAll('.workflow-tab').forEach(t => t.setAttribute('data-active', 'false'));
-    tab.setAttribute('data-active', 'true');
-    // Update content visibility
-    document.querySelectorAll('[data-content]').forEach(c => c.classList.add('hidden'));
-    document.querySelector(`[data-content="${step}"]`)?.classList.remove('hidden');
+const workflowTabs = Array.from(document.querySelectorAll('.workflow-tab'));
+const workflowPanels = Array.from(document.querySelectorAll('[data-content]'));
+
+const activateWorkflowTab = (tab) => {
+  const step = tab.getAttribute('data-step');
+  if (!step) return;
+
+  workflowTabs.forEach((btn) => {
+    const isActive = btn === tab;
+    btn.setAttribute('data-active', isActive ? 'true' : 'false');
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+
+  workflowPanels.forEach((panel) => {
+    const isMatch = panel.getAttribute('data-content') === step;
+    panel.classList.toggle('hidden', !isMatch);
+    panel.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+  });
+};
+
+workflowTabs.forEach((tab) => {
+  tab.addEventListener('click', () => activateWorkflowTab(tab));
+  tab.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      const direction = event.key === 'ArrowRight' ? 1 : -1;
+      const index = workflowTabs.indexOf(tab);
+      const nextIndex = (index + direction + workflowTabs.length) % workflowTabs.length;
+      const nextTab = workflowTabs[nextIndex];
+      nextTab.focus();
+      activateWorkflowTab(nextTab);
+    }
   });
 });
 </script>

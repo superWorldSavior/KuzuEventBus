@@ -21,104 +21,115 @@ import I18n from '../i18n/I18n.astro';
 
     <div class="overflow-x-auto">
       <table class="w-full comparison-table">
+        <caption class="sr-only">
+          <I18n>
+            <Fragment slot="en">Comparison of CasysDB and alternative databases</Fragment>
+            <Fragment slot="fr">Comparaison entre CasysDB et les autres bases de données</Fragment>
+          </I18n>
+        </caption>
         <thead>
           <tr style="border-bottom: 2px solid var(--border);">
-            <th class="p-4 text-left" style="color: var(--text-primary);"></th>
-            <th class="p-4 text-center font-bold" style="color: var(--acc);">CasysDB</th>
-            <th class="p-4 text-center" style="color: var(--text-secondary);">Neo4j</th>
-            <th class="p-4 text-center" style="color: var(--text-secondary);">SQLite</th>
-            <th class="p-4 text-center" style="color: var(--text-secondary);">PostgreSQL</th>
+            <th scope="col" class="p-4 text-left" style="color: var(--text-primary);">
+              <I18n>
+                <Fragment slot="en">Feature</Fragment>
+                <Fragment slot="fr">Fonctionnalité</Fragment>
+              </I18n>
+            </th>
+            <th scope="col" class="p-4 text-center font-bold" style="color: var(--acc);">CasysDB</th>
+            <th scope="col" class="p-4 text-center" style="color: var(--text-secondary);">Neo4j</th>
+            <th scope="col" class="p-4 text-center" style="color: var(--text-secondary);">SQLite</th>
+            <th scope="col" class="p-4 text-center" style="color: var(--text-secondary);">PostgreSQL</th>
           </tr>
         </thead>
         <tbody>
           <tr style="border-bottom: 1px solid var(--border);">
-            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+            <th scope="row" class="p-4 text-left font-semibold" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Embedded (no server)</Fragment>
                 <Fragment slot="fr">Embarquée (no server)</Fragment>
               </I18n>
-            </td>
+            </th>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
-            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+            <th scope="row" class="p-4 text-left font-semibold" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Native Graph Queries</Fragment>
                 <Fragment slot="fr">Requêtes Graphe Natives</Fragment>
               </I18n>
-            </td>
+            </th>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
             <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
-            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+            <th scope="row" class="p-4 text-left font-semibold" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Standard Language (ISO GQL)</Fragment>
                 <Fragment slot="fr">Langage Standard (ISO GQL)</Fragment>
               </I18n>
-            </td>
+            </th>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
             <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
-            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+            <th scope="row" class="p-4 text-left font-semibold" style="color: var(--text-primary);">
               MVCC Transactions
-            </td>
+            </th>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
-            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+            <th scope="row" class="p-4 text-left font-semibold" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Time Travel (PITR)</Fragment>
                 <Fragment slot="fr">Voyage dans le temps (PITR)</Fragment>
               </I18n>
-            </td>
+            </th>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
-            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+            <th scope="row" class="p-4 text-left font-semibold" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Type-Safe ORM</Fragment>
                 <Fragment slot="fr">ORM Type-Safe</Fragment>
               </I18n>
-            </td>
+            </th>
             <td class="p-4 text-center"><span class="text-2xl">✅</span></td>
             <td class="p-4 text-center"><span class="text-2xl">❌</span></td>
             <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
             <td class="p-4 text-center"><span class="text-2xl">⚠️</span></td>
           </tr>
           <tr style="border-bottom: 1px solid var(--border);">
-            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+            <th scope="row" class="p-4 text-left font-semibold" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Dependencies</Fragment>
                 <Fragment slot="fr">Dépendances</Fragment>
               </I18n>
-            </td>
+            </th>
             <td class="p-4 text-center"><span class="font-bold" style="color: var(--acc);">0</span></td>
             <td class="p-4 text-center" style="color: var(--text-secondary);">JVM</td>
             <td class="p-4 text-center"><span class="font-bold" style="color: var(--acc);">0</span></td>
             <td class="p-4 text-center" style="color: var(--text-secondary);">Server</td>
           </tr>
           <tr>
-            <td class="p-4 font-semibold" style="color: var(--text-primary);">
+            <th scope="row" class="p-4 text-left font-semibold" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">License</Fragment>
                 <Fragment slot="fr">Licence</Fragment>
               </I18n>
-            </td>
+            </th>
             <td class="p-4 text-center font-bold" style="color: var(--acc);">MIT</td>
             <td class="p-4 text-center" style="color: var(--text-secondary);">GPL/Commercial</td>
             <td class="p-4 text-center" style="color: var(--text-secondary);">Public Domain</td>
@@ -142,11 +153,15 @@ import I18n from '../i18n/I18n.astro';
 <style>
 .comparison-table {
   border-collapse: collapse;
-  min-width: 700px;
+  min-width: min(700px, 100%);
 }
 
 .comparison-table td, .comparison-table th {
   padding: 1rem;
+}
+
+.comparison-table th[scope="row"] {
+  text-align: left;
 }
 
 /* Brutalist highlight box */

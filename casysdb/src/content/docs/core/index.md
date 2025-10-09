@@ -1,42 +1,42 @@
 ---
-title: Core Overview
-description: Panorama des principes du moteur CasysDB (sans GQL/ORM/SDK)
+title: Core overview
+description: Architectural building blocks of the CasysDB engine
 head: []
 sidebar:
   order: 0
 ---
 
-Cette section couvre les principes du moteur de base de CasysDB, **sans** entrer dans le langage GQL, l’ORM ou les SDK.
+This section covers the internal mechanics of the CasysDB storage engine. It focuses on how data is persisted, versioned, and recovered; higher-level topics such as ISO GQL and the SDKs are documented in their dedicated sections.
 
-## Carte des concepts
+## Concept map
 
 ```mermaid
 graph LR
-  A[Transactions MVCC] --> B[WAL]
-  B --> C[Segments immuables]
-  C --> D[Snapshots & Manifests]
+  A[MVCC transactions] --> B[Write-ahead log]
+  B --> C[Immutable segments]
+  C --> D[Snapshots & manifests]
   D --> E[Branches & PITR]
-  D --> F[Catalog]
-  A --> G[Concurrence SW‑MR]
-  H[Storage Layout] --> B
+  D --> F[Catalog metadata]
+  A --> G[Single-writer / multi-reader concurrency]
+  H[Storage layout] --> B
   H --> C
   H --> D
 ```
 
-## Lectures conseillées
-- **1. Architecture** → vue globale des choix embedded et fichiers
-- **2. Transactions MVCC** → isolation par snapshot
-- **3. WAL** → durabilité par append + fsync
-- **4. Segments** → immutables, CRC32, partage entre branches
-- **5. Snapshots & Manifests** → publication atomique et time travel
-- **6. Branches & PITR** → Git-like, expériences sans downtime
-- **7. Concurrence SW‑MR** → 1 writer/branche, lecteurs illimités
-- **8. Commit Flow** → chemin critique et garanties
-- **9. Catalog** → index léger des HEADs
+## Recommended reading order
 
-## Objectifs non traités ici
-- Langage de requête **GQL** (pages dédiées)
-- **ORM** (pattern d’accès applicatif)
-- **SDK** Python/TypeScript (bindings)
+1. **Architecture** — overview of the embedded design and on-disk layout.
+2. **Transactions** — MVCC model, snapshot isolation, and atomic commits.
+3. **Write-ahead log** — durability guarantees and crash recovery.
+4. **Segments** — immutable data files shared across branches.
+5. **Snapshots & manifests** — publishing versions and enabling PITR.
+6. **Branches & PITR** — Git-style branching for experiments and recovery.
+7. **Concurrency model** — single-writer per branch, lock-free readers.
+8. **Commit flow** — critical path taken during a successful commit.
+9. **Catalog** — lightweight metadata index for branch heads.
 
-Suivez l’ordre ci‑dessus pour comprendre le fonctionnement interne du moteur, puis consultez les sections GQL/SDK pour l’usage applicatif.
+## Out of scope
+
+- **Graph Query Language (GQL)** — see the [GQL section](/docs/gql/basics/).
+- **SDKs and ORM** — see the [Python SDK reference](/docs/sdk/python/basics/).
+- **Operational guidance** — deployment, observability, and tooling are tracked separately as the project matures.

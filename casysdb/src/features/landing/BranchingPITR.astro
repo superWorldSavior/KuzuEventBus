@@ -25,8 +25,8 @@ import I18n from '../i18n/I18n.astro';
         
         
         <!-- Git-like Branch Diagram (Mermaid, responsive) -->
-        <div class="w-full overflow-x-auto">
-          <div id="branch-graph" class="min-w-[360px] p-4 mx-auto max-w-full h-[320px] lg:h-[360px] overflow-auto"></div>
+        <div class="w-full">
+          <div id="branch-graph" class="mx-auto w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 p-4 shadow-sm" style="min-height: 320px;"></div>
         </div>
         <script is:inline>
           (async () => {
@@ -62,13 +62,17 @@ import I18n from '../i18n/I18n.astro';
                   svgEl.style.maxWidth = '100%';
                   svgEl.style.height = '100%';
                 }
-                // Synchroniser la hauteur du diagramme avec la colonne droite
+                // Synchroniser la hauteur du diagramme avec la colonne droite uniquement sur desktop
                 const right = document.getElementById('branch-right-col');
                 const sync = () => {
                   if (!right) return;
-                  const h = right.getBoundingClientRect().height;
-                  if (h > 0) {
-                    el.style.height = `${h}px`;
+                  if (window.matchMedia('(min-width: 1024px)').matches) {
+                    const h = right.getBoundingClientRect().height;
+                    if (h > 0) {
+                      el.style.height = `${h}px`;
+                    }
+                  } else {
+                    el.style.height = 'auto';
                   }
                 };
                 sync();
@@ -86,20 +90,20 @@ import I18n from '../i18n/I18n.astro';
       <!-- Right: Code Examples with Tabs -->
       <div id="branch-right-col">
         <!-- Tabs -->
-        <div class="flex gap-2 mb-6 flex-wrap">
-          <button class="branch-tab active px-6 py-3 rounded-lg font-semibold" data-tab="branch">
+        <div class="flex gap-2 mb-6 flex-wrap" role="tablist" aria-label="Branching examples">
+          <button id="branch-tab-branch" type="button" class="branch-tab active px-6 py-3 rounded-lg font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="branch" role="tab" aria-selected="true" aria-controls="branch-tabpanel-branch" tabindex="0">
             <I18n>
               <Fragment slot="en">Create Branches</Fragment>
               <Fragment slot="fr">Créer des Branches</Fragment>
             </I18n>
           </button>
-          <button class="branch-tab px-6 py-3 rounded-lg font-semibold" data-tab="pitr">
+          <button id="branch-tab-pitr" type="button" class="branch-tab px-6 py-3 rounded-lg font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="pitr" role="tab" aria-selected="false" aria-controls="branch-tabpanel-pitr" tabindex="-1">
             <I18n>
               <Fragment slot="en">PITR</Fragment>
               <Fragment slot="fr">PITR</Fragment>
             </I18n>
           </button>
-          <button class="branch-tab px-6 py-3 rounded-lg font-semibold" data-tab="snapshot">
+          <button id="branch-tab-snapshot" type="button" class="branch-tab px-6 py-3 rounded-lg font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="snapshot" role="tab" aria-selected="false" aria-controls="branch-tabpanel-snapshot" tabindex="-1">
             <I18n>
               <Fragment slot="en">Snapshots</Fragment>
               <Fragment slot="fr">Snapshots</Fragment>
@@ -110,7 +114,7 @@ import I18n from '../i18n/I18n.astro';
         <!-- Code blocks -->
         <div class="branch-content-wrapper">
           <!-- Create Branches -->
-          <div class="branch-content active" data-content="branch">
+          <div id="branch-tabpanel-branch" class="branch-content active" data-content="branch" role="tabpanel" aria-labelledby="branch-tab-branch" aria-hidden="false">
             <pre class="code-block"><code class="language-python"><span class="comment"># Créer une branche depuis main</span>
 <span class="keyword">import</span> casys_db
 
@@ -135,7 +139,7 @@ result = exp_branch.query(<span class="string">"""
           </div>
 
           <!-- PITR -->
-          <div class="branch-content" data-content="pitr">
+          <div id="branch-tabpanel-pitr" class="branch-content" data-content="pitr" role="tabpanel" aria-labelledby="branch-tab-pitr" aria-hidden="true">
             <pre class="code-block"><code class="language-python"><span class="comment"># Point-in-Time Recovery</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> Database
 
@@ -159,7 +163,7 @@ result = recovery.query(<span class="string">"MATCH (u:User) RETURN count(u)"</s
           </div>
 
           <!-- Snapshots -->
-          <div class="branch-content" data-content="snapshot">
+          <div id="branch-tabpanel-snapshot" class="branch-content" data-content="snapshot" role="tabpanel" aria-labelledby="branch-tab-snapshot" aria-hidden="true">
             <pre class="code-block"><code class="language-python"><span class="comment"># Snapshots et persistence</span>
 <span class="keyword">import</span> casys_db
 
@@ -295,17 +299,39 @@ branch.load()
 </style>
 
 <script>
-document.querySelectorAll('.branch-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    const targetTab = tab.getAttribute('data-tab');
-    
-    // Update tabs
-    document.querySelectorAll('.branch-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    
-    // Update content
-    document.querySelectorAll('.branch-content').forEach(c => c.classList.remove('active'));
-    document.querySelector(`[data-content="${targetTab}"]`)?.classList.add('active');
+const branchTabs = Array.from(document.querySelectorAll('.branch-tab'));
+const branchPanels = Array.from(document.querySelectorAll('.branch-content'));
+
+const activateBranchTab = (tab) => {
+  const targetTab = tab.getAttribute('data-tab');
+  if (!targetTab) return;
+
+  branchTabs.forEach((btn) => {
+    const isActive = btn === tab;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    btn.tabIndex = isActive ? 0 : -1;
+  });
+
+  branchPanels.forEach((panel) => {
+    const isMatch = panel.getAttribute('data-content') === targetTab;
+    panel.classList.toggle('active', isMatch);
+    panel.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+  });
+};
+
+branchTabs.forEach((tab) => {
+  tab.addEventListener('click', () => activateBranchTab(tab));
+  tab.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      const direction = event.key === 'ArrowRight' ? 1 : -1;
+      const index = branchTabs.indexOf(tab);
+      const nextIndex = (index + direction + branchTabs.length) % branchTabs.length;
+      const nextTab = branchTabs[nextIndex];
+      nextTab.focus();
+      activateBranchTab(nextTab);
+    }
   });
 });
 </script>

@@ -20,26 +20,26 @@ import I18n from '../i18n/I18n.astro';
     </div>
 
     <!-- Tabs -->
-    <div class="flex justify-center gap-2 mb-6 flex-wrap">
-      <button class="code-tab active px-6 py-3 rounded-lg font-semibold transition-all" data-tab="create">
+    <div class="flex justify-center gap-2 mb-6 flex-wrap" role="tablist" aria-label="Code example languages">
+      <button id="code-tab-create" type="button" class="code-tab active px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="create" role="tab" aria-selected="true" aria-controls="code-tabpanel-create" tabindex="0">
         <I18n>
           <Fragment slot="en">Create Graph</Fragment>
           <Fragment slot="fr">Créer un graphe</Fragment>
         </I18n>
       </button>
-      <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="query">
+      <button id="code-tab-query" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="query" role="tab" aria-selected="false" aria-controls="code-tabpanel-query" tabindex="-1">
         <I18n>
           <Fragment slot="en">GQL Query</Fragment>
           <Fragment slot="fr">Query GQL</Fragment>
         </I18n>
       </button>
-      <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="orm">
+      <button id="code-tab-orm" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="orm" role="tab" aria-selected="false" aria-controls="code-tabpanel-orm" tabindex="-1">
         <I18n>
           <Fragment slot="en">Python ORM</Fragment>
           <Fragment slot="fr">ORM Python</Fragment>
         </I18n>
       </button>
-      <button class="code-tab px-6 py-3 rounded-lg font-semibold transition-all" data-tab="relations">
+      <button id="code-tab-relations" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="relations" role="tab" aria-selected="false" aria-controls="code-tabpanel-relations" tabindex="-1">
         <I18n>
           <Fragment slot="en">Relationships</Fragment>
           <Fragment slot="fr">Relations</Fragment>
@@ -50,7 +50,7 @@ import I18n from '../i18n/I18n.astro';
     <!-- Code blocks -->
     <div class="code-content-wrapper max-w-4xl mx-auto">
       <!-- Create Graph -->
-      <div class="code-content active" data-content="create">
+      <div id="code-tabpanel-create" class="code-content active" data-content="create" role="tabpanel" aria-labelledby="code-tab-create" aria-hidden="false">
         <pre class="code-block"><code class="language-python"><span class="comment"># Create nodes and relationships</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> Database
 
@@ -74,7 +74,7 @@ session.commit()
       </div>
 
       <!-- GQL Query -->
-      <div class="code-content" data-content="query">
+      <div id="code-tabpanel-query" class="code-content" data-content="query" role="tabpanel" aria-labelledby="code-tab-query" aria-hidden="true">
         <pre class="code-block"><code class="language-sql"><span class="comment">-- Find friends of friends (2-hop path)</span>
 <span class="keyword">MATCH</span> (person:<span class="type">Person</span>)-[:<span class="type">KNOWS</span>*<span class="number">2</span>]->(friend_of_friend:<span class="type">Person</span>)
 <span class="keyword">WHERE</span> person.name = <span class="string">'Alice'</span>
@@ -92,7 +92,7 @@ session.commit()
       </div>
 
       <!-- Python ORM -->
-      <div class="code-content" data-content="orm">
+      <div id="code-tabpanel-orm" class="code-content" data-content="orm" role="tabpanel" aria-labelledby="code-tab-orm" aria-hidden="true">
         <pre class="code-block"><code class="language-python"><span class="comment"># Fluent query builder (ORM-style)</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, Session
 
@@ -120,7 +120,7 @@ results = (
       </div>
 
       <!-- Relationships -->
-      <div class="code-content" data-content="relations">
+      <div id="code-tabpanel-relations" class="code-content" data-content="relations" role="tabpanel" aria-labelledby="code-tab-relations" aria-hidden="true">
         <pre class="code-block"><code class="language-python"><span class="comment"># Define entity relationships</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, HasMany, HasOne
 <span class="keyword">from</span> typing <span class="keyword">import</span> Self
@@ -204,17 +204,38 @@ results = (
 </style>
 
 <script>
-document.querySelectorAll('.code-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    const targetTab = tab.getAttribute('data-tab');
-    
-    // Update tabs
-    document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    
-    // Update content
-    document.querySelectorAll('.code-content').forEach(c => c.classList.remove('active'));
-    document.querySelector(`[data-content="${targetTab}"]`)?.classList.add('active');
+const codeTabs = Array.from(document.querySelectorAll('.code-tab'));
+const codePanels = Array.from(document.querySelectorAll('.code-content'));
+
+const activateCodeTab = (tab) => {
+  const targetTab = tab.getAttribute('data-tab');
+  if (!targetTab) return;
+
+  codeTabs.forEach((btn) => {
+    const isActive = btn === tab;
+    btn.classList.toggle('active', isActive);
+    btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    btn.tabIndex = isActive ? 0 : -1;
+  });
+
+  codePanels.forEach((panel) => {
+    const isMatch = panel.getAttribute('data-content') === targetTab;
+    panel.classList.toggle('active', isMatch);
+    panel.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+  });
+};
+
+codeTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => activateCodeTab(tab));
+  tab.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      const direction = event.key === 'ArrowRight' ? 1 : -1;
+      const nextIndex = (index + direction + codeTabs.length) % codeTabs.length;
+      const nextTab = codeTabs[nextIndex];
+      nextTab.focus();
+      activateCodeTab(nextTab);
+    }
   });
 });
 </script>

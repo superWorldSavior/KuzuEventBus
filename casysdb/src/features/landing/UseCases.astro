@@ -19,7 +19,7 @@ import I18n from '../i18n/I18n.astro';
 
     <div class="mt-12 grid gap-8 md:grid-cols-2">
       <!-- Social Networks -->
-      <div class="flat-card p-8">
+      <div class="flat-card p-8 min-w-0">
         <div class="flex items-start gap-4">
           <div class="text-5xl">👥</div>
           <div>
@@ -36,14 +36,14 @@ import I18n from '../i18n/I18n.astro';
               </I18n>
             </p>
             <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (user:Person)-[:KNOWS*2..3]->(friend)
-WHERE user.id = $userId
+WHERE user.id = &#36;userId
 RETURN DISTINCT friend</code></pre>
           </div>
         </div>
       </div>
 
       <!-- Knowledge Graphs -->
-      <div class="flat-card p-8">
+      <div class="flat-card p-8 min-w-0">
         <div class="flex items-start gap-4">
           <div class="text-5xl">🧠</div>
           <div>
@@ -67,7 +67,7 @@ RETURN topic.name, COUNT(*) AS relevance</code></pre>
       </div>
 
       <!-- Recommendation Engines -->
-      <div class="flat-card p-8">
+      <div class="flat-card p-8 min-w-0">
         <div class="flex items-start gap-4">
           <div class="text-5xl">🎯</div>
           <div>
@@ -84,14 +84,14 @@ RETURN topic.name, COUNT(*) AS relevance</code></pre>
               </I18n>
             </p>
             <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (u:User)-[:LIKES]->(i:Item)<-[:LIKES]-(similar:User)
-WHERE u.id = $userId
+WHERE u.id = &#36;userId
 RETURN i.name, COUNT(similar) AS score</code></pre>
           </div>
         </div>
       </div>
 
       <!-- Network Analysis -->
-      <div class="flat-card p-8">
+      <div class="flat-card p-8 min-w-0">
         <div class="flex items-start gap-4">
           <div class="text-5xl">🕸️</div>
           <div>

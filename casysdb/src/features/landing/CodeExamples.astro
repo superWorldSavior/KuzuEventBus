@@ -21,25 +21,25 @@ import I18n from '../i18n/I18n.astro';
 
     <!-- Tabs -->
     <div class="flex justify-center gap-2 mb-6 flex-wrap" role="tablist" aria-label="Code example languages">
-      <button id="code-tab-create" type="button" class="code-tab active px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="create" role="tab" aria-selected="true" aria-controls="code-tabpanel-create" tabindex="0">
+      <button id="code-tab-create" type="button" class="code-tab active px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="create" role="tab" aria-selected="true" aria-controls="code-tabpanel-create" tabindex="0">
         <I18n>
           <Fragment slot="en">Create Graph</Fragment>
           <Fragment slot="fr">Créer un graphe</Fragment>
         </I18n>
       </button>
-      <button id="code-tab-query" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="query" role="tab" aria-selected="false" aria-controls="code-tabpanel-query" tabindex="-1">
+      <button id="code-tab-query" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="query" role="tab" aria-selected="false" aria-controls="code-tabpanel-query" tabindex="-1">
         <I18n>
           <Fragment slot="en">GQL Query</Fragment>
           <Fragment slot="fr">Query GQL</Fragment>
         </I18n>
       </button>
-      <button id="code-tab-orm" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="orm" role="tab" aria-selected="false" aria-controls="code-tabpanel-orm" tabindex="-1">
+      <button id="code-tab-orm" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="orm" role="tab" aria-selected="false" aria-controls="code-tabpanel-orm" tabindex="-1">
         <I18n>
           <Fragment slot="en">Python ORM</Fragment>
           <Fragment slot="fr">ORM Python</Fragment>
         </I18n>
       </button>
-      <button id="code-tab-relations" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="relations" role="tab" aria-selected="false" aria-controls="code-tabpanel-relations" tabindex="-1">
+      <button id="code-tab-relations" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="relations" role="tab" aria-selected="false" aria-controls="code-tabpanel-relations" tabindex="-1">
         <I18n>
           <Fragment slot="en">Relationships</Fragment>
           <Fragment slot="fr">Relations</Fragment>
@@ -48,7 +48,7 @@ import I18n from '../i18n/I18n.astro';
     </div>
 
     <!-- Code blocks -->
-    <div class="code-content-wrapper max-w-4xl mx-auto">
+    <div class="code-content-wrapper w-full min-w-0 max-w-4xl mx-auto">
       <!-- Create Graph -->
       <div id="code-tabpanel-create" class="code-content active" data-content="create" role="tabpanel" aria-labelledby="code-tab-create" aria-hidden="false">
         <pre class="code-block"><code class="language-python"><span class="comment"># Create nodes and relationships</span>

@@ -21,7 +21,7 @@ import I18n from '../i18n/I18n.astro';
 
     <div class="grid lg:grid-cols-2 gap-12 items-center">
       <!-- Left: Visualization -->
-      <div>
+      <div class="min-w-0">
         
         
         <!-- Git-like Branch Diagram (Mermaid, responsive) -->
@@ -88,22 +88,22 @@ import I18n from '../i18n/I18n.astro';
       </div>
 
       <!-- Right: Code Examples with Tabs -->
-      <div id="branch-right-col">
+      <div id="branch-right-col" class="min-w-0">
         <!-- Tabs -->
         <div class="flex gap-2 mb-6 flex-wrap" role="tablist" aria-label="Branching examples">
-          <button id="branch-tab-branch" type="button" class="branch-tab active px-6 py-3 rounded-lg font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="branch" role="tab" aria-selected="true" aria-controls="branch-tabpanel-branch" tabindex="0">
+          <button id="branch-tab-branch" type="button" class="branch-tab active px-6 py-3 rounded-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="branch" role="tab" aria-selected="true" aria-controls="branch-tabpanel-branch" tabindex="0">
             <I18n>
               <Fragment slot="en">Create Branches</Fragment>
               <Fragment slot="fr">Créer des Branches</Fragment>
             </I18n>
           </button>
-          <button id="branch-tab-pitr" type="button" class="branch-tab px-6 py-3 rounded-lg font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="pitr" role="tab" aria-selected="false" aria-controls="branch-tabpanel-pitr" tabindex="-1">
+          <button id="branch-tab-pitr" type="button" class="branch-tab px-6 py-3 rounded-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="pitr" role="tab" aria-selected="false" aria-controls="branch-tabpanel-pitr" tabindex="-1">
             <I18n>
               <Fragment slot="en">PITR</Fragment>
               <Fragment slot="fr">PITR</Fragment>
             </I18n>
           </button>
-          <button id="branch-tab-snapshot" type="button" class="branch-tab px-6 py-3 rounded-lg font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="snapshot" role="tab" aria-selected="false" aria-controls="branch-tabpanel-snapshot" tabindex="-1">
+          <button id="branch-tab-snapshot" type="button" class="branch-tab px-6 py-3 rounded-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="snapshot" role="tab" aria-selected="false" aria-controls="branch-tabpanel-snapshot" tabindex="-1">
             <I18n>
               <Fragment slot="en">Snapshots</Fragment>
               <Fragment slot="fr">Snapshots</Fragment>
@@ -299,10 +299,12 @@ branch.load()
 </style>
 
 <script>
+// @ts-nocheck
 const branchTabs = Array.from(document.querySelectorAll('.branch-tab'));
 const branchPanels = Array.from(document.querySelectorAll('.branch-content'));
 
 const activateBranchTab = (tab) => {
+  if (!tab) return;
   const targetTab = tab.getAttribute('data-tab');
   if (!targetTab) return;
 
@@ -310,7 +312,7 @@ const activateBranchTab = (tab) => {
     const isActive = btn === tab;
     btn.classList.toggle('active', isActive);
     btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
-    btn.tabIndex = isActive ? 0 : -1;
+    btn.setAttribute('tabindex', isActive ? '0' : '-1');
   });
 
   branchPanels.forEach((panel) => {
@@ -323,13 +325,14 @@ const activateBranchTab = (tab) => {
 branchTabs.forEach((tab) => {
   tab.addEventListener('click', () => activateBranchTab(tab));
   tab.addEventListener('keydown', (event) => {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+    const key = event && 'key' in event ? event.key : '';
+    if (key === 'ArrowRight' || key === 'ArrowLeft') {
       event.preventDefault();
-      const direction = event.key === 'ArrowRight' ? 1 : -1;
+      const direction = key === 'ArrowRight' ? 1 : -1;
       const index = branchTabs.indexOf(tab);
       const nextIndex = (index + direction + branchTabs.length) % branchTabs.length;
       const nextTab = branchTabs[nextIndex];
-      nextTab.focus();
+      if (nextTab && typeof nextTab.focus === 'function') nextTab.focus();
       activateBranchTab(nextTab);
     }
   });

@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::types::{BranchName, DatabaseName, EngineError};
+use casys_core::{BranchName, DatabaseName, EngineError};
 
 fn wal_dir(root: &Path, db: &DatabaseName, branch: &BranchName) -> PathBuf {
     root.join(db.as_str()).join("branches").join(branch.as_str()).join("wal")

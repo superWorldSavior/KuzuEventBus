@@ -1,7 +1,7 @@
 [workspace]
 members = [
-  "engine",
-  "crates/casys_ffi",
+  "apps/casys-http",
+  "crates/casys_pyo3",
   "crates/casys_core",
   "crates/casys_engine",
   "crates/casys_storage_mem",

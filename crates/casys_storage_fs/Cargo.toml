@@ -11,3 +11,5 @@ crate-type = ["rlib"]
 thiserror = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
+crc32fast = "1"
+casys_core = { path = "../casys_core" }

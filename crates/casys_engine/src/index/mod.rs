@@ -1,5 +1,6 @@
 //! Indexes: labels, properties, adjacency (in-memory MVP)
 
+#[cfg(feature = "fs")]
 pub mod persistence;
 
 use crate::types::EngineError;

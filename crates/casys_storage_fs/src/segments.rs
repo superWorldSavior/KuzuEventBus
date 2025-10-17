@@ -4,7 +4,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::types::{DatabaseName, EngineError};
+use casys_core::{DatabaseName, EngineError};
 
 const SEGMENT_MAGIC: u32 = 0x43415353; // "CASS" for Casys
 const SEGMENT_VERSION: u16 = 1;

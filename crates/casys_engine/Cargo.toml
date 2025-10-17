@@ -9,6 +9,14 @@ crate-type = ["rlib"]
 
 [dependencies]
 casys_core = { path = "../casys_core" }
-casys = { path = "../../engine" }
 thiserror = { workspace = true }
-anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+crc32fast = "1"
+casys_storage_fs = { path = "../casys_storage_fs", optional = true }
+
+[features]
+# Default to in-memory only; fs can be enabled by dependents (e.g. casys_pyo3)
+default = ["mem"]
+mem = []
+fs = ["casys_storage_fs"]

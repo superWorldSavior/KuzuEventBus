@@ -3,7 +3,7 @@
 use super::{InMemoryGraphStore, Node, Edge, NodeId, EdgeId};
 use crate::exec::executor::Value;
 use crate::types::{EngineError, DatabaseName, BranchName};
-use crate::storage::catalog;
+use casys_storage_fs::catalog;
 use std::collections::HashMap;
 use std::fs::{self, File};
 use std::io::{Read, Write};

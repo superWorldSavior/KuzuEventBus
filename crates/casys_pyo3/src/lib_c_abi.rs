@@ -7,7 +7,7 @@ use std::ptr;
 use std::sync::Mutex;
 
 // Re-export timestamp type
-use casys::{BranchHandle, DbHandle, Engine, EngineError, Timestamp};
+use casys_engine::{BranchHandle, DbHandle, Engine, EngineError, Timestamp};
 
 // Global last-error buffer
 static LAST_ERROR: OnceCell<Mutex<Option<CString>>> = OnceCell::new();

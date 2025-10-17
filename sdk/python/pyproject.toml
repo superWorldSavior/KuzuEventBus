@@ -43,5 +43,4 @@ dev = [
 [tool.maturin]
 features = ["pyo3/extension-module"]
 module-name = "casys_engine"
-python-source = "python"
-python-packages = ["casys_db"]
+manifest-path = "../../crates/casys_pyo3/Cargo.toml"

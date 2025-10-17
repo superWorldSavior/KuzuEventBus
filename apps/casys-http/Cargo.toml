@@ -12,6 +12,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "1"
 crc32fast = "1"
+casys_engine = { path = "../../crates/casys_engine" }
 
 [dev-dependencies]
 tempfile = "3"

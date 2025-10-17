@@ -1,7 +1,7 @@
 use std::{fs, io, path::{Path, PathBuf}};
 
-use crate::types::{BranchName, DatabaseName, EngineError};
-use super::manifest as mf;
+use casys_core::{BranchName, DatabaseName, EngineError};
+use crate::manifest as mf;
 
 pub fn db_dir(root: &Path, db: &DatabaseName) -> PathBuf {
     root.join(db.as_str())

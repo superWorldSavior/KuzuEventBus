@@ -2,7 +2,7 @@ use std::{fs, io, path::{Path, PathBuf}};
 
 use serde::{Deserialize, Serialize};
 
-use crate::types::{BranchName, DatabaseName, EngineError, Timestamp};
+use casys_core::{BranchName, DatabaseName, EngineError, Timestamp};
 use crate::util::atomic_write_file;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

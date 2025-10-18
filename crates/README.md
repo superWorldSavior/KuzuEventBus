@@ -29,7 +29,7 @@ KuzuEventBus/
 ├── apps/
 │   ├── casys-cli/           # Binaire CLI (debug/maintenance)
 │   └── casys-http/          # Service HTTP Axum (optionnel)
-│   └── casysdb/             # Application web (à déplacer)
+│   └── casys-website/             # Application web (à déplacer)
 └── sdk/
     ├── python/              # Wheel maturin pointant sur crates/casys_pyo3
     └── typescript/          # NPM (plus tard) pointant sur crates/casys_napi

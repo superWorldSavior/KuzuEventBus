@@ -2,40 +2,40 @@
 import I18n from '../i18n/I18n.astro';
 ---
 
-<section id="use-cases" class="py-20 relative" style="background: var(--bg-social);">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+<section id="use-cases" class="usecases">
+  <div class="usecases__container">
+    <h2 class="usecases__title" style="color: var(--text-primary);">
       <I18n>
         <Fragment slot="en">Use Cases</Fragment>
         <Fragment slot="fr">Cas d'usage</Fragment>
       </I18n>
     </h2>
-    <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+    <p class="usecases__subtitle" style="color: var(--text-secondary);">
       <I18n>
         <Fragment slot="en">CasysDB excels where data is connected</Fragment>
         <Fragment slot="fr">CasysDB excelle là où les données sont connectées</Fragment>
       </I18n>
     </p>
 
-    <div class="mt-12 grid gap-8 md:grid-cols-2">
+    <div class="usecases__grid">
       <!-- Social Networks -->
-      <div class="flat-card p-8 min-w-0">
-        <div class="flex items-start gap-4">
-          <div class="text-5xl">👥</div>
+      <div class="usecases__card">
+        <div class="usecases__row">
+          <div class="usecases__icon">👥</div>
           <div>
-            <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
+            <h3 class="usecases__card-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Social Networks</Fragment>
                 <Fragment slot="fr">Réseaux Sociaux</Fragment>
               </I18n>
             </h3>
-            <p class="mb-4" style="color: var(--text-secondary);">
+            <p class="usecases__card-text" style="color: var(--text-secondary);">
               <I18n>
                 <Fragment slot="en">Find friends-of-friends, recommendations, community detection. 2-3 hop queries in milliseconds.</Fragment>
                 <Fragment slot="fr">Trouvez des amis d'amis, recommandations, détection de communautés. Queries 2-3 hops en millisecondes.</Fragment>
               </I18n>
             </p>
-            <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (user:Person)-[:KNOWS*2..3]->(friend)
+            <pre class="usecases__code" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (user:Person)-[:KNOWS*2..3]->(friend)
 WHERE user.id = &#36;userId
 RETURN DISTINCT friend</code></pre>
           </div>
@@ -43,23 +43,23 @@ RETURN DISTINCT friend</code></pre>
       </div>
 
       <!-- Knowledge Graphs -->
-      <div class="flat-card p-8 min-w-0">
-        <div class="flex items-start gap-4">
-          <div class="text-5xl">🧠</div>
+      <div class="usecases__card">
+        <div class="usecases__row">
+          <div class="usecases__icon">🧠</div>
           <div>
-            <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
+            <h3 class="usecases__card-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Knowledge Graphs</Fragment>
                 <Fragment slot="fr">Knowledge Graphs</Fragment>
               </I18n>
             </h3>
-            <p class="mb-4" style="color: var(--text-secondary);">
+            <p class="usecases__card-text" style="color: var(--text-secondary);">
               <I18n>
                 <Fragment slot="en">Ontologies, RAG, semantic search. Complex relationships between entities, attributes, concepts.</Fragment>
                 <Fragment slot="fr">Ontologies, RAG, semantic search. Relationships complexes entre entités, attributs, concepts.</Fragment>
               </I18n>
             </p>
-            <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (concept)-[:RELATED_TO*]->(topic)
+            <pre class="usecases__code" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (concept)-[:RELATED_TO*]->(topic)
 WHERE concept.name = 'Machine Learning'
 RETURN topic.name, COUNT(*) AS relevance</code></pre>
           </div>
@@ -67,23 +67,23 @@ RETURN topic.name, COUNT(*) AS relevance</code></pre>
       </div>
 
       <!-- Recommendation Engines -->
-      <div class="flat-card p-8 min-w-0">
-        <div class="flex items-start gap-4">
-          <div class="text-5xl">🎯</div>
+      <div class="usecases__card">
+        <div class="usecases__row">
+          <div class="usecases__icon">🎯</div>
           <div>
-            <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
+            <h3 class="usecases__card-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Recommendation Engines</Fragment>
                 <Fragment slot="fr">Moteurs de Recommandation</Fragment>
               </I18n>
             </h3>
-            <p class="mb-4" style="color: var(--text-secondary);">
+            <p class="usecases__card-text" style="color: var(--text-secondary);">
               <I18n>
                 <Fragment slot="en">Collaborative filtering, content-based recommendations. Find patterns in user interactions.</Fragment>
                 <Fragment slot="fr">Collaborative filtering, content-based recommendations. Trouvez des patterns dans les interactions utilisateurs.</Fragment>
               </I18n>
             </p>
-            <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (u:User)-[:LIKES]->(i:Item)<-[:LIKES]-(similar:User)
+            <pre class="usecases__code" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH (u:User)-[:LIKES]->(i:Item)<-[:LIKES]-(similar:User)
 WHERE u.id = &#36;userId
 RETURN i.name, COUNT(similar) AS score</code></pre>
           </div>
@@ -91,23 +91,23 @@ RETURN i.name, COUNT(similar) AS score</code></pre>
       </div>
 
       <!-- Network Analysis -->
-      <div class="flat-card p-8 min-w-0">
-        <div class="flex items-start gap-4">
-          <div class="text-5xl">🕸️</div>
+      <div class="usecases__card">
+        <div class="usecases__row">
+          <div class="usecases__icon">🕸️</div>
           <div>
-            <h3 class="text-2xl font-bold mb-3" style="color: var(--text-primary);">
+            <h3 class="usecases__card-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Network Analysis</Fragment>
                 <Fragment slot="fr">Analyse de Réseaux</Fragment>
               </I18n>
             </h3>
-            <p class="mb-4" style="color: var(--text-secondary);">
+            <p class="usecases__card-text" style="color: var(--text-secondary);">
               <I18n>
                 <Fragment slot="en">Fraud detection, supply chain, dependency tracking. Visualize and explore connections.</Fragment>
                 <Fragment slot="fr">Détection de fraude, supply chain, dependency tracking. Visualisez et explorez les connections.</Fragment>
               </I18n>
             </p>
-            <pre class="text-sm bg-opacity-50 p-3 rounded" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH path = (start)-[:DEPENDS_ON*]->(end)
+            <pre class="usecases__code" style="background: var(--acc-soft); color: var(--text-primary);"><code>MATCH path = (start)-[:DEPENDS_ON*]->(end)
 WHERE start.type = 'Service'
 RETURN path, LENGTH(path) AS depth</code></pre>
           </div>
@@ -117,18 +117,69 @@ RETURN path, LENGTH(path) AS depth</code></pre>
   </div>
 </section>
 
-<style>
-/* Flat Design */
-.flat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
 
-pre {
-  font-family: 'Fira Code', 'JetBrains Mono', monospace;
-  font-size: 0.85rem;
-  line-height: 1.5;
-  overflow-x: auto;
+.usecases {
+  padding: 5rem 0;
+  background: var(--bg-social);
+
+  &__container { @include container; }
+
+  &__title {
+    font-size: $text-4xl;
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    margin-top: 1rem;
+    font-size: $text-xl;
+  }
+
+  &__grid {
+    margin-top: 3rem;
+    display: grid;
+    gap: 2rem;
+
+    @include md {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  &__card {
+    @include card;
+    padding: 2rem;
+    min-width: 0;
+  }
+
+  &__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  &__icon {
+    font-size: 3rem;
+  }
+
+  &__card-title {
+    font-size: $text-2xl;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  &__card-text {
+    margin-bottom: 1rem;
+  }
+
+  &__code {
+    font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-x: auto;
+    padding: 0.75rem;
+    border-radius: 0.375rem;
+  }
 }
 </style>

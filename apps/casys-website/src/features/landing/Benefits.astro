@@ -2,16 +2,16 @@
 import I18n from '../i18n/I18n.astro';
 ---
 
-<section id="benefits" class="relative py-24 overflow-hidden" style="background: transparent;">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-12">
-      <h2 class="text-3xl md:text-4xl font-bold" style="color: var(--text-primary);">
+<section id="benefits" class="benefits">
+  <div class="benefits__container">
+    <div class="benefits__header">
+      <h2 class="benefits__title" style="color: var(--text-primary);">
         <I18n>
           <Fragment slot="en">Why CasysDB?</Fragment>
           <Fragment slot="fr">Pourquoi CasysDB ?</Fragment>
         </I18n>
       </h2>
-      <p class="mt-3 text-lg" style="color: var(--text-secondary);">
+      <p class="benefits__subtitle" style="color: var(--text-secondary);">
         <I18n>
           <Fragment slot="en">A modern, embedded, and powerful graph database.</Fragment>
           <Fragment slot="fr">Une base de données graphe moderne, embarquée, et puissante.</Fragment>
@@ -19,18 +19,18 @@ import I18n from '../i18n/I18n.astro';
       </p>
     </div>
     
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <article class="flat-card p-6">
-        <div class="flex items-start gap-4">
-          <div class="text-3xl">⚡</div>
+    <div class="benefits__grid">
+      <article class="benefits__card">
+        <div class="benefits__row">
+          <div class="benefits__icon">⚡</div>
           <div>
-            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">
+            <h3 class="benefits__card-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Zero configuration</Fragment>
                 <Fragment slot="fr">Zero configuration</Fragment>
               </I18n>
             </h3>
-            <p class="mt-1" style="color: var(--text-secondary);">
+            <p class="benefits__card-text" style="color: var(--text-secondary);">
               <I18n>
                 <Fragment slot="en">No server to manage. Runs directly in your Python or TypeScript application.</Fragment>
                 <Fragment slot="fr">Pas de serveur à gérer. S'exécute directement dans votre application Python ou TypeScript.</Fragment>
@@ -40,17 +40,17 @@ import I18n from '../i18n/I18n.astro';
         </div>
       </article>
 
-      <article class="flat-card p-6">
-        <div class="flex items-start gap-4">
-          <div class="text-3xl">📊</div>
+      <article class="benefits__card">
+        <div class="benefits__row">
+          <div class="benefits__icon">📊</div>
           <div>
-            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">
+            <h3 class="benefits__card-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Native ISO GQL</Fragment>
                 <Fragment slot="fr">ISO GQL natif</Fragment>
               </I18n>
             </h3>
-            <p class="mt-1" style="color: var(--text-secondary);">
+            <p class="benefits__card-text" style="color: var(--text-secondary);">
               <I18n>
                 <Fragment slot="en">Standard graph query language. Learn once, use everywhere.</Fragment>
                 <Fragment slot="fr">Langage standard de requêtes graphe. Apprenez une fois, utilisez partout.</Fragment>
@@ -60,17 +60,17 @@ import I18n from '../i18n/I18n.astro';
         </div>
       </article>
 
-      <article class="flat-card p-6">
-        <div class="flex items-start gap-4">
-          <div class="text-3xl">🔄</div>
+      <article class="benefits__card">
+        <div class="benefits__row">
+          <div class="benefits__icon">🔄</div>
           <div>
-            <h3 class="text-lg font-semibold" style="color: var(--text-primary);">
+            <h3 class="benefits__card-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">MVCC & PITR</Fragment>
                 <Fragment slot="fr">MVCC & PITR</Fragment>
               </I18n>
             </h3>
-            <p class="mt-1" style="color: var(--text-secondary);">
+            <p class="benefits__card-text" style="color: var(--text-secondary);">
               <I18n>
                 <Fragment slot="en">Isolated transactions with MVCC. Point-in-Time Recovery to travel through history.</Fragment>
                 <Fragment slot="fr">Transactions isolées avec MVCC. Point-in-Time Recovery pour voyager dans l'historique.</Fragment>
@@ -83,12 +83,40 @@ import I18n from '../i18n/I18n.astro';
   </div>
 </section>
 
-<style>
-/* Flat Design */
-.flat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
+
+.benefits {
+  position: relative;
+  padding: 6rem 0;
+  overflow: hidden;
+  background: transparent;
+
+  &__container { @include container; }
+
+  &__header { text-align: center; margin-bottom: 3rem; }
+
+  &__title { font-weight: 700; font-size: $text-3xl; @include md { font-size: $text-4xl; } }
+
+  &__subtitle { margin-top: .75rem; font-size: $text-lg; }
+
+  &__grid {
+    display: grid;
+    gap: 1.5rem;
+    grid-template-columns: 1fr;
+    @include md { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  &__card { @include card; padding: 1.5rem; }
+
+  &__row { display: flex; align-items: flex-start; gap: 1rem; }
+
+  &__icon { font-size: 1.75rem; }
+
+  &__card-title { font-size: $text-lg; font-weight: 600; }
+
+  &__card-text { margin-top: .25rem; }
 }
 </style>
 

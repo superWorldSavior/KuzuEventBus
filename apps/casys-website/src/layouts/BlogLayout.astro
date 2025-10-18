@@ -51,35 +51,35 @@ const currentPath = Astro.url.pathname;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
   </head>
-  <body class="bg-gray-50 min-h-screen overflow-hidden">
+  <body class="blog-layout">
     <!-- Nav bar de l'application -->
-    <nav class="bg-white border-b border-gray-200 px-4 py-3">
-      <div class="flex items-center justify-between">
+    <nav class="blog-layout__header">
+      <div class="blog-layout__header-content">
         <!-- Logo et titre -->
-        <div class="flex items-center space-x-4">
-          <div class="flex items-center">
-            <img src="/icons/favicon-32x32.png" alt="CASYS" class="w-8 h-8 mr-2" />
-            <h1 class="text-xl font-bold text-gray-900">CASYS</h1>
-            <span class="ml-2 text-sm text-gray-500">Blog</span>
+        <div class="blog-layout__header-left">
+          <div class="blog-layout__logo">
+            <img src="/icons/favicon-32x32.png" alt="CASYS" class="blog-layout__logo-img" />
+            <h1 class="blog-layout__logo-title">CASYS</h1>
+            <span class="blog-layout__logo-subtitle">Blog</span>
           </div>
         </div>
         
         <!-- Navigation -->
-        <div class="flex items-center space-x-6">
+        <div class="blog-layout__header-nav">
           <a 
             href="/blog" 
-            class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
+            class="blog-layout__header-link"
           >
             Blog
           </a>
           
           <!-- Séparateur -->
-          <div class="h-6 w-px bg-gray-300"></div>
+          <div class="blog-layout__header-divider"></div>
           
           <!-- Bouton retour landing -->
           <a 
             href="/" 
-            class="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
+            class="blog-layout__header-link"
           >
             ← Accueil
           </a>
@@ -88,26 +88,26 @@ const currentPath = Astro.url.pathname;
     </nav>
     
     <!-- Contenu principal avec nav bar -->
-    <div class="flex" style="height: calc(100vh - 60px);">
+    <div class="blog-layout__main-wrapper">
       <!-- Sidebar de navigation blog -->
-      <aside class="w-80 bg-white border-r border-gray-200 flex flex-col">
-        <div class="p-4 border-b border-gray-200">
-          <h2 class="text-lg font-semibold text-gray-900">📝 Blog CASYS</h2>
-          <p class="text-sm text-gray-500">
+      <aside class="blog-layout__sidebar">
+        <div class="blog-layout__sidebar-header">
+          <h2 class="blog-layout__sidebar-title">📝 Blog CASYS</h2>
+          <p class="blog-layout__sidebar-desc">
             Articles et actualités sur le développement
           </p>
         </div>
         
         <!-- Navigation du blog -->
-        <nav class="flex-1 overflow-y-auto p-4 space-y-6">
+        <nav class="blog-layout__sidebar-nav">
           <!-- Lien vers l'index -->
           <div>
             <a 
               href="/blog" 
-              class={`block py-2 px-3 rounded-md font-medium transition-colors ${
+              class={`blog-layout__sidebar-link ${
                 currentPath === '/blog' || currentPath === '/blog/'
-                  ? 'bg-blue-50 text-blue-700 border-l-2 border-blue-500'
-                  : 'text-gray-900 hover:bg-gray-50'
+                  ? 'blog-layout__sidebar-link--active'
+                  : ''
               }`}
             >
               🏠 Tous les articles
@@ -116,26 +116,26 @@ const currentPath = Astro.url.pathname;
           
           <!-- Articles récents -->
           <div>
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
+            <h3 class="blog-layout__sidebar-section-title">
               📅 Articles récents
             </h3>
-            <ul class="space-y-1">
+            <ul class="blog-layout__sidebar-list">
               {recentPosts.map((post) => (
                 <li>
                   <a 
                     href={`/blog/${post.slug}`}
-                    class={`block py-2 px-3 rounded-md text-sm transition-colors ${
+                    class={`blog-layout__post-link ${
                       currentPath === `/blog/${post.slug}`
-                        ? 'bg-blue-50 text-blue-700 border-l-2 border-blue-500'
-                        : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'blog-layout__post-link--active'
+                        : ''
                     }`}
                   >
-                    <div class="truncate font-medium">{post.data.title}</div>
-                    <div class="text-xs text-gray-500 mt-1 flex items-center">
+                    <div class="blog-layout__post-title">{post.data.title}</div>
+                    <div class="blog-layout__post-meta">
                       <span>{post.data.date.toLocaleDateString('fr-FR')}</span>
                       {post.data.category && (
                         <>
-                          <span class="mx-1">•</span>
+                          <span class="blog-layout__post-meta-sep">•</span>
                           <span>{post.data.category}</span>
                         </>
                       )}
@@ -148,36 +148,36 @@ const currentPath = Astro.url.pathname;
           
           <!-- Catégories -->
           <div>
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
+            <h3 class="blog-layout__sidebar-section-title">
               📁 Par catégorie
             </h3>
-            <ul class="space-y-1">
+            <ul class="blog-layout__sidebar-list">
               {Object.entries(postsByCategory).map(([categoryName, posts]) => (
                 <li>
-                  <div class="py-1 px-3 text-sm font-medium text-gray-900 flex items-center justify-between">
+                  <div class="blog-layout__category-header">
                     <span>{categoryName}</span>
-                    <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                    <span class="blog-layout__category-count">
                       {posts.length}
                     </span>
                   </div>
-                  <ul class="ml-3 space-y-1">
+                  <ul class="blog-layout__category-posts">
                     {posts.slice(0, 3).map((post) => (
                       <li>
                         <a 
                           href={`/blog/${post.slug}`}
-                          class={`block py-1 px-2 rounded text-xs transition-colors ${
+                          class={`blog-layout__category-link ${
                             currentPath === `/blog/${post.slug}`
-                              ? 'bg-blue-50 text-blue-700'
-                              : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                              ? 'blog-layout__category-link--active'
+                              : ''
                           }`}
                         >
-                          <div class="truncate">{post.data.title}</div>
+                          <div class="blog-layout__category-title">{post.data.title}</div>
                         </a>
                       </li>
                     ))}
                     {posts.length > 3 && (
                       <li>
-                        <span class="block py-1 px-2 text-xs text-gray-400">
+                        <span class="blog-layout__category-more">
                           +{posts.length - 3} autres
                         </span>
                       </li>
@@ -190,13 +190,13 @@ const currentPath = Astro.url.pathname;
           
           <!-- Tags populaires -->
           <div>
-            <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider px-3 py-2">
+            <h3 class="blog-layout__sidebar-section-title">
               🏷️ Tags populaires
             </h3>
-            <div class="px-3">
-              <div class="flex flex-wrap gap-1">
+            <div class="blog-layout__tags-container">
+              <div class="blog-layout__tags">
                 {popularTags.map((tag) => (
-                  <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer transition-colors">
+                  <span class="blog-layout__tag">
                     #{tag}
                   </span>
                 ))}
@@ -205,12 +205,12 @@ const currentPath = Astro.url.pathname;
           </div>
           
           <!-- Actions -->
-          <div class="border-t border-gray-200 pt-4">
-            <div class="px-3 space-y-2">
-              <button class="w-full text-left py-2 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+          <div class="blog-layout__sidebar-actions">
+            <div class="blog-layout__sidebar-actions-content">
+              <button class="blog-layout__action-btn">
                 🔍 Rechercher
               </button>
-              <button class="w-full text-left py-2 px-3 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+              <button class="blog-layout__action-btn">
                 📧 S'abonner aux nouveautés
               </button>
             </div>
@@ -219,11 +219,331 @@ const currentPath = Astro.url.pathname;
       </aside>
 
       <!-- Contenu principal -->
-      <main class="flex-1 overflow-y-auto">
-        <div class="max-w-4xl mx-auto p-8">
+      <main class="blog-layout__content">
+        <div class="blog-layout__content-inner">
           <slot />
         </div>
       </main>
     </div>
   </body>
 </html>
+
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
+
+.blog-layout {
+  min-height: 100vh;
+  background: #f9fafb;
+  overflow: hidden;
+
+  &__header {
+    background: white;
+    border-bottom: 1px solid var(--border);
+    padding: 0.75rem 1rem;
+
+    &-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    &-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    &-nav {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    &-link {
+      padding: 0.5rem 0.75rem;
+      font-size: $text-sm;
+      font-weight: 500;
+      color: var(--text-secondary);
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: var(--text-primary);
+      }
+    }
+
+    &-divider {
+      width: 1px;
+      height: 1.5rem;
+      background: var(--border);
+    }
+  }
+
+  &__logo {
+    display: flex;
+    align-items: center;
+
+    &-img {
+      width: 2rem;
+      height: 2rem;
+      margin-right: 0.5rem;
+    }
+
+    &-title {
+      font-size: $text-xl;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    &-subtitle {
+      margin-left: 0.5rem;
+      font-size: $text-sm;
+      color: var(--text-muted);
+    }
+  }
+
+  &__main-wrapper {
+    display: flex;
+    height: calc(100vh - 60px);
+  }
+
+  &__sidebar {
+    width: 20rem;
+    background: white;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+
+    &-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    &-title {
+      font-size: $text-lg;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    &-desc {
+      font-size: $text-sm;
+      color: var(--text-muted);
+    }
+
+    &-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    &-section-title {
+      font-size: $text-xs;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      padding: 0.5rem 0.75rem;
+    }
+
+    &-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    &-link {
+      display: block;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      color: var(--text-primary);
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #f9fafb;
+      }
+
+      &--active {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-left: 2px solid #1d4ed8;
+      }
+    }
+
+    &-actions {
+      border-top: 1px solid var(--border);
+      padding-top: 1rem;
+
+      &-content {
+        padding: 0 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+    }
+  }
+
+  &__post {
+    &-link {
+      display: block;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.375rem;
+      font-size: $text-sm;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: #f9fafb;
+
+        .blog-layout__post-title {
+          color: var(--text-primary);
+        }
+      }
+
+      &--active {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-left: 2px solid #1d4ed8;
+      }
+    }
+
+    &-title {
+      font-weight: 500;
+      color: var(--text-secondary);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &-meta {
+      font-size: $text-xs;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+      display: flex;
+      align-items: center;
+
+      &-sep {
+        margin: 0 0.25rem;
+      }
+    }
+  }
+
+  &__category {
+    &-header {
+      padding: 0.25rem 0.75rem;
+      font-size: $text-sm;
+      font-weight: 500;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    &-count {
+      font-size: $text-xs;
+      color: var(--text-muted);
+      background: #f3f4f6;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+    }
+
+    &-posts {
+      margin-left: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    &-link {
+      display: block;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: $text-xs;
+      transition: all 0.2s ease;
+      color: var(--text-secondary);
+
+      &:hover {
+        background: #f9fafb;
+        color: var(--text-primary);
+      }
+
+      &--active {
+        background: #eff6ff;
+        color: #1d4ed8;
+      }
+    }
+
+    &-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &-more {
+      display: block;
+      padding: 0.25rem 0.5rem;
+      font-size: $text-xs;
+      color: #9ca3af;
+    }
+  }
+
+  &__tags {
+    &-container {
+      padding: 0 0.75rem;
+    }
+
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  &__tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+    font-size: $text-xs;
+    font-weight: 500;
+    background: #f3f4f6;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: #e5e7eb;
+    }
+  }
+
+  &__action-btn {
+    width: 100%;
+    text-align: left;
+    padding: 0.5rem 0.75rem;
+    font-size: $text-sm;
+    color: var(--text-secondary);
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--text-primary);
+      background: #f9fafb;
+    }
+  }
+
+  &__content {
+    flex: 1;
+    overflow-y: auto;
+
+    &-inner {
+      max-width: 56rem;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+  }
+}
+</style>

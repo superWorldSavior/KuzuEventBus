@@ -52,49 +52,47 @@ const ogLocale = 'en_US';
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content="CasysDB - An embedded graph database with ISO GQL support" />
   </head>
-  <body class="min-h-screen" style="background: var(--bg-hero);">
+  <body class="landing">
     <!-- Header -->
-    <header class="header-gradient border-b border-cassis-200 sticky top-0 z-50 backdrop-blur-md transition-transform duration-300 will-change-transform">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
+    <header class="landing__header">
+      <div class="landing__header-container">
+        <div class="landing__header-content">
           <!-- Logo -->
-          <div class="flex items-center">
-            <div class="flex-shrink-0 flex items-center">
-              <a href="/" class="flex items-center space-x-3 rtl:space-x-reverse focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
-                <img src="/icons/logo.svg" class="h-8" alt="Casys Logo" />
-                <span class="self-center text-2xl font-semibold whitespace-normal break-words leading-tight text-gray-900 dark:text-white">CasysDB</span>
-              </a>
-            </div>
+          <div class="landing__logo">
+            <a href="/" class="landing__logo-link">
+              <img src="/icons/logo.svg" class="landing__logo-img" alt="Casys Logo" />
+              <span class="landing__logo-text">CasysDB</span>
+            </a>
           </div>
 
           <!-- Navigation -->
-          <nav class="hidden md:flex items-center space-x-8" aria-label="Primary">
-            <a href="/docs/getting-started/installation/" class="rounded-md px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E] dark:text-white/80 dark:hover:text-white">
+          <nav class="landing__nav" aria-label="Primary">
+            <a href="/docs/getting-started/installation/" class="landing__nav-link">
               <I18n>
                 <Fragment slot="en">Documentation</Fragment>
                 <Fragment slot="fr">Documentation</Fragment>
               </I18n>
             </a>
-            <a href="#examples" class="rounded-md px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E] dark:text-white/80 dark:hover:text-white">
+            <a href="#examples" class="landing__nav-link">
               <I18n>
                 <Fragment slot="en">Examples</Fragment>
                 <Fragment slot="fr">Exemples</Fragment>
               </I18n>
             </a>
-            <a href="#branching" class="rounded-md px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E] dark:text-white/80 dark:hover:text-white">
+            <a href="#branching" class="landing__nav-link">
               <I18n>
                 <Fragment slot="en">Branches</Fragment>
                 <Fragment slot="fr">Branches</Fragment>
               </I18n>
             </a>
-            <a href="#use-cases" class="rounded-md px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E] dark:text-white/80 dark:hover:text-white">
+            <a href="#use-cases" class="landing__nav-link">
               <I18n>
                 <Fragment slot="en">Use Cases</Fragment>
                 <Fragment slot="fr">Cas d'usage</Fragment>
               </I18n>
             </a>
-            <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-gray-800 transition-colors hover:text-gray-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E] dark:text-white/80 dark:hover:text-white">
-              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="landing__nav-link landing__nav-link--icon">
+              <svg class="landing__nav-icon" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
               </svg>
               <I18n>
@@ -105,15 +103,15 @@ const ogLocale = 'en_US';
           </nav>
 
           <!-- Actions -->
-          <div class="flex items-center gap-2 md:gap-3">
+          <div class="landing__actions">
             <button
               id="theme-toggle"
               type="button"
-              class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-transparent text-gray-600 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E] dark:text-gray-200 dark:hover:bg-white/10"
+              class="landing__btn landing__btn--icon"
               aria-pressed="false"
               aria-label="Toggle theme"
             >
-              <span class="sr-only">
+              <span class="visually-hidden">
                 <I18n>
                   <Fragment slot="en">Toggle theme</Fragment>
                   <Fragment slot="fr">Changer le thème</Fragment>
@@ -133,11 +131,11 @@ const ogLocale = 'en_US';
             <button
               id="mobile-nav-toggle"
               type="button"
-              class="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-transparent text-gray-700 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E] dark:text-white/80 dark:hover:bg-white/10 md:hidden"
+              class="landing__btn landing__btn--icon landing__btn--mobile"
               aria-controls="mobile-nav"
               aria-expanded="false"
             >
-              <span class="sr-only">
+              <span class="visually-hidden">
                 <I18n>
                   <Fragment slot="en">Toggle navigation</Fragment>
                   <Fragment slot="fr">Ouvrir le menu</Fragment>
@@ -159,16 +157,12 @@ const ogLocale = 'en_US';
       </div>
 
       <!-- Mobile navigation -->
-      <div id="mobile-nav" class="md:hidden" hidden>
-        <div data-nav-overlay class="fixed inset-0 z-40 bg-black/35 dark:bg-black/60"></div>
-        <nav
-          class="fixed inset-x-4 top-20 z-50 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]/95 shadow-xl backdrop-blur-md"
-          aria-label="Mobile primary navigation"
-          style="color: var(--text-primary);"
-        >
-          <ul class="py-1">
+      <div id="mobile-nav" class="landing__mobile" hidden>
+        <div data-nav-overlay class="landing__overlay"></div>
+        <nav class="landing__mobile-nav" aria-label="Mobile primary navigation">
+          <ul class="landing__mobile-list">
             <li>
-              <a href="/docs/getting-started/installation/" class="flex items-center justify-between px-4 py-3 text-base font-medium transition-colors hover:bg-[var(--acc-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
+              <a href="/docs/getting-started/installation/" class="landing__mobile-link">
                 <span>
                   <I18n>
                     <Fragment slot="en">Documentation</Fragment>
@@ -178,7 +172,7 @@ const ogLocale = 'en_US';
               </a>
             </li>
             <li>
-              <a href="#examples" class="flex items-center justify-between px-4 py-3 text-base font-medium transition-colors hover:bg-[var(--acc-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
+              <a href="#examples" class="landing__mobile-link">
                 <span>
                   <I18n>
                     <Fragment slot="en">Examples</Fragment>
@@ -188,7 +182,7 @@ const ogLocale = 'en_US';
               </a>
             </li>
             <li>
-              <a href="#branching" class="flex items-center justify-between px-4 py-3 text-base font-medium transition-colors hover:bg-[var(--acc-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
+              <a href="#branching" class="landing__mobile-link">
                 <span>
                   <I18n>
                     <Fragment slot="en">Branches</Fragment>
@@ -198,7 +192,7 @@ const ogLocale = 'en_US';
               </a>
             </li>
             <li>
-              <a href="#use-cases" class="flex items-center justify-between px-4 py-3 text-base font-medium transition-colors hover:bg-[var(--acc-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
+              <a href="#use-cases" class="landing__mobile-link">
                 <span>
                   <I18n>
                     <Fragment slot="en">Use Cases</Fragment>
@@ -208,7 +202,7 @@ const ogLocale = 'en_US';
               </a>
             </li>
             <li>
-              <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between px-4 py-3 text-base font-medium transition-colors hover:bg-[var(--acc-soft)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
+              <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="landing__mobile-link">
                 <span>
                   <I18n>
                     <Fragment slot="en">GitHub</Fragment>
@@ -228,61 +222,61 @@ const ogLocale = 'en_US';
     </main>
 
     <!-- Footer -->
-    <footer style="background: var(--bg-main); color: var(--text-primary);">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+    <footer class="landing__footer">
+      <div class="landing__footer-container">
+        <div class="landing__footer-grid">
           <!-- Company Info -->
-          <div class="col-span-1 md:col-span-2">
-            <h3 class="text-lg font-bold mb-4" style="color: var(--text-primary);">CasysDB</h3>
-            <p class="mb-4" style="color: var(--text-secondary);">
+          <div class="landing__footer-main">
+            <h3 class="landing__footer-title" style="color: var(--text-primary);">CasysDB</h3>
+            <p class="landing__footer-desc" style="color: var(--text-secondary);">
               An embedded graph database with ISO GQL support. Built in Rust with native Python and TypeScript bindings.
               MVCC transactions, Point-in-Time Recovery, and a fluent ORM.
             </p>
-            <p class="text-sm" style="color: var(--text-muted);">
+            <p class="landing__footer-tagline" style="color: var(--text-muted);">
               Fast, embedded, and powerful graph database
             </p>
           </div>
 
           <!-- Product -->
-          <div>
-            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary);">
+          <div class="landing__footer-col">
+            <h4 class="landing__footer-col-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Product</Fragment>
                 <Fragment slot="fr">Produit</Fragment>
               </I18n>
             </h4>
-            <ul class="space-y-2 text-sm" style="color: var(--text-secondary);">
-              <li><a href="/docs/getting-started/installation/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Installation</a></li>
-              <li><a href="/docs/getting-started/quickstart/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Quick Start</a></li>
-              <li><a href="/docs/gql/basics/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">GQL Syntax</a></li>
-              <li><a href="#features" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Features</a></li>
+            <ul class="landing__footer-list">
+              <li><a href="/docs/getting-started/installation/" class="landing__footer-link">Installation</a></li>
+              <li><a href="/docs/getting-started/quickstart/" class="landing__footer-link">Quick Start</a></li>
+              <li><a href="/docs/gql/basics/" class="landing__footer-link">GQL Syntax</a></li>
+              <li><a href="#features" class="landing__footer-link">Features</a></li>
             </ul>
           </div>
 
           <!-- Community -->
-          <div>
-            <h4 class="text-sm font-semibold mb-4" style="color: var(--text-primary);">
+          <div class="landing__footer-col">
+            <h4 class="landing__footer-col-title" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Community</Fragment>
                 <Fragment slot="fr">Communauté</Fragment>
               </I18n>
             </h4>
-            <ul class="space-y-2 text-sm" style="color: var(--text-secondary);">
-              <li><a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">GitHub</a></li>
-              <li><a href="https://github.com/casysai/casysdb/issues" target="_blank" rel="noopener noreferrer" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Issues</a></li>
-              <li><a href="https://github.com/casysai/casysdb/discussions" target="_blank" rel="noopener noreferrer" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Discussions</a></li>
-              <li><a href="/docs/getting-started/installation/" class="transition-colors" style="color: var(--text-secondary);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-secondary)'">Documentation</a></li>
+            <ul class="landing__footer-list">
+              <li><a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="landing__footer-link">GitHub</a></li>
+              <li><a href="https://github.com/casysai/casysdb/issues" target="_blank" rel="noopener noreferrer" class="landing__footer-link">Issues</a></li>
+              <li><a href="https://github.com/casysai/casysdb/discussions" target="_blank" rel="noopener noreferrer" class="landing__footer-link">Discussions</a></li>
+              <li><a href="/docs/getting-started/installation/" class="landing__footer-link">Documentation</a></li>
             </ul>
           </div>
         </div>
 
-        <div class="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center" style="border-color: var(--card-border);">
-          <p class="text-sm" style="color: var(--text-muted);">
+        <div class="landing__footer-bottom">
+          <p class="landing__footer-copy" style="color: var(--text-muted);">
             © 2025 CasysDB. Open-source under MIT License.
           </p>
-          <div class="flex space-x-6 mt-4 md:mt-0">
-            <a href="https://github.com/casysai/casysdb/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="text-sm transition-colors" style="color: var(--text-muted);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">MIT License</a>
-            <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="text-sm transition-colors" style="color: var(--text-muted);" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">GitHub</a>
+          <div class="landing__footer-links">
+            <a href="https://github.com/casysai/casysdb/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" class="landing__footer-bottom-link">MIT License</a>
+            <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="landing__footer-bottom-link">GitHub</a>
           </div>
         </div>
       </div>
@@ -383,7 +377,7 @@ const ogLocale = 'en_US';
     <!-- Hide-on-scroll logic for header -->
     <script>
       (function () {
-        const header = document.querySelector('header.header-gradient');
+        const header = document.querySelector('header.landing__header');
         if (!header) return;
         let lastY = window.scrollY;
         let ticking = false;
@@ -414,57 +408,398 @@ const ogLocale = 'en_US';
       })();
     </script>
 
-    <style>
-      /* Header transparent pour continuité du gradient */
-      .header-gradient { backdrop-filter: blur(10px); }
-      /* Light header */
-      :root:not(.dark) .header-gradient { background: rgba(255, 255, 255, 0.6); border-color: rgba(17, 24, 39, 0.1); }
-      /* Dark header */
-      .dark .header-gradient { background: rgba(0, 0, 0, 0.1); border-color: rgba(204, 102, 204, 0.2); }
-      /* Hide-on-scroll behavior */
-      .hide-nav { transform: translateY(-100%); }
-      /* Prevent background scroll when the mobile menu is open */
-      body.mobile-nav-open { overflow: hidden; }
+    <style lang="scss">
+      @use '~/styles/variables' as *;
+      @use '~/styles/mixins' as *;
 
-      /* Gradient pour le texte CASYS */
-      .brand-gradient {
-        background: linear-gradient(135deg, #ffffff 0%, #e6b3ff 20%, #cc66cc 60%, #8b008b 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+      .landing {
+        min-height: 100vh;
+        background: var(--bg-hero);
+
+        &.mobile-nav-open {
+          overflow: hidden;
+        }
+
+        // Header
+        &__header {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          backdrop-filter: blur(12px) saturate(180%);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          will-change: transform;
+          border-bottom: 1px solid;
+          border-radius: 0 0 $radius-lg $radius-lg;
+          margin: 0.75rem 0.75rem 0 0.75rem;
+
+          @include md {
+            margin: 0;
+            border-radius: 0;
+          }
+
+          :root:not(.dark) & {
+            background: rgba(255, 255, 255, 0.8);
+            border-color: rgba(17, 24, 39, 0.1);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+          }
+
+          .dark & {
+            background: rgba(15, 23, 42, 0.8);
+            border-color: rgba(91, 46, 126, 0.2);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3);
+          }
+
+          &.hide-nav {
+            transform: translateY(-100%);
+          }
+        }
+
+        &__header-container {
+          @include container;
+        }
+
+        &__header-content {
+          @include flex-between;
+          height: 4rem;
+        }
+
+        // Logo
+        &__logo {
+          display: flex;
+          align-items: center;
+        }
+
+        &__logo-link {
+          @include flex-center;
+          gap: 0.75rem;
+          text-decoration: none !important;
+
+          &:focus-visible {
+            outline: 2px solid $acc;
+            outline-offset: 2px;
+          }
+        }
+
+        &__logo-img {
+          height: 2rem;
+        }
+
+        &__logo-text {
+          font-size: $text-2xl;
+          font-weight: 600;
+          white-space: normal;
+          word-break: break-word;
+          line-height: 1.25;
+          color: #111827;
+          text-decoration: none;
+
+          .dark & {
+            color: white;
+          }
+        }
+
+        // Navigation
+        &__nav {
+          display: none;
+          align-items: center;
+          gap: 2rem;
+
+          @include md {
+            display: flex;
+          }
+        }
+
+        &__nav-link {
+          padding: 0.5rem 0.75rem;
+          border-radius: $radius-md;
+          font-size: $text-sm;
+          font-weight: 500;
+          color: #1f2937;
+          text-decoration: none;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+          .dark & {
+            color: rgba(255, 255, 255, 0.8);
+          }
+
+          &:hover {
+            color: $acc;
+            background: rgba(91, 46, 126, 0.05);
+
+            .dark & {
+              color: $acc;
+              background: rgba(91, 46, 126, 0.1);
+            }
+          }
+
+          &:focus-visible {
+            outline: 2px solid $acc;
+            outline-offset: 2px;
+          }
+
+          &--icon {
+            @include flex-center;
+            gap: 0.25rem;
+          }
+        }
+
+        &__nav-icon {
+          width: 1rem;
+          height: 1rem;
+        }
+
+        // Actions
+        &__actions {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          @include md {
+            gap: 0.75rem;
+          }
+        }
+
+        &__btn {
+          @include flex-center;
+          height: 2.5rem;
+          width: 2.5rem;
+          border-radius: 0.5rem;
+          border: 1px solid transparent;
+          transition: all 0.2s ease;
+
+          &--icon {
+            @include flex-center;
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: $radius-md;
+            background: transparent;
+            border: 1px solid transparent;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 0.5rem;
+            flex-shrink: 0;
+
+            svg {
+              width: 1.25rem;
+              height: 1.25rem;
+              stroke-width: 1.5;
+            }
+
+            .dark & {
+              color: #d4d4d4;
+            }
+
+            &:hover {
+              background: #f3f4f6;
+              border-color: #e5e7eb;
+              transform: scale(1.05);
+
+              .dark & {
+                background: rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 255, 255, 0.2);
+              }
+            }
+
+            &:active {
+              transform: scale(0.95);
+            }
+
+            &:focus-visible {
+              outline: 2px solid $acc;
+              outline-offset: 2px;
+            }
+          }
+
+          &--mobile {
+            @include md {
+              display: none;
+            }
+          }
+        }
+
+        // Mobile menu
+        &__mobile {
+          @include md {
+            display: none;
+          }
+        }
+
+        &__overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 40;
+          background: rgba(0, 0, 0, 0.35);
+
+          .dark & {
+            background: rgba(0, 0, 0, 0.6);
+          }
+        }
+
+        &__mobile-nav {
+          position: fixed;
+          inset: 1rem 1rem auto;
+          top: 5rem;
+          z-index: 50;
+          overflow: hidden;
+          border-radius: 1rem;
+          border: 1px solid var(--border);
+          background: color-mix(in oklab, var(--surface) 95%, transparent);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+          backdrop-filter: blur(10px);
+          color: var(--text-primary);
+        }
+
+        &__mobile-list {
+          padding: 0.25rem 0;
+        }
+
+        &__mobile-link {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 0.75rem 1rem;
+          font-size: $text-base;
+          font-weight: 500;
+          transition: background 0.2s ease;
+
+          &:hover {
+            background: var(--acc-soft);
+          }
+
+          &:focus-visible {
+            outline: 2px solid $acc;
+            outline-offset: 2px;
+          }
+        }
+
+        // Footer
+        &__footer {
+          background: var(--bg-footer);
+          border-top: 1px solid var(--border);
+          padding: 4rem 0 3rem;
+          margin-top: 6rem;
+
+          a {
+            text-decoration: none;
+            transition: color 0.2s ease;
+
+            &:hover {
+              color: $acc;
+            }
+          }
+        }
+
+        &__footer-container {
+          @include container;
+          padding-top: 3rem;
+          padding-bottom: 3rem;
+        }
+
+        &__footer-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 2rem;
+
+          @include md {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
+        }
+
+        &__footer-main {
+          grid-column: span 1;
+
+          @include md {
+            grid-column: span 2;
+          }
+        }
+
+        &__footer-title {
+          font-size: $text-lg;
+          font-weight: 700;
+          margin-bottom: 1rem;
+        }
+
+        &__footer-desc {
+          margin-bottom: 1rem;
+        }
+
+        &__footer-tagline {
+          font-size: $text-sm;
+        }
+
+        &__footer-col-title {
+          font-size: $text-sm;
+          font-weight: 600;
+          margin-bottom: 1rem;
+        }
+
+        &__footer-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+          font-size: $text-sm;
+        }
+
+        &__footer-link {
+          color: var(--text-secondary);
+          transition: color 0.2s ease;
+
+          &:hover {
+            color: var(--text-primary);
+          }
+        }
+
+        &__footer-bottom {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          margin-top: 2rem;
+          padding-top: 2rem;
+          border-top: 1px solid var(--card-border);
+
+          @include md {
+            flex-direction: row;
+          }
+        }
+
+        &__footer-copy {
+          font-size: $text-sm;
+        }
+
+        &__footer-links {
+          display: flex;
+          gap: 1.5rem;
+          margin-top: 1rem;
+
+          @include md {
+            margin-top: 0;
+          }
+        }
+
+        &__footer-bottom-link {
+          font-size: $text-sm;
+          color: var(--text-muted);
+          transition: color 0.2s ease;
+
+          &:hover {
+            color: var(--text-primary);
+          }
+        }
       }
 
-      /* Bouton cassis */
-      .btn-cassis {
-        background: linear-gradient(135deg, #2d1b69 0%, #8b5a87 100%);
-        border: 1px solid rgba(204, 102, 204, 0.3);
-        transition: all 0.3s ease;
-      }
-
-      .btn-cassis:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(139, 90, 135, 0.4);
-        border-color: rgba(204, 102, 204, 0.5);
-      }
-
-      /* Couleurs cassis personnalisées */
-      .text-cassis-200 {
-        color: rgba(230, 179, 255, 0.8);
-      }
-
-      .border-cassis-200 {
-        border-color: rgba(204, 102, 204, 0.2);
-      }
-
-      /* Gradient de fond pour toute la page */
-      .gradient-body {
-        background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 30%, #fde68a 70%, #fff 100%);
-        background-attachment: fixed;
-      }
-
-      .dark .gradient-body {
-        background: linear-gradient(135deg, #000000 0%, #2d1b69 30%, #4a1a4a 70%, #1a0a1a 100%);
-        background-attachment: fixed;
+      // Utility
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
     </style>
 

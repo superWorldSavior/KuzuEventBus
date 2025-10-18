@@ -2,16 +2,16 @@
 import I18n from '../i18n/I18n.astro';
 ---
 
-<section id="branching" class="py-20 relative" style="background: var(--bg-main);">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-12">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+<section id="branching" class="branching">
+  <div class="branching__container">
+    <div class="branching__header">
+      <h2 class="branching__title" style="color: var(--text-primary);">
         <I18n>
           <Fragment slot="en">Branching & Time Travel</Fragment>
           <Fragment slot="fr">Branches & Voyage dans le Temps</Fragment>
         </I18n>
       </h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+      <p class="branching__subtitle" style="color: var(--text-secondary);">
         <I18n>
           <Fragment slot="en">Point-in-Time Recovery and Git-like branches for your graph data</Fragment>
           <Fragment slot="fr">Point-in-Time Recovery et branches Git-like pour vos données graphe</Fragment>
@@ -19,14 +19,12 @@ import I18n from '../i18n/I18n.astro';
       </p>
     </div>
 
-    <div class="grid lg:grid-cols-2 gap-12 items-center">
+    <div class="branching__grid">
       <!-- Left: Visualization -->
-      <div class="min-w-0">
-        
-        
+      <div class="branching__left">
         <!-- Git-like Branch Diagram (Mermaid, responsive) -->
-        <div class="w-full">
-          <div id="branch-graph" class="mx-auto w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)]/80 p-4 shadow-sm" style="min-height: 320px;"></div>
+        <div class="branching__chart">
+          <div id="branch-graph" style="min-height: 320px;"></div>
         </div>
         <script is:inline>
           (async () => {
@@ -38,19 +36,17 @@ import I18n from '../i18n/I18n.astro';
                 securityLevel: 'loose', 
                 theme: 'forest',
                 themeVariables: {
-                  primaryColor: '#f3e8ff',             // subtle violet tint
-                  primaryTextColor: '#1f2937',         // gray-800
-                  primaryBorderColor: '#7C4BB2',       // violet border
-                  lineColor: '#7C4BB2',                // main line violet
+                  primaryColor: '#f3e8ff',
+                  primaryTextColor: '#1f2937',
+                  primaryBorderColor: '#7C4BB2',
+                  lineColor: '#7C4BB2',
                   textColor: '#1f2937',
-                  tertiaryColor: '#e9d5ff',            // light violet
+                  tertiaryColor: '#e9d5ff',
                   fontSize: '12px',
                   fontFamily: 'ui-sans-serif, system-ui, sans-serif'
                 }
               });
 
-              // BT: bottom-to-top so timeline goes upward
-              // Git wording: branch created from c2 (recovery), feature dev merged into main, HEAD on latest commit.
               const graph = `gitGraph BT:\n  %% Historique initial de main\n  commit id: "c1"\n  commit id: "c2" tag: "r1"\n\n  %% PITR: recovery depuis c2 (r1)\n  branch recovery\n  checkout recovery\n  commit id: "r2"\n\n  %% main continue -> c3\n  checkout main\n  commit id: "c3"\n\n  %% dev part de c3\n  branch dev\n  checkout dev\n  commit id: "e1" tag: "e1"\n  commit id: "d2"\n\n  %% merge dev -> main\n  checkout main\n  merge dev\n\n  %% promotion: recovery (r1) devient la base de main\n  merge recovery tag: "promote r1"\n\n  %% HEAD final\n  commit id: "c4" tag: "HEAD"`;
 
               const { svg } = await mermaid.render('branch-graph-svg', graph);
@@ -62,15 +58,12 @@ import I18n from '../i18n/I18n.astro';
                   svgEl.style.maxWidth = '100%';
                   svgEl.style.height = '100%';
                 }
-                // Synchroniser la hauteur du diagramme avec la colonne droite uniquement sur desktop
                 const right = document.getElementById('branch-right-col');
                 const sync = () => {
                   if (!right) return;
                   if (window.matchMedia('(min-width: 1024px)').matches) {
                     const h = right.getBoundingClientRect().height;
-                    if (h > 0) {
-                      el.style.height = `${h}px`;
-                    }
+                    if (h > 0) el.style.height = `${h}px`;
                   } else {
                     el.style.height = 'auto';
                   }
@@ -88,22 +81,22 @@ import I18n from '../i18n/I18n.astro';
       </div>
 
       <!-- Right: Code Examples with Tabs -->
-      <div id="branch-right-col" class="min-w-0">
+      <div id="branch-right-col" class="branching__right">
         <!-- Tabs -->
-        <div class="flex gap-2 mb-6 flex-wrap" role="tablist" aria-label="Branching examples">
-          <button id="branch-tab-branch" type="button" class="branch-tab active px-6 py-3 rounded-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="branch" role="tab" aria-selected="true" aria-controls="branch-tabpanel-branch" tabindex="0">
+        <div class="branching__tabs" role="tablist" aria-label="Branching examples">
+          <button id="branch-tab-branch" type="button" class="branching__tab active" data-tab="branch" role="tab" aria-selected="true" aria-controls="branch-tabpanel-branch" tabindex="0">
             <I18n>
               <Fragment slot="en">Create Branches</Fragment>
               <Fragment slot="fr">Créer des Branches</Fragment>
             </I18n>
           </button>
-          <button id="branch-tab-pitr" type="button" class="branch-tab px-6 py-3 rounded-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="pitr" role="tab" aria-selected="false" aria-controls="branch-tabpanel-pitr" tabindex="-1">
+          <button id="branch-tab-pitr" type="button" class="branching__tab" data-tab="pitr" role="tab" aria-selected="false" aria-controls="branch-tabpanel-pitr" tabindex="-1">
             <I18n>
               <Fragment slot="en">PITR</Fragment>
               <Fragment slot="fr">PITR</Fragment>
             </I18n>
           </button>
-          <button id="branch-tab-snapshot" type="button" class="branch-tab px-6 py-3 rounded-lg font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="snapshot" role="tab" aria-selected="false" aria-controls="branch-tabpanel-snapshot" tabindex="-1">
+          <button id="branch-tab-snapshot" type="button" class="branching__tab" data-tab="snapshot" role="tab" aria-selected="false" aria-controls="branch-tabpanel-snapshot" tabindex="-1">
             <I18n>
               <Fragment slot="en">Snapshots</Fragment>
               <Fragment slot="fr">Snapshots</Fragment>
@@ -112,10 +105,10 @@ import I18n from '../i18n/I18n.astro';
         </div>
 
         <!-- Code blocks -->
-        <div class="branch-content-wrapper">
+        <div class="branching__content-wrapper">
           <!-- Create Branches -->
-          <div id="branch-tabpanel-branch" class="branch-content active" data-content="branch" role="tabpanel" aria-labelledby="branch-tab-branch" aria-hidden="false">
-            <pre class="code-block"><code class="language-python"><span class="comment"># Créer une branche depuis main</span>
+          <div id="branch-tabpanel-branch" class="branching__content active" data-content="branch" role="tabpanel" aria-labelledby="branch-tab-branch" aria-hidden="false">
+            <pre class="branching__code-block"><code class="language-python"><span class="comment"># Créer une branche depuis main</span>
 <span class="keyword">import</span> casys_db
 
 engine = casys_db.CasysEngine(data_dir=<span class="string">"~/.casys_db"</span>)
@@ -139,8 +132,8 @@ result = exp_branch.query(<span class="string">"""
           </div>
 
           <!-- PITR -->
-          <div id="branch-tabpanel-pitr" class="branch-content" data-content="pitr" role="tabpanel" aria-labelledby="branch-tab-pitr" aria-hidden="true">
-            <pre class="code-block"><code class="language-python"><span class="comment"># Point-in-Time Recovery</span>
+          <div id="branch-tabpanel-pitr" class="branching__content" data-content="pitr" role="tabpanel" aria-labelledby="branch-tab-pitr" aria-hidden="true">
+            <pre class="branching__code-block"><code class="language-python"><span class="comment"># Point-in-Time Recovery</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> Database
 
 db = Database(<span class="string">"social.db"</span>)
@@ -163,8 +156,8 @@ result = recovery.query(<span class="string">"MATCH (u:User) RETURN count(u)"</s
           </div>
 
           <!-- Snapshots -->
-          <div id="branch-tabpanel-snapshot" class="branch-content" data-content="snapshot" role="tabpanel" aria-labelledby="branch-tab-snapshot" aria-hidden="true">
-            <pre class="code-block"><code class="language-python"><span class="comment"># Snapshots et persistence</span>
+          <div id="branch-tabpanel-snapshot" class="branching__content" data-content="snapshot" role="tabpanel" aria-labelledby="branch-tab-snapshot" aria-hidden="true">
+            <pre class="branching__code-block"><code class="language-python"><span class="comment"># Snapshots et persistence</span>
 <span class="keyword">import</span> casys_db
 
 engine = casys_db.CasysEngine(data_dir=<span class="string">"~/.casys_db"</span>)
@@ -192,16 +185,16 @@ branch.load()
     </div>
 
     <!-- Features Grid -->
-    <div class="grid md:grid-cols-3 gap-6 mt-16">
-      <div class="text-center p-6 rounded-xl flat-card">
-        <div class="text-4xl mb-3">🌳</div>
-        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
+    <div class="branching__features">
+      <div class="branching__feature">
+        <div class="branching__feature-icon">🌳</div>
+        <h3 class="branching__feature-title" style="color: var(--text-primary);">
           <I18n>
             <Fragment slot="en">Isolated Branches</Fragment>
             <Fragment slot="fr">Branches Isolées</Fragment>
           </I18n>
         </h3>
-        <p class="text-sm" style="color: var(--text-secondary);">
+        <p class="branching__feature-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Test changes safely. Each branch is completely isolated.</Fragment>
             <Fragment slot="fr">Testez des changements sans risque. Chaque branche est complètement isolée.</Fragment>
@@ -209,15 +202,15 @@ branch.load()
         </p>
       </div>
 
-      <div class="text-center p-6 rounded-xl flat-card">
-        <div class="text-4xl mb-3">⏰</div>
-        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
+      <div class="branching__feature">
+        <div class="branching__feature-icon">⏰</div>
+        <h3 class="branching__feature-title" style="color: var(--text-primary);">
           <I18n>
             <Fragment slot="en">Time Travel</Fragment>
             <Fragment slot="fr">Voyage dans le Temps</Fragment>
           </I18n>
         </h3>
-        <p class="text-sm" style="color: var(--text-secondary);">
+        <p class="branching__feature-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Create a branch from any past commit. Debug easily.</Fragment>
             <Fragment slot="fr">Créez une branche depuis n'importe quel commit passé. Débugguez facilement.</Fragment>
@@ -225,15 +218,15 @@ branch.load()
         </p>
       </div>
 
-      <div class="text-center p-6 rounded-xl flat-card">
-        <div class="text-4xl mb-3">📸</div>
-        <h3 class="font-bold text-lg mb-2" style="color: var(--text-primary);">
+      <div class="branching__feature">
+        <div class="branching__feature-icon">📸</div>
+        <h3 class="branching__feature-title" style="color: var(--text-primary);">
           <I18n>
             <Fragment slot="en">Auto Snapshots</Fragment>
             <Fragment slot="fr">Snapshots Auto</Fragment>
           </I18n>
         </h3>
-        <p class="text-sm" style="color: var(--text-secondary);">
+        <p class="branching__feature-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Each commit = snapshot. No data loss, complete history.</Fragment>
             <Fragment slot="fr">Chaque commit = snapshot. Aucune perte de données, historique complet.</Fragment>
@@ -244,64 +237,92 @@ branch.load()
   </div>
 </section>
 
-<style>
-.branch-tab {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-}
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
 
-.branch-tab.active {
-  background: var(--acc-soft);
-  color: var(--text-primary);
-  border-color: var(--acc);
-}
+.branching {
+  padding: 5rem 0;
+  background: var(--bg-main);
 
-.code-block {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  overflow-x: auto;
-  font-family: 'Fira Code', 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  line-height: 1.6;
-}
+  &__container { @include container; }
 
-.branch-content {
-  display: none;
-}
+  &__header { text-align: center; margin-bottom: 3rem; }
+  &__title { font-size: $text-4xl; font-weight: 700; }
+  &__subtitle { margin-top: 1rem; font-size: $text-xl; }
 
-.branch-content.active {
-  display: block;
-  animation: fadeIn 0.3s ease-in;
-}
+  &__grid {
+    display: grid;
+    gap: 3rem;
+    align-items: center;
+    @include lg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+  &__chart {
+    width: 100%;
+    max-width: 42rem;
+    margin-left: auto;
+    margin-right: auto;
+    border: 1px solid var(--border);
+    background: color-mix(in oklab, var(--surface) 80%, transparent);
+    border-radius: 1rem;
+    padding: 1rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+  }
 
-/* Syntax highlighting */
-.keyword { color: #c678dd; font-weight: 600; }
-.string { color: #98c379; }
-.comment { color: #5c6370; font-style: italic; }
-.function { color: #61afef; }
-.type { color: #e5c07b; }
-.number { color: #d19a66; }
+  &__tabs {
+    display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.5rem;
+  }
 
-/* Flat card */
-.flat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  &__tab {
+    padding: .75rem 1.5rem;
+    border-radius: .75rem;
+    font-weight: 600;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover { border-color: $acc; }
+    &.active { background: var(--acc-soft); color: var(--text-primary); border-color: $acc; }
+
+    &:focus-visible { outline: 2px solid $acc; outline-offset: 2px; }
+  }
+
+  &__code-block {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: .5rem;
+    padding: 1.5rem;
+    overflow-x: auto;
+    font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: .9rem;
+    line-height: 1.6;
+  }
+
+  &__content { display: none; &.active { display: block; animation: fadeIn .3s ease-in; } }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Syntax highlighting */
+  .keyword { color: #c678dd; font-weight: 600; }
+  .string { color: #98c379; }
+  .comment { color: #5c6370; font-style: italic; }
+  .function { color: #61afef; }
+  .type { color: #e5c07b; }
+  .number { color: #d19a66; }
+
+  &__features { display: grid; gap: 1.5rem; margin-top: 4rem; @include md { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  &__feature { @include card; text-align: center; padding: 1.5rem; border-radius: .75rem; }
+  &__feature-icon { font-size: $text-4xl; margin-bottom: .75rem; }
+  &__feature-title { font-weight: 700; font-size: $text-lg; margin-bottom: .5rem; }
+  &__feature-text { font-size: $text-sm; color: var(--text-secondary); }
 }
 </style>
 
 <script>
-// @ts-nocheck
-const branchTabs = Array.from(document.querySelectorAll('.branch-tab'));
-const branchPanels = Array.from(document.querySelectorAll('.branch-content'));
+const branchTabs = Array.from(document.querySelectorAll('.branching__tab'));
+const branchPanels = Array.from(document.querySelectorAll('.branching__content'));
 
 const activateBranchTab = (tab) => {
   if (!tab) return;

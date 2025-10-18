@@ -2,16 +2,16 @@
 import I18n from '../i18n/I18n.astro';
 ---
 
-<section id="features" class="py-20 relative" style="background: var(--bg-main);">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-16">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+<section id="features" class="features">
+  <div class="features__container">
+    <div class="features__header">
+      <h2 class="features__title" style="color: var(--text-primary);">
         <I18n>
           <Fragment slot="en">Why CasysDB?</Fragment>
           <Fragment slot="fr">Pourquoi CasysDB ?</Fragment>
         </I18n>
       </h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+      <p class="features__subtitle" style="color: var(--text-secondary);">
         <I18n>
           <Fragment slot="en">Everything you need to manage your graph data</Fragment>
           <Fragment slot="fr">Tout ce dont vous avez besoin pour gérer vos données graphe</Fragment>
@@ -19,17 +19,17 @@ import I18n from '../i18n/I18n.astro';
       </p>
     </div>
 
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div class="features__grid">
       <!-- Embedded -->
-      <div class="flat-card p-6 min-w-0">
-        <div class="text-4xl mb-4">⚡</div>
-        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+      <div class="features__card">
+        <div class="features__icon">⚡</div>
+        <h3 class="features__card-title" style="color: var(--text-primary);">
           <I18n>
             <Fragment slot="en">Embedded & Fast</Fragment>
             <Fragment slot="fr">Embarquée & Rapide</Fragment>
           </I18n>
         </h3>
-        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+        <p class="features__card-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Zero servers, zero configuration. Runs directly in your Python or TypeScript process. Starts in milliseconds.</Fragment>
             <Fragment slot="fr">Zéro serveur, zéro configuration. S'exécute directement dans votre process Python ou TypeScript. Démarrage en millisecondes.</Fragment>
@@ -38,12 +38,12 @@ import I18n from '../i18n/I18n.astro';
       </div>
 
       <!-- ISO GQL -->
-      <div class="flat-card p-6 min-w-0">
-        <div class="text-4xl mb-4">📊</div>
-        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+      <div class="features__card">
+        <div class="features__icon">📊</div>
+        <h3 class="features__card-title" style="color: var(--text-primary);">
           ISO GQL
         </h3>
-        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+        <p class="features__card-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Standard ISO GQL language. MATCH, WHERE, RETURN, EXISTS, WITH. Compatible with modern GQL tools.</Fragment>
             <Fragment slot="fr">Langage standard ISO GQL. MATCH, WHERE, RETURN, EXISTS, WITH. Compatible avec les outils GQL modernes.</Fragment>
@@ -52,12 +52,12 @@ import I18n from '../i18n/I18n.astro';
       </div>
 
       <!-- MVCC -->
-      <div class="flat-card p-6 min-w-0">
-        <div class="text-4xl mb-4">🔄</div>
-        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+      <div class="features__card">
+        <div class="features__icon">🔄</div>
+        <h3 class="features__card-title" style="color: var(--text-primary);">
           MVCC
         </h3>
-        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+        <p class="features__card-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Transactions with snapshot isolation. Consistent reads, isolated writes. No blocking locks.</Fragment>
             <Fragment slot="fr">Transactions avec snapshot isolation. Lectures cohérentes, écritures isolées. Pas de locks bloquants.</Fragment>
@@ -66,15 +66,15 @@ import I18n from '../i18n/I18n.astro';
       </div>
 
       <!-- PITR -->
-      <div class="flat-card p-6 min-w-0">
-        <div class="text-4xl mb-4">⏰</div>
-        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+      <div class="features__card">
+        <div class="features__icon">⏰</div>
+        <h3 class="features__card-title" style="color: var(--text-primary);">
           <I18n>
             <Fragment slot="en">Time Travel</Fragment>
             <Fragment slot="fr">Voyage dans le temps</Fragment>
           </I18n>
         </h3>
-        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+        <p class="features__card-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Point-in-Time Recovery (PITR). Create branches from any commit. Explore complete history.</Fragment>
             <Fragment slot="fr">Point-in-Time Recovery (PITR). Créez des branches à partir de n'importe quel commit. Explorez l'historique complet.</Fragment>
@@ -83,15 +83,15 @@ import I18n from '../i18n/I18n.astro';
       </div>
 
       <!-- Python ORM -->
-      <div class="flat-card p-6 min-w-0">
-        <div class="text-4xl mb-4">🐍</div>
-        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+      <div class="features__card">
+        <div class="features__icon">🐍</div>
+        <h3 class="features__card-title" style="color: var(--text-primary);">
           <I18n>
             <Fragment slot="en">Fluent Python ORM</Fragment>
             <Fragment slot="fr">ORM Python Fluent</Fragment>
           </I18n>
         </h3>
-        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+        <p class="features__card-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Type-safe query builder with lambdas. where(), select(), join_out(). Like SQLAlchemy but for graphs.</Fragment>
             <Fragment slot="fr">Query builder type-safe avec lambdas. where(), select(), join_out(). Comme SQLAlchemy mais pour les graphes.</Fragment>
@@ -100,15 +100,15 @@ import I18n from '../i18n/I18n.astro';
       </div>
 
       <!-- Zero Dependencies -->
-      <div class="flat-card p-6 min-w-0">
-        <div class="text-4xl mb-4">📦</div>
-        <h3 class="text-xl font-bold mb-3" style="color: var(--text-primary);">
+      <div class="features__card">
+        <div class="features__icon">📦</div>
+        <h3 class="features__card-title" style="color: var(--text-primary);">
           <I18n>
             <Fragment slot="en">Zero Dependencies</Fragment>
             <Fragment slot="fr">Zéro Dépendance</Fragment>
           </I18n>
         </h3>
-        <p class="text-sm leading-relaxed" style="color: var(--text-secondary);">
+        <p class="features__card-text" style="color: var(--text-secondary);">
           <I18n>
             <Fragment slot="en">Compiled Rust engine. Single native library. Install in 3 seconds. No JVM, no Node.js required.</Fragment>
             <Fragment slot="fr">Moteur Rust compilé. Une seule bibliothèque native. Installation en 3 secondes. Pas de JVM, pas de Node.js requis.</Fragment>
@@ -119,11 +119,66 @@ import I18n from '../i18n/I18n.astro';
   </div>
 </section>
 
-<style>
-/* Flat Design */
-.flat-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
+
+.features {
+  position: relative;
+  padding: 6rem 0;
+  background: var(--bg-main);
+
+  @include lg {
+    padding: 8rem 0;
+  }
+
+  &__container {
+    @include container;
+  }
+
+  &__header {
+    text-align: center;
+    margin-bottom: 5rem;
+  }
+
+  &__title {
+    font-size: $text-4xl;
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    margin-top: 1rem;
+    font-size: $text-xl;
+  }
+
+  &__grid {
+    display: grid;
+    gap: 2rem;
+
+    @include md {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    @include lg {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  &__card {
+    @include card;
+    min-width: 0;
+  }
+
+  &__icon { font-size: $text-4xl; margin-bottom: 1rem; }
+
+  &__card-title {
+    font-size: $text-xl;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+  }
+
+  &__card-text {
+    font-size: $text-sm;
+    line-height: 1.625;
+  }
 }
 </style>

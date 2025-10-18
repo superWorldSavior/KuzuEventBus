@@ -2,16 +2,16 @@
 import I18n from '../i18n/I18n.astro';
 ---
 
-<section class="py-20 relative" style="background: var(--bg-main);">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-12">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+<section class="comparison">
+  <div class="comparison__container">
+    <div class="comparison__header">
+      <h2 class="comparison__title" style="color: var(--text-primary);">
         <I18n>
           <Fragment slot="en">CasysDB vs Alternatives</Fragment>
           <Fragment slot="fr">CasysDB vs Alternatives</Fragment>
         </I18n>
       </h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+      <p class="comparison__subtitle" style="color: var(--text-secondary);">
         <I18n>
           <Fragment slot="en">Why choose CasysDB for your graph data</Fragment>
           <Fragment slot="fr">Pourquoi choisir CasysDB pour vos données graphe</Fragment>
@@ -19,128 +19,128 @@ import I18n from '../i18n/I18n.astro';
       </p>
     </div>
 
-    <div class="overflow-x-auto">
-      <table class="w-full table-fixed md:table-auto border-collapse text-sm md:text-base">
-        <caption class="sr-only">
+    <div class="comparison__table-wrapper">
+      <table class="comparison__table">
+        <caption class="visually-hidden">
           <I18n>
             <Fragment slot="en">Comparison of CasysDB and alternative databases</Fragment>
             <Fragment slot="fr">Comparaison entre CasysDB et les autres bases de données</Fragment>
           </I18n>
         </caption>
         <thead>
-          <tr class="border-b-2" style="border-color: var(--border);">
-            <th scope="col" class="px-2 py-3 md:px-4 text-left whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+          <tr>
+            <th scope="col" class="comparison__th comparison__th--left" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Feature</Fragment>
                 <Fragment slot="fr">Fonctionnalité</Fragment>
               </I18n>
             </th>
-            <th scope="col" class="px-2 py-3 md:px-4 text-center font-bold whitespace-nowrap md:whitespace-normal" style="color: var(--acc);">CasysDB</th>
-            <th scope="col" class="px-2 py-3 md:px-4 text-center whitespace-nowrap md:whitespace-normal" style="color: var(--text-secondary);">Neo4j</th>
-            <th scope="col" class="px-2 py-3 md:px-4 text-center whitespace-nowrap md:whitespace-normal" style="color: var(--text-secondary);">SQLite</th>
-            <th scope="col" class="px-2 py-3 md:px-4 text-center whitespace-nowrap md:whitespace-normal" style="color: var(--text-secondary);">PostgreSQL</th>
+            <th scope="col" class="comparison__th comparison__th--center comparison__th--brand" style="color: var(--acc);">CasysDB</th>
+            <th scope="col" class="comparison__th comparison__th--center" style="color: var(--text-secondary);">Neo4j</th>
+            <th scope="col" class="comparison__th comparison__th--center" style="color: var(--text-secondary);">SQLite</th>
+            <th scope="col" class="comparison__th comparison__th--center" style="color: var(--text-secondary);">PostgreSQL</th>
           </tr>
         </thead>
         <tbody>
-          <tr class="border-b" style="border-color: var(--border);">
-            <th scope="row" class="px-2 py-3 md:px-4 text-left font-semibold whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+          <tr>
+            <th scope="row" class="comparison__rowhead" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Embedded (no server)</Fragment>
                 <Fragment slot="fr">Embarquée (no server)</Fragment>
               </I18n>
             </th>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
           </tr>
-          <tr class="border-b" style="border-color: var(--border);">
-            <th scope="row" class="px-2 py-3 md:px-4 text-left font-semibold whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+          <tr>
+            <th scope="row" class="comparison__rowhead" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Native Graph Queries</Fragment>
                 <Fragment slot="fr">Requêtes Graphe Natives</Fragment>
               </I18n>
             </th>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">⚠️</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">⚠️</span></td>
           </tr>
-          <tr class="border-b" style="border-color: var(--border);">
-            <th scope="row" class="px-2 py-3 md:px-4 text-left font-semibold whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+          <tr>
+            <th scope="row" class="comparison__rowhead" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Standard Language (ISO GQL)</Fragment>
                 <Fragment slot="fr">Langage Standard (ISO GQL)</Fragment>
               </I18n>
             </th>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">⚠️</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">⚠️</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">⚠️</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">⚠️</span></td>
           </tr>
-          <tr class="border-b" style="border-color: var(--border);">
-            <th scope="row" class="px-2 py-3 md:px-4 text-left font-semibold whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+          <tr>
+            <th scope="row" class="comparison__rowhead" style="color: var(--text-primary);">
               MVCC Transactions
             </th>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
           </tr>
-          <tr class="border-b" style="border-color: var(--border);">
-            <th scope="row" class="px-2 py-3 md:px-4 text-left font-semibold whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+          <tr>
+            <th scope="row" class="comparison__rowhead" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Time Travel (PITR)</Fragment>
                 <Fragment slot="fr">Voyage dans le temps (PITR)</Fragment>
               </I18n>
             </th>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
           </tr>
-          <tr class="border-b" style="border-color: var(--border);">
-            <th scope="row" class="px-2 py-3 md:px-4 text-left font-semibold whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+          <tr>
+            <th scope="row" class="comparison__rowhead" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Type-Safe ORM</Fragment>
                 <Fragment slot="fr">ORM Type-Safe</Fragment>
               </I18n>
             </th>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">✅</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">❌</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">⚠️</span></td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="text-2xl">⚠️</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">✅</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">❌</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">⚠️</span></td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__emoji">⚠️</span></td>
           </tr>
-          <tr class="border-b" style="border-color: var(--border);">
-            <th scope="row" class="px-2 py-3 md:px-4 text-left font-semibold whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+          <tr>
+            <th scope="row" class="comparison__rowhead" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">Dependencies</Fragment>
                 <Fragment slot="fr">Dépendances</Fragment>
               </I18n>
             </th>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="font-bold" style="color: var(--acc);">0</span></td>
-            <td class="px-2 py-3 md:px-4 text-center" style="color: var(--text-secondary);">JVM</td>
-            <td class="px-2 py-3 md:px-4 text-center"><span class="font-bold" style="color: var(--acc);">0</span></td>
-            <td class="px-2 py-3 md:px-4 text-center" style="color: var(--text-secondary);">Server</td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__badge" style="color: var(--acc);">0</span></td>
+            <td class="comparison__cell comparison__cell--center" style="color: var(--text-secondary);">JVM</td>
+            <td class="comparison__cell comparison__cell--center"><span class="comparison__badge" style="color: var(--acc);">0</span></td>
+            <td class="comparison__cell comparison__cell--center" style="color: var(--text-secondary);">Server</td>
           </tr>
           <tr>
-            <th scope="row" class="px-2 py-3 md:px-4 text-left font-semibold whitespace-nowrap md:whitespace-normal" style="color: var(--text-primary);">
+            <th scope="row" class="comparison__rowhead" style="color: var(--text-primary);">
               <I18n>
                 <Fragment slot="en">License</Fragment>
                 <Fragment slot="fr">Licence</Fragment>
               </I18n>
             </th>
-            <td class="px-2 py-3 md:px-4 text-center font-bold" style="color: var(--acc);">MIT</td>
-            <td class="px-2 py-3 md:px-4 text-center" style="color: var(--text-secondary);">GPL/Commercial</td>
-            <td class="px-2 py-3 md:px-4 text-center" style="color: var(--text-secondary);">Public Domain</td>
-            <td class="px-2 py-3 md:px-4 text-center" style="color: var(--text-secondary);">PostgreSQL</td>
+            <td class="comparison__cell comparison__cell--center comparison__badge" style="color: var(--acc);">MIT</td>
+            <td class="comparison__cell comparison__cell--center" style="color: var(--text-secondary);">GPL/Commercial</td>
+            <td class="comparison__cell comparison__cell--center" style="color: var(--text-secondary);">Public Domain</td>
+            <td class="comparison__cell comparison__cell--center" style="color: var(--text-secondary);">PostgreSQL</td>
           </tr>
         </tbody>
       </table>
     </div>
 
-    <div class="p-6 bg-[var(--acc-soft)] border border-[var(--border)] rounded-[10px] mt-12">
-      <p class="text-center text-lg font-semibold" style="color: var(--text-primary);">
+    <div class="comparison__callout">
+      <p class="comparison__callout-text" style="color: var(--text-primary);">
         <I18n>
           <Fragment slot="en">🚀 CasysDB combines SQLite's simplicity with graph database power, plus MVCC and Time Travel</Fragment>
           <Fragment slot="fr">🚀 CasysDB combine la simplicité de SQLite avec la puissance des bases graphe, le tout avec MVCC et Time Travel</Fragment>
@@ -150,3 +150,109 @@ import I18n from '../i18n/I18n.astro';
   </div>
 </section>
 
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
+
+.comparison {
+  padding: 5rem 0;
+  background: var(--bg-main);
+
+  &__container { @include container; }
+
+  &__header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  &__title {
+    font-size: $text-4xl;
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    margin-top: 1rem;
+    font-size: $text-xl;
+  }
+
+  &__table-wrapper {
+    overflow-x: auto;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: $text-sm;
+
+    @include md {
+      table-layout: auto;
+      font-size: $text-base;
+    }
+  }
+
+  &__th, &__cell, &__rowhead {
+    padding: .5rem;
+    border-bottom: 1px solid var(--border);
+
+    @include md {
+      padding: .75rem 1rem;
+    }
+
+    &--left { text-align: left; }
+    &--center { text-align: center; }
+  }
+
+  thead tr &__th {
+    border-bottom-width: 2px;
+  }
+
+  &__th--brand {
+    font-weight: 700;
+  }
+
+  &__rowhead {
+    text-align: left;
+    font-weight: 600;
+    white-space: nowrap;
+
+    @include md {
+      white-space: normal;
+    }
+  }
+
+  &__badge {
+    font-weight: 700;
+  }
+
+  &__emoji {
+    font-size: 1.5rem;
+  }
+
+  &__callout {
+    margin-top: 3rem;
+    padding: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--acc-soft);
+  }
+
+  &__callout-text {
+    text-align: center;
+    font-size: $text-lg;
+    font-weight: 600;
+  }
+
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+</style>

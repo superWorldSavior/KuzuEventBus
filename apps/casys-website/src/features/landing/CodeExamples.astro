@@ -2,16 +2,16 @@
 import I18n from '../i18n/I18n.astro';
 ---
 
-<section id="examples" class="py-20 relative" style="background: var(--bg-benefits);">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <div class="text-center mb-12">
-      <h2 class="text-4xl font-bold" style="color: var(--text-primary);">
+<section id="examples" class="codeex">
+  <div class="codeex__container">
+    <div class="codeex__header">
+      <h2 class="codeex__title" style="color: var(--text-primary);">
         <I18n>
           <Fragment slot="en">CasysDB in Action</Fragment>
           <Fragment slot="fr">CasysDB en action</Fragment>
         </I18n>
       </h2>
-      <p class="mt-4 text-xl" style="color: var(--text-secondary);">
+      <p class="codeex__subtitle" style="color: var(--text-secondary);">
         <I18n>
           <Fragment slot="en">Powerful graph queries with ISO GQL, fluent Python ORM</Fragment>
           <Fragment slot="fr">Requêtes graphe puissantes avec ISO GQL, ORM fluent en Python</Fragment>
@@ -20,26 +20,26 @@ import I18n from '../i18n/I18n.astro';
     </div>
 
     <!-- Tabs -->
-    <div class="flex justify-center gap-2 mb-6 flex-wrap" role="tablist" aria-label="Code example languages">
-      <button id="code-tab-create" type="button" class="code-tab active px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="create" role="tab" aria-selected="true" aria-controls="code-tabpanel-create" tabindex="0">
+    <div class="codeex__tabs" role="tablist" aria-label="Code example languages">
+      <button id="code-tab-create" type="button" class="codeex__tab active" data-tab="create" role="tab" aria-selected="true" aria-controls="code-tabpanel-create" tabindex="0">
         <I18n>
           <Fragment slot="en">Create Graph</Fragment>
           <Fragment slot="fr">Créer un graphe</Fragment>
         </I18n>
       </button>
-      <button id="code-tab-query" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="query" role="tab" aria-selected="false" aria-controls="code-tabpanel-query" tabindex="-1">
+      <button id="code-tab-query" type="button" class="codeex__tab" data-tab="query" role="tab" aria-selected="false" aria-controls="code-tabpanel-query" tabindex="-1">
         <I18n>
           <Fragment slot="en">GQL Query</Fragment>
           <Fragment slot="fr">Query GQL</Fragment>
         </I18n>
       </button>
-      <button id="code-tab-orm" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="orm" role="tab" aria-selected="false" aria-controls="code-tabpanel-orm" tabindex="-1">
+      <button id="code-tab-orm" type="button" class="codeex__tab" data-tab="orm" role="tab" aria-selected="false" aria-controls="code-tabpanel-orm" tabindex="-1">
         <I18n>
           <Fragment slot="en">Python ORM</Fragment>
           <Fragment slot="fr">ORM Python</Fragment>
         </I18n>
       </button>
-      <button id="code-tab-relations" type="button" class="code-tab px-6 py-3 rounded-lg font-semibold transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]" data-tab="relations" role="tab" aria-selected="false" aria-controls="code-tabpanel-relations" tabindex="-1">
+      <button id="code-tab-relations" type="button" class="codeex__tab" data-tab="relations" role="tab" aria-selected="false" aria-controls="code-tabpanel-relations" tabindex="-1">
         <I18n>
           <Fragment slot="en">Relationships</Fragment>
           <Fragment slot="fr">Relations</Fragment>
@@ -48,10 +48,10 @@ import I18n from '../i18n/I18n.astro';
     </div>
 
     <!-- Code blocks -->
-    <div class="code-content-wrapper w-full min-w-0 max-w-4xl mx-auto">
+    <div class="codeex__content-wrapper">
       <!-- Create Graph -->
-      <div id="code-tabpanel-create" class="code-content active" data-content="create" role="tabpanel" aria-labelledby="code-tab-create" aria-hidden="false">
-        <pre class="code-block"><code class="language-python"><span class="comment"># Create nodes and relationships</span>
+      <div id="code-tabpanel-create" class="codeex__content active" data-content="create" role="tabpanel" aria-labelledby="code-tab-create" aria-hidden="false">
+        <pre class="codeex__code-block"><code class="language-python"><span class="comment"># Create nodes and relationships</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> Database
 
 db = Database(<span class="string">"social_network.db"</span>)
@@ -74,8 +74,8 @@ session.commit()
       </div>
 
       <!-- GQL Query -->
-      <div id="code-tabpanel-query" class="code-content" data-content="query" role="tabpanel" aria-labelledby="code-tab-query" aria-hidden="true">
-        <pre class="code-block"><code class="language-sql"><span class="comment">-- Find friends of friends (2-hop path)</span>
+      <div id="code-tabpanel-query" class="codeex__content" data-content="query" role="tabpanel" aria-labelledby="code-tab-query" aria-hidden="true">
+        <pre class="codeex__code-block"><code class="language-sql"><span class="comment">-- Find friends of friends (2-hop path)</span>
 <span class="keyword">MATCH</span> (person:<span class="type">Person</span>)-[:<span class="type">KNOWS</span>*<span class="number">2</span>]->(friend_of_friend:<span class="type">Person</span>)
 <span class="keyword">WHERE</span> person.name = <span class="string">'Alice'</span>
   <span class="keyword">AND</span> person &lt;&gt; friend_of_friend
@@ -92,8 +92,8 @@ session.commit()
       </div>
 
       <!-- Python ORM -->
-      <div id="code-tabpanel-orm" class="code-content" data-content="orm" role="tabpanel" aria-labelledby="code-tab-orm" aria-hidden="true">
-        <pre class="code-block"><code class="language-python"><span class="comment"># Fluent query builder (ORM-style)</span>
+      <div id="code-tabpanel-orm" class="codeex__content" data-content="orm" role="tabpanel" aria-labelledby="code-tab-orm" aria-hidden="true">
+        <pre class="codeex__code-block"><code class="language-python"><span class="comment"># Fluent query builder (ORM-style)</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, Session
 
 <span class="keyword">class</span> <span class="type">Person</span>(NodeEntity):
@@ -120,8 +120,8 @@ results = (
       </div>
 
       <!-- Relationships -->
-      <div id="code-tabpanel-relations" class="code-content" data-content="relations" role="tabpanel" aria-labelledby="code-tab-relations" aria-hidden="true">
-        <pre class="code-block"><code class="language-python"><span class="comment"># Define entity relationships</span>
+      <div id="code-tabpanel-relations" class="codeex__content" data-content="relations" role="tabpanel" aria-labelledby="code-tab-relations" aria-hidden="true">
+        <pre class="codeex__code-block"><code class="language-python"><span class="comment"># Define entity relationships</span>
 <span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, HasMany, HasOne
 <span class="keyword">from</span> typing <span class="keyword">import</span> Self
 
@@ -152,60 +152,94 @@ results = (
   </div>
 </section>
 
-<style>
-.code-tab {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
-}
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
 
-.code-tab.active {
-  background: var(--acc-soft);
-  color: var(--text-primary);
-  border-color: var(--acc);
-}
+.codeex {
+  padding: 6rem 0;
+  background: var(--bg-benefits);
 
-.code-tab:hover:not(.active) {
-  border-color: var(--acc);
-}
+  @include lg {
+    padding: 8rem 0;
+  }
 
-.code-block {
-  background: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 1.5rem;
-  overflow-x: auto;
-  font-family: 'Fira Code', 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
-  line-height: 1.6;
-}
+  &__container { @include container; }
+  &__header { text-align: center; margin-bottom: 3rem; }
+  &__title { font-size: $text-4xl; font-weight: 700; }
+  &__subtitle { margin-top: 1rem; font-size: $text-xl; }
 
-.code-content {
-  display: none;
-}
+  &__tabs { display: flex; justify-content: center; gap: .75rem; flex-wrap: wrap; margin-bottom: 2rem; }
+  &__tab {
+    padding: 0.625rem 1.25rem;
+    border-radius: $radius-md;
+    font-weight: 600;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+    box-shadow: $shadow-sm;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
-.code-content.active {
-  display: block;
-  animation: fadeIn 0.3s ease-in;
-}
+    @include dark {
+      box-shadow: $shadow-dark-sm;
+    }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+    &:hover { 
+      border-color: $acc;
+      box-shadow: $shadow-md;
+      transform: translateY(-1px);
 
-/* Syntax highlighting */
-.keyword { color: #c678dd; font-weight: 600; }
-.string { color: #98c379; }
-.comment { color: #5c6370; font-style: italic; }
-.function { color: #61afef; }
-.type { color: #e5c07b; }
-.number { color: #d19a66; }
+      @include dark {
+        box-shadow: $shadow-dark-md;
+      }
+    }
+    &.active { 
+      background: var(--acc-soft);
+      color: var(--text-primary);
+      border-color: $acc;
+      box-shadow: $shadow-md;
+
+      @include dark {
+        box-shadow: $shadow-dark-md;
+      }
+    }
+    &:focus-visible { outline: 2px solid $acc; outline-offset: 2px; }
+  }
+
+  &__content-wrapper { width: 100%; min-width: 0; max-width: 64rem; margin: 0 auto; }
+  &__content { display: none; &.active { display: block; animation: fadeIn .3s ease-in; } }
+  &__code-block {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: $radius-lg;
+    padding: 1.75rem;
+    overflow-x: auto;
+    font-family: 'Fira Code', 'JetBrains Mono', monospace;
+    font-size: .9rem;
+    line-height: 1.6;
+    box-shadow: $shadow-md;
+
+    @include dark {
+      box-shadow: $shadow-dark-md;
+    }
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Syntax highlighting */
+  .keyword { color: #c678dd; font-weight: 600; }
+  .string { color: #98c379; }
+  .comment { color: #5c6370; font-style: italic; }
+  .function { color: #61afef; }
+  .type { color: #e5c07b; }
+  .number { color: #d19a66; }
+}
 </style>
 
 <script>
-const codeTabs = Array.from(document.querySelectorAll('.code-tab'));
-const codePanels = Array.from(document.querySelectorAll('.code-content'));
+const codeTabs = Array.from(document.querySelectorAll('.codeex__tab'));
+const codePanels = Array.from(document.querySelectorAll('.codeex__content'));
 
 const activateCodeTab = (tab) => {
   const targetTab = tab.getAttribute('data-tab');

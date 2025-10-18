@@ -2,37 +2,31 @@
 import I18n from '../i18n/I18n.astro';
 ---
 
-<section id="cta" class="py-20 relative overflow-hidden isolate z-[60]" style="background: transparent;">
-  <div class="max-w-3xl mx-auto px-6 text-center">
-    <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight">
+<section id="cta" class="cta">
+  <div class="cta__container">
+    <h2 class="cta__title">
       <I18n>
         <Fragment slot="en">Ready to Get Started?</Fragment>
         <Fragment slot="fr">Prêt à commencer ?</Fragment>
       </I18n>
     </h2>
-    <p class="mt-4 text-lg text-neutral-600 dark:text-neutral-300">
+    <p class="cta__subtitle">
       <I18n>
         <Fragment slot="en">CasysDB is open-source and ready to use. Check out the documentation or source code.</Fragment>
         <Fragment slot="fr">CasysDB est open-source et prêt à l'emploi. Consultez la documentation ou le code source.</Fragment>
       </I18n>
     </p>
 
-    <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-      <a
-        href="/docs/getting-started/installation/"
-        class="inline-flex w-full sm:w-auto items-center justify-center px-8 py-4 rounded-lg font-semibold border border-[#5B2E7E] text-white bg-[linear-gradient(135deg,#5B2E7E,#6C3A94)] hover:bg-[linear-gradient(135deg,#6C3A94,#7C4BB2)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
+    <div class="cta__actions">
+      <a href="/docs/getting-started/installation/" class="cta__btn cta__btn--primary">
         <I18n>
           <Fragment slot="en">Documentation</Fragment>
           <Fragment slot="fr">Documentation</Fragment>
         </I18n>
       </a>
-      <a
-        href="https://github.com/casysai/casysdb"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="inline-flex w-full sm:w-auto items-center justify-center px-8 py-4 rounded-lg font-semibold border border-[var(--border)] text-[var(--text-primary)] bg-[var(--surface)] hover:border-[var(--acc)] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B2E7E]">
-        <span class="flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+      <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="cta__btn cta__btn--secondary">
+        <span class="cta__btn-content">
+          <svg class="cta__icon" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
           </svg>
           <I18n>
@@ -44,3 +38,86 @@ import I18n from '../i18n/I18n.astro';
     </div>
   </div>
 </section>
+
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
+
+.cta {
+  padding: 5rem 0;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  z-index: 60;
+  background: transparent;
+
+  &__container {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    text-align: center;
+  }
+
+  &__title {
+    font-size: $text-3xl;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+
+    @include md {
+      font-size: $text-4xl;
+    }
+  }
+
+  &__subtitle {
+    margin-top: 1rem;
+    font-size: $text-lg;
+    color: #525252;
+
+    :global(.dark) & {
+      color: #d4d4d4;
+    }
+  }
+
+  &__actions {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    justify-content: center;
+
+    @include sm {
+      flex-direction: row;
+    }
+  }
+
+  &__btn {
+    @include btn-base;
+    padding: 1rem 2rem;
+    width: 100%;
+
+    @include sm {
+      width: auto;
+    }
+
+    &--primary {
+      @include btn-primary;
+    }
+
+    &--secondary {
+      @include btn-secondary;
+    }
+  }
+
+  &__btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  &__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+</style>

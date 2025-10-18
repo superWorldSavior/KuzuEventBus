@@ -15,20 +15,16 @@ import I18n from '../i18n/I18n.astro';
     <div class="hero__grid">
       
       <div class="hero__left">
-        <h1 class="hero__title">
-          <span class="hero__title-line hero__title-line--first">
-            <I18n>
-              <Fragment slot="en">Your Data,</Fragment>
-              <Fragment slot="fr">Vos données,</Fragment>
-            </I18n>
-          </span>
-          <span class="hero__title-line hero__title-line--second">
-            <I18n>
-              <Fragment slot="en">Naturally Connected</Fragment>
-              <Fragment slot="fr">connectées naturellement</Fragment>
-            </I18n>
-          </span>
-        </h1>
+        <I18n>
+          <h1 slot="en" class="hero__title">
+            <span class="hero__title-line hero__title-line--first">Your Data,</span>
+            <span class="hero__title-line hero__title-line--second">Naturally Connected</span>
+          </h1>
+          <h1 slot="fr" class="hero__title">
+            <span class="hero__title-line hero__title-line--first">Vos données,</span>
+            <span class="hero__title-line hero__title-line--second">connectées naturellement</span>
+          </h1>
+        </I18n>
 
         <p class="hero__subtitle">
           <I18n>
@@ -78,13 +74,6 @@ import I18n from '../i18n/I18n.astro';
       </div>
 
       <div class="hero__right">
-        <p class="hero__workflow-label">
-          <I18n>
-            <Fragment slot="en">Complete Workflow</Fragment>
-            <Fragment slot="fr">Workflow complet</Fragment>
-          </I18n>
-        </p>
-        
         <div class="hero__tabs" role="tablist" aria-label="Workflow steps">
           <button type="button" class="workflow-tab hero__tab" data-step="1" data-active="true" aria-pressed="true">
             1. Setup
@@ -124,7 +113,7 @@ main = prod.branch(<span class="string">"main"</span>)
 </code></pre>
 
           <!-- Step 2: Insert -->
-          <pre class="hero__code-block hero__code-block--hidden" data-content="2" aria-hidden="true"><code><span class="comment"># Insérer documents + embeddings (OpenAI/LLaMA)</span>
+          <pre class="hero__code-block" data-content="2" aria-hidden="true"><code><span class="comment"># Insérer documents + embeddings (OpenAI/LLaMA)</span>
 prod.query(<span class="string">"""  
   CREATE (doc:Document {'{'}
     title: 'RAG avec Casys',
@@ -146,7 +135,7 @@ adults = session.Document.where(
 </code></pre>
 
           <!-- Step 3: Branch -->
-          <pre class="hero__code-block hero__code-block--hidden" data-content="3" aria-hidden="true"><code><span class="comment"># Créer une branche pour tester nouveau modèle</span>
+          <pre class="hero__code-block" data-content="3" aria-hidden="true"><code><span class="comment"># Créer une branche pour tester nouveau modèle</span>
 experiment = prod.create_branch(<span class="string">"test-llama3"</span>)
 
 <span class="comment"># Voir les snapshots disponibles</span>
@@ -160,7 +149,7 @@ snapshots = prod.snapshots()
 </code></pre>
 
           <!-- Step 4: Update -->
-          <pre class="hero__code-block hero__code-block--hidden" data-content="4" aria-hidden="true"><code><span class="comment"># Re-calculer embeddings avec LLaMA 3</span>
+          <pre class="hero__code-block" data-content="4" aria-hidden="true"><code><span class="comment"># Re-calculer embeddings avec LLaMA 3</span>
 <span class="keyword">import</span> numpy <span class="keyword">as</span> np
 
 <span class="comment"># Récupérer tous les docs via ORM (aperçu)</span>
@@ -184,7 +173,7 @@ experiment.commit()
 </code></pre>
 
           <!-- Step 5: Time Travel -->
-          <pre class="hero__code-block hero__code-block--hidden" data-content="5" aria-hidden="true"><code><span class="comment"># PITR: Si experiment casse tout ⏰</span>
+          <pre class="hero__code-block" data-content="5" aria-hidden="true"><code><span class="comment"># PITR: Si experiment casse tout ⏰</span>
 
 <span class="comment"># Voir l'historique complet</span>
 history = prod.history(from_time=<span class="string">"yesterday"</span>)
@@ -261,10 +250,14 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
   flex-direction: column;
   justify-content: center;
   background: var(--bg-hero);
-  padding: 6rem 0;
+  padding: 4rem 0;
 
   @include sm {
-    padding: 7rem 0;
+    padding: 6rem 0;
+  }
+
+  @include lg {
+    padding: 6rem 0;
   }
 
   &__background {
@@ -325,35 +318,36 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
   &__grid {
     display: grid;
     gap: 3rem;
-    align-items: stretch;
+    grid-template-columns: 1fr;
+    text-align: left;
 
     @include lg {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: 1fr 1fr;
+      align-items: flex-start;
+      text-align: left;
     }
   }
 
   &__left {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     gap: 2rem;
-    height: 100%;
   }
 
   &__title {
     max-width: 100%;
     font-size: $text-4xl;
-    font-weight: 900;
-    letter-spacing: -0.025em;
+    font-weight: 800;
+    letter-spacing: -0.02em;
     line-height: 1.1;
     word-wrap: break-word;
+    margin: 0 0 1.25rem 0;
 
     @include sm {
       font-size: $text-5xl;
     }
 
     @include md {
-      max-width: 42rem;
       font-size: $text-6xl;
     }
 
@@ -363,10 +357,12 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
   }
 
   &__title-line {
-    display: block;
-    background-clip: text;
+    display: inline-block;
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
+    color: transparent;
+    text-decoration: none;
 
     &--first {
       margin-bottom: 0.75rem;
@@ -388,10 +384,17 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
   }
 
   &__subtitle {
-    max-width: 36rem;
-    font-size: $text-lg;
+    max-width: 100%;
+    font-size: $text-xl;
+    font-weight: 500;
     color: var(--text-secondary);
-    line-height: 1.625;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+
+    @include md {
+      font-size: $text-2xl;
+      margin-bottom: 2rem;
+    }
 
     @include sm {
       font-size: $text-xl;
@@ -411,6 +414,9 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
   &__btn {
     @include btn-base;
     width: 100%;
+    font-weight: 600;
+    box-shadow: $shadow-sm;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     @include sm {
       width: auto;
@@ -423,10 +429,18 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
 
       &:hover {
         background: linear-gradient(135deg, $acc-strong, $dark-acc);
+        box-shadow: $shadow-lg;
+        transform: translateY(-2px);
+      }
+
+      &:active {
+        transform: translateY(0);
+        box-shadow: $shadow-sm;
       }
 
       &:focus-visible {
         outline-color: $acc;
+        box-shadow: 0 0 0 3px rgba(91, 46, 126, 0.3);
       }
     }
 
@@ -437,6 +451,12 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
 
       &:hover {
         border-color: $acc;
+        box-shadow: $shadow-md;
+        transform: translateY(-1px);
+      }
+
+      &:active {
+        transform: translateY(0);
       }
 
       &:focus-visible {
@@ -464,31 +484,55 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
       text-transform: uppercase;
       letter-spacing: 0.025em;
       color: var(--text-muted);
-      margin-bottom: 0.75rem;
+      margin-bottom: 1rem;
     }
 
     &-cards {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+
+      @include md {
+        grid-template-columns: 1fr 1fr;
+      }
     }
 
     &-card {
-      padding: 1rem;
+      padding: 1.25rem;
       font-family: monospace;
       font-size: $text-sm;
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 0.75rem;
-      transition: all 0.2s ease;
+      border-radius: $radius-lg;
+      box-shadow: $shadow-sm;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      @include dark {
+        box-shadow: $shadow-dark-sm;
+      }
+
+      &:hover {
+        box-shadow: $shadow-md;
+        border-color: var(--acc);
+        transform: translateY(-1px);
+
+        @include dark {
+          box-shadow: $shadow-dark-md;
+        }
+      }
     }
   }
 
   &__right {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    height: 100%;
+    gap: 1.5rem;
+    width: 100%;
+
+    @include lg {
+      margin-top: 0;
+      align-items: center; // centrer horizontalement le bloc code dans la colonne droite
+    }
   }
 
   &__workflow-label {
@@ -501,29 +545,42 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
 
   &__tabs {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
+    justify-content: flex-start;
   }
 
   &__tab {
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
+    padding: 0.625rem 1.125rem;
+    border-radius: $radius-md;
     font-size: $text-sm;
     font-weight: 600;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: var(--card-bg);
     border: 1px solid var(--border);
     color: var(--text-secondary);
     cursor: pointer;
+    box-shadow: $shadow-sm;
 
     &:hover {
       border-color: $acc;
+      transform: translateY(-1px);
+      box-shadow: $shadow-md;
+
+      @include dark {
+        box-shadow: $shadow-dark-md;
+      }
     }
 
     &[data-active="true"] {
       background: var(--acc-soft);
       color: var(--text-primary);
       border-color: $acc;
+      box-shadow: $shadow-md;
+
+      @include dark {
+        box-shadow: $shadow-dark-md;
+      }
     }
 
     &:focus-visible {
@@ -533,7 +590,7 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
   }
 
   &__code {
-    padding: 1.5rem;
+    padding: 1.75rem;
     font-family: monospace;
     font-size: $text-sm;
     line-height: 1.625;
@@ -544,17 +601,33 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
     flex-direction: column;
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    max-height: 60vh;
+    border-radius: $radius-xl;
+    box-shadow: $shadow-md;
+    width: 100%;
+    max-width: 44rem; // largeur confortable du bloc code
+    margin-left: auto;
+    margin-right: auto;
+    max-height: 70vh; // cap height on smaller viewports
 
-    @include sm {
-      max-height: 32rem;
+    @include dark {
+      box-shadow: $shadow-dark-md;
+    }
+
+    // Desktop: code sticky comme DuckDB
+    @include lg {
+      position: sticky;
+      top: 4rem; // un peu plus haut comme DuckDB
+      max-height: calc(100vh - 5rem);
     }
   }
 
   &__code-block {
     margin: 0;
     display: block;
+
+    &.hidden {
+      display: none;
+    }
 
     &--hidden {
       display: none;
@@ -573,14 +646,25 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
 
   &__feature {
     text-align: center;
-    padding: 1.5rem;
+    padding: 1.75rem 1.5rem;
     background: var(--card-bg);
     border: 1px solid var(--border);
-    border-radius: 0.75rem;
-    transition: all 0.2s ease;
+    border-radius: $radius-lg;
+    box-shadow: $shadow-sm;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    @include dark {
+      box-shadow: $shadow-dark-sm;
+    }
 
     &:hover {
       border-color: $acc;
+      box-shadow: $shadow-lg;
+      transform: translateY(-3px);
+
+      @include dark {
+        box-shadow: $shadow-dark-lg;
+      }
     }
 
     &-icon {
@@ -615,39 +699,62 @@ count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"
 </style>
 
 <script>
-const workflowTabs = Array.from(document.querySelectorAll('.workflow-tab'));
-const workflowPanels = Array.from(document.querySelectorAll('[data-content]'));
+(function() {
+  const workflowTabs = Array.from(document.querySelectorAll('.workflow-tab'));
+  const workflowPanels = Array.from(document.querySelectorAll('[data-content]'));
 
-const activateWorkflowTab = (tab) => {
-  if (!tab) return;
-  const step = tab.getAttribute('data-step');
-  if (!step) return;
+  if (workflowTabs.length === 0) return;
 
-  workflowTabs.forEach((btn) => {
-    const isActive = btn === tab;
-    btn.setAttribute('data-active', isActive ? 'true' : 'false');
-    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  const activateWorkflowTab = (tab) => {
+    if (!tab) return;
+    const step = tab.getAttribute('data-step');
+    if (!step) return;
+
+    workflowTabs.forEach((btn) => {
+      const isActive = btn === tab;
+      btn.setAttribute('data-active', isActive ? 'true' : 'false');
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+
+    workflowPanels.forEach((panel) => {
+      const isMatch = panel.getAttribute('data-content') === step;
+      panel.classList.toggle('hidden', !isMatch);
+      panel.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+    });
+  };
+
+  workflowTabs.forEach((tab, index) => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      activateWorkflowTab(tab);
+    });
+    
+    tab.addEventListener('keydown', (event) => {
+      const key = (event).key;
+      if (key === 'ArrowRight' || key === 'ArrowLeft') {
+        event.preventDefault();
+        const direction = key === 'ArrowRight' ? 1 : -1;
+        const nextIndex = (index + direction + workflowTabs.length) % workflowTabs.length;
+        const nextTab = workflowTabs[nextIndex];
+        if (nextTab) {
+          nextTab.focus();
+          activateWorkflowTab(nextTab);
+        }
+      }
+    });
   });
 
-  workflowPanels.forEach((panel) => {
-    const isMatch = panel.getAttribute('data-content') === step;
-    panel.classList.toggle('hidden', !isMatch);
-    panel.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
-  });
-};
-
-workflowTabs.forEach((tab, index) => {
-  tab.addEventListener('click', () => activateWorkflowTab(tab));
-  tab.addEventListener('keydown', (event) => {
-    const key = event && 'key' in event ? event.key : '';
-    if (key === 'ArrowRight' || key === 'ArrowLeft') {
-      event.preventDefault();
-      const direction = key === 'ArrowRight' ? 1 : -1;
-      const nextIndex = (index + direction + workflowTabs.length) % workflowTabs.length;
-      const nextTab = workflowTabs[nextIndex];
-      if (nextTab && typeof nextTab.focus === 'function') nextTab.focus();
-      activateWorkflowTab(nextTab);
-    }
-  });
-});
+  // Initialize first tab as active
+  if (workflowTabs.length > 0) {
+    activateWorkflowTab(workflowTabs[0]);
+  }
+})();
 </script>
+
+<style is:global>
+/* Force background-clip for gradient text - SCSS doesn't compile this properly */
+.hero__title-line {
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+}
+</style>

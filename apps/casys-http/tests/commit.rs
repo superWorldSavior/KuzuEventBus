@@ -1,5 +1,5 @@
 use casys::{Engine, BranchName, DatabaseName};
-use casys::storage::{manifest as mf, wal};
+use casys_storage_fs::{manifest as mf, wal};
 
 #[test]
 fn commit_tx_appends_wal_and_publishes_manifest() {

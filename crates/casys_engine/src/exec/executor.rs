@@ -59,16 +59,6 @@ pub struct Executor<'a> {
 }
 
 impl<'a> Executor<'a> {
-    /// Resolve a read-capable store: prefer self.read, fallback to provided write handle
-    fn reader<'r>(&'r self, write: Option<&'r mut dyn GraphWriteStore>) -> Result<&'r dyn GraphReadStore, EngineError> {
-        if let Some(r) = self.read {
-            return Ok(r);
-        }
-        if let Some(w) = write {
-            return Ok(&*w);
-        }
-        Err(EngineError::InvalidArgument("read-capable store required".into()))
-    }
     pub fn new(read: &'a dyn GraphReadStore) -> Self {
         Self { 
             read: Some(read),
@@ -89,19 +79,6 @@ impl<'a> Executor<'a> {
 
     pub fn with_parameters_no_read(parameters: HashMap<String, Value>) -> Self {
         Self { read: None, parameters }
-    }
-
-    /// Validate that all required parameters are bound
-    fn validate_parameters(&self, required_params: &std::collections::HashSet<String>) -> Result<(), EngineError> {
-        for param in required_params {
-            if !self.parameters.contains_key(param) {
-                return Err(EngineError::InvalidArgument(format!(
-                    "Required parameter ${} is not bound. Pass it via the params argument.",
-                    param
-                )));
-            }
-        }
-        Ok(())
     }
 
     pub fn execute(&self, plan: &ExecutionPlan, write: Option<&mut dyn GraphWriteStore>) -> Result<QueryResult, EngineError> {
@@ -765,7 +742,7 @@ impl<'a> Executor<'a> {
                 let plan = crate::exec::planner::Planner::plan(subquery)
                     .map_err(|e| EngineError::InvalidArgument(format!("EXISTS subquery planning error: {:?}", e)))?;
                 let reader: &dyn GraphReadStore = if let Some(r) = self.read { r } else if let Some(w) = write.as_deref_mut() { w } else { return Ok(Value::Bool(false)); };
-                let mut sub_executor = Executor { read: Some(reader), parameters: self.parameters.clone() };
+                let sub_executor = Executor { read: Some(reader), parameters: self.parameters.clone() };
                 let mut none: Option<&mut dyn GraphWriteStore> = None;
                 let mut sub_counters = ExecCounters::default();
                 let sub_tuples = sub_executor.execute_node_with_context(&plan.root, tuple, &mut none, &mut sub_counters)?;

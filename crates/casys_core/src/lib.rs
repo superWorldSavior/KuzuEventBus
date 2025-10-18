@@ -13,11 +13,132 @@ pub enum Value {
     Map(std::collections::BTreeMap<String, Value>),
 }
 
+// -----------------------
+// Granular Storage Ports (optional for adapters)
+// -----------------------
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SegmentId(pub String);
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WalTailMeta {
+    pub epoch: u64,
+    pub seq: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct ManifestMeta {
+    pub branch: String,
+    pub version_ts: Timestamp,
+    pub segments: Vec<SegmentId>,
+    pub wal_tail: Option<WalTailMeta>,
+}
+
+pub trait StorageCatalog: Send + Sync + 'static {
+    fn list_branches(&self, root: &Path, db: &DatabaseName) -> Result<Vec<BranchName>, EngineError>;
+    fn create_branch(&self, root: &Path, db: &DatabaseName, from: &BranchName, new_branch: &BranchName, at: Option<Timestamp>) -> Result<(), EngineError>;
+}
+
+pub trait ManifestStore: Send + Sync + 'static {
+    fn list_snapshot_timestamps(&self, root: &Path, db: &DatabaseName, branch: &BranchName) -> Result<Vec<Timestamp>, EngineError>;
+    fn latest_manifest_meta(&self, root: &Path, db: &DatabaseName, branch: &BranchName) -> Result<Option<ManifestMeta>, EngineError>;
+    fn pitr_manifest_meta(&self, root: &Path, db: &DatabaseName, branch: &BranchName, at: Timestamp) -> Result<Option<ManifestMeta>, EngineError>;
+    fn read_manifest_meta(&self, root: &Path, db: &DatabaseName, branch: &BranchName, ts: Timestamp) -> Result<Option<ManifestMeta>, EngineError>;
+    fn write_manifest_meta(&self, root: &Path, db: &DatabaseName, branch: &BranchName, meta: &ManifestMeta) -> Result<(), EngineError>;
+}
+
+pub trait SegmentStore: Send + Sync + 'static {
+    fn write_segment(&self, root: &Path, db: &DatabaseName, segment_id: &SegmentId, data: &[u8], node_count: u64, edge_count: u64) -> Result<(), EngineError>;
+    fn read_segment(&self, root: &Path, db: &DatabaseName, segment_id: &SegmentId) -> Result<(Vec<u8>, u64, u64), EngineError>;
+}
+
+pub trait WalSink: Send + Sync + 'static {
+    fn append_records(&self, root: &Path, db: &DatabaseName, branch: &BranchName, records: &[Vec<u8>]) -> Result<WalTailMeta, EngineError>;
+}
+
+pub trait WalSource: Send + Sync + 'static {
+    fn list_wal_segments(&self, root: &Path, db: &DatabaseName, branch: &BranchName) -> Result<Vec<WalTailMeta>, EngineError>;
+    fn read_wal_segment(&self, root: &Path, db: &DatabaseName, branch: &BranchName, tail: &WalTailMeta) -> Result<Vec<Vec<u8>>, EngineError>;
+}
+
 pub trait StorageBackend: Send + Sync + 'static {
     fn list_branches(&self, root: &Path, db: &DatabaseName) -> Result<Vec<BranchName>, EngineError>;
     fn create_branch(&self, root: &Path, db: &DatabaseName, from: &BranchName, new_branch: &BranchName, at: Option<Timestamp>) -> Result<(), EngineError>;
     fn snapshot(&self, root: &Path, db: &DatabaseName, branch: &BranchName) -> Result<Timestamp, EngineError>;
     fn commit_tx(&self, root: &Path, db: &DatabaseName, branch: &BranchName, records: &[Vec<u8>]) -> Result<Timestamp, EngineError>;
+    fn list_snapshot_timestamps(&self, root: &Path, db: &DatabaseName, branch: &BranchName) -> Result<Vec<Timestamp>, EngineError>;
+}
+
+// -----------------------
+// Composite backend (aggregates granular ports)
+// -----------------------
+
+pub struct CompositeBackend {
+    pub catalog: std::sync::Arc<dyn StorageCatalog>,
+    pub manifest: std::sync::Arc<dyn ManifestStore>,
+    pub segments: std::sync::Arc<dyn SegmentStore>,
+    pub wal_sink: Option<std::sync::Arc<dyn WalSink>>, // optional
+    pub wal_source: Option<std::sync::Arc<dyn WalSource>>, // optional
+}
+
+impl CompositeBackend {
+    pub fn new(
+        catalog: std::sync::Arc<dyn StorageCatalog>,
+        manifest: std::sync::Arc<dyn ManifestStore>,
+        segments: std::sync::Arc<dyn SegmentStore>,
+        wal_sink: Option<std::sync::Arc<dyn WalSink>>,
+        wal_source: Option<std::sync::Arc<dyn WalSource>>,
+    ) -> Self {
+        Self { catalog, manifest, segments, wal_sink, wal_source }
+    }
+}
+
+impl StorageBackend for CompositeBackend {
+    fn list_branches(&self, root: &Path, db: &DatabaseName) -> Result<Vec<BranchName>, EngineError> {
+        self.catalog.list_branches(root, db)
+    }
+
+    fn create_branch(&self, root: &Path, db: &DatabaseName, from: &BranchName, new_branch: &BranchName, at: Option<Timestamp>) -> Result<(), EngineError> {
+        self.catalog.create_branch(root, db, from, new_branch, at)
+    }
+
+    fn snapshot(&self, root: &Path, db: &DatabaseName, branch: &BranchName) -> Result<Timestamp, EngineError> {
+        // Minimal FS-like semantics: create a new manifest version with same segments and preserved wal_tail
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let now_ms: Timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64;
+        let meta = self.manifest.latest_manifest_meta(root, db, branch)?;
+        let new_meta = ManifestMeta {
+            branch: branch.as_str().to_string(),
+            version_ts: now_ms,
+            segments: meta.as_ref().map(|m| m.segments.clone()).unwrap_or_default(),
+            wal_tail: meta.as_ref().and_then(|m| m.wal_tail.clone()),
+        };
+        self.manifest.write_manifest_meta(root, db, branch, &new_meta)?;
+        Ok(now_ms)
+    }
+
+    fn commit_tx(&self, root: &Path, db: &DatabaseName, branch: &BranchName, records: &[Vec<u8>]) -> Result<Timestamp, EngineError> {
+        // Append to WAL if available, then snapshot with updated wal_tail
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let tail = if let Some(sink) = &self.wal_sink {
+            Some(sink.append_records(root, db, branch, records)?)
+        } else { None };
+
+        let now_ms: Timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default().as_millis() as u64;
+        let prev = self.manifest.latest_manifest_meta(root, db, branch)?;
+        let new_meta = ManifestMeta {
+            branch: branch.as_str().to_string(),
+            version_ts: now_ms,
+            segments: prev.as_ref().map(|m| m.segments.clone()).unwrap_or_default(),
+            wal_tail: tail.or_else(|| prev.as_ref().and_then(|m| m.wal_tail.clone())),
+        };
+        self.manifest.write_manifest_meta(root, db, branch, &new_meta)?;
+        Ok(now_ms)
+    }
+
+    fn list_snapshot_timestamps(&self, root: &Path, db: &DatabaseName, branch: &BranchName) -> Result<Vec<Timestamp>, EngineError> {
+        self.manifest.list_snapshot_timestamps(root, db, branch)
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

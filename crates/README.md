@@ -86,3 +86,79 @@ apps/* → casys_engine
 
 - Ce document décrit la cible et le chemin de migration. Aucune modification de code n’est effectuée ici.
 - Voir la TODO du repo pour le suivi des étapes (re-câblage deps, renommage FFI, déplacement `engine/`, MAJ SDK Python).
+
+---
+
+## 8) API moteur (MVP) et points d’entrée
+
+- **`Engine::open(data_dir)`**: ouvre/crée un moteur local (FS activé si feature `fs`).
+- **`Engine::open_with_backend(data_dir, backend)`**: injection d’un backend qui implémente `StorageBackend` (feature `fs`).
+- **`Engine::open_fs_composite(data_dir)`**: compose un `CompositeBackend` basé sur l’adaptateur FS (ports granulaires), pour préparer des mix (FS/S3/Redis) — feature `fs`.
+- **`open_database(name)`**, **`open_branch(db, name)`**: handles opaques.
+- **`flush_branch(db, branch, store)`**: persiste un `InMemoryGraphStore` en segments FS.
+- **`load_branch(db, branch)`**: recharge un `InMemoryGraphStore` depuis segments.
+- **`list_snapshot_timestamps(db, branch)`**: liste des versions manifest (timestamps).
+- **`commit_tx(branch, records)`**: append WAL + publie manifest (timestamp).
+- **`execute_gql_on_store(store, GqlQuery, params)`**: parse → plan → exécute sur un store en mémoire (wrappers FFI minces).
+
+## 9) Ports de stockage granulaires (dans `casys_core`)
+
+- **`StorageCatalog`**: `list_branches(...)`, `create_branch(...)`.
+- **`ManifestStore`**: `list_snapshot_timestamps(...)`, `latest_manifest_meta(...)`, `write_manifest_meta(...)`, etc.
+- **`SegmentStore`**: `write_segment(...)`, `read_segment(...)`.
+- **`WalSink` / `WalSource`**: `append_records(...)`, `list_wal_segments(...)`, `read_wal_segment(...)`.
+- Types associés: **`SegmentId`**, **`WalTailMeta`**, **`ManifestMeta`**.
+
+### Impl FS
+
+- `crates/casys_storage_fs/` implémente tous ces ports + `StorageBackend` en s’appuyant sur `manifest.rs`, `segments.rs`, `wal.rs`, `catalog.rs`.
+
+## 10) CompositeBackend
+
+`CompositeBackend` implémente `StorageBackend` par délégation vers les ports granulaires injectés. Permet de mixer des adaptateurs (ex: segments = S3, WAL = Redis, catalog = FS).
+
+Exemple (FS pur):
+
+```rust
+use std::sync::Arc;
+use casys_engine::Engine;
+use casys_core::CompositeBackend;
+
+let fs = Arc::new(casys_storage_fs::backend::FsBackend::new());
+let backend = CompositeBackend::new(
+    fs.clone(),     // StorageCatalog
+    fs.clone(),     // ManifestStore
+    fs.clone(),     // SegmentStore
+    Some(fs.clone()), // WalSink
+    Some(fs),         // WalSource
+);
+let engine = Engine::open_with_backend("data", Arc::new(backend))?;
+```
+
+## 11) Quickstart FS (flush/load + requête)
+
+```rust
+use casys_engine::{Engine, GqlQuery};
+
+let engine = Engine::open("data")?;               // feature fs activée
+let db = engine.open_database("main")?;
+let br = engine.open_branch(&db, "main")?;
+
+// Travail en mémoire
+let mut store = casys_engine::index::InMemoryGraphStore::new();
+engine.execute_gql_on_store(
+    &mut store,
+    &GqlQuery("CREATE (:Person {name:'Alice'})".into()),
+    None,
+)?;
+
+// Persistance puis rechargement
+engine.flush_branch(&db, &br, &store)?;
+let mut loaded = engine.load_branch(&db, &br)?;
+let res = engine.execute_gql_on_store(
+    &mut loaded,
+    &GqlQuery("MATCH (p:Person) RETURN p.name".into()),
+    None,
+)?;
+assert_eq!(res.rows[0][0], serde_json::json!("Alice"));
+```

@@ -43,7 +43,6 @@ enum Token {
     Dollar,       // $ (for parameters)
     Arrow,        // ->
     LeftArrow,    // <-
-    Dash,         // -
     Star,         // *
     DotDot,       // ..
     Pipe,         // |

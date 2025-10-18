@@ -7,9 +7,10 @@ use std::sync::{Arc, Mutex};
 use std::path::PathBuf;
 
 use ::casys_engine as engine;
-use engine::types::{DatabaseName, BranchName};
-use engine::index::{InMemoryGraphStore, GraphReadStore, GraphWriteStore};
-use engine::exec::{parser, planner::Planner, executor::Executor, executor::Value};
+use engine::types::{DatabaseName, BranchName, GqlQuery};
+use engine::index::InMemoryGraphStore;
+use engine::exec::executor::Value;
+use engine::index::GraphWriteStore;
 
 /// Engine principal pour gérer les bases de données Casys
 #[pyclass]
@@ -18,6 +19,50 @@ struct CasysEngine {
     stores: Arc<Mutex<std::collections::HashMap<String, Arc<Mutex<InMemoryGraphStore>>>>>,
 }
 
+/// Convert Python object to serde_json::Value (recursively for lists/tuples/dicts)
+fn py_to_json(py: Python, obj: &PyAny) -> PyResult<serde_json::Value> {
+    if obj.is_none() {
+        return Ok(serde_json::Value::Null);
+    }
+    if let Ok(b) = obj.extract::<bool>() {
+        return Ok(serde_json::Value::Bool(b));
+    }
+    if let Ok(i) = obj.extract::<i64>() {
+        return Ok(serde_json::Value::Number(i.into()));
+    }
+    if let Ok(f) = obj.extract::<f64>() {
+        if let Some(n) = serde_json::Number::from_f64(f) { return Ok(serde_json::Value::Number(n)); }
+        return Ok(serde_json::Value::Null);
+    }
+    if let Ok(s) = obj.extract::<String>() {
+        return Ok(serde_json::Value::String(s));
+    }
+    if let Ok(list) = obj.downcast::<pyo3::types::PyList>() {
+        let mut arr = Vec::with_capacity(list.len());
+        for item in list.iter() {
+            arr.push(py_to_json(py, item)?);
+        }
+        return Ok(serde_json::Value::Array(arr));
+    }
+    if let Ok(tuple) = obj.downcast::<pyo3::types::PyTuple>() {
+        let mut arr = Vec::with_capacity(tuple.len());
+        for item in tuple.iter() {
+            arr.push(py_to_json(py, item)?);
+        }
+        return Ok(serde_json::Value::Array(arr));
+    }
+    if let Ok(dict) = obj.downcast::<pyo3::types::PyDict>() {
+        let mut map = serde_json::Map::new();
+        for (k, v) in dict.iter() {
+            let key = k.to_string();
+            map.insert(key, py_to_json(py, v)?);
+        }
+        return Ok(serde_json::Value::Object(map));
+    }
+    Err(PyValueError::new_err("Unsupported Python type for JSON conversion"))
+}
+
+#[allow(non_local_definitions, dead_code)]
 #[pymethods]
 impl CasysEngine {
     #[new]
@@ -33,7 +78,7 @@ impl CasysEngine {
     }
     
     fn open_database(&self, name: String) -> PyResult<String> {
-        let mut engine = self.inner.lock().unwrap();
+        let engine = self.inner.lock().unwrap();
         let _db_handle = engine.open_database(&name)
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to open database: {:?}", e)))?;
         
@@ -41,7 +86,7 @@ impl CasysEngine {
     }
     
     fn open_branch(&self, db_name: String, branch_name: String) -> PyResult<CasysBranch> {
-        let mut engine = self.inner.lock().unwrap();
+        let engine = self.inner.lock().unwrap();
         let db_handle = engine.open_database(&db_name)
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to open database: {:?}", e)))?;
         let _branch_handle = engine.open_branch(&db_handle, &branch_name)
@@ -64,7 +109,7 @@ impl CasysEngine {
     }
     
     fn create_branch(&self, db_name: String, branch_name: String) -> PyResult<()> {
-        let mut engine = self.inner.lock().unwrap();
+        let engine = self.inner.lock().unwrap();
         let db_handle = engine.open_database(&db_name)
             .map_err(|e| PyRuntimeError::new_err(format!("Failed to open database: {:?}", e)))?;
         engine.create_branch(&db_handle, "main", &branch_name, None)
@@ -75,28 +120,22 @@ impl CasysEngine {
     
     #[cfg(feature = "fs")]
     fn list_snapshots(&self, db_name: String, branch_name: String, py: Python) -> PyResult<PyObject> {
-        use casys_storage_fs::manifest as mf;
-        
         let engine = self.inner.lock().unwrap();
-        let db = DatabaseName::try_from(db_name.as_str())
-            .map_err(|e| PyRuntimeError::new_err(format!("Invalid database name: {:?}", e)))?;
-        let branch = BranchName::try_from(branch_name.as_str())
-            .map_err(|e| PyRuntimeError::new_err(format!("Invalid branch name: {:?}", e)))?;
-        
-        let paths = mf::list_manifest_paths(engine.data_dir(), &db, &branch)
-            .map_err(|e| PyRuntimeError::new_err(format!("Failed to list manifests: {:?}", e)))?;
-        
+        let db_handle = engine.open_database(&db_name)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to open database: {:?}", e)))?;
+        let branch_handle = engine.open_branch(&db_handle, &branch_name)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to open branch: {:?}", e)))?;
+
+        let timestamps = engine.list_snapshot_timestamps(&db_handle, &branch_handle)
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to list snapshots: {:?}", e)))?;
+
         let mut snapshots: Vec<PyObject> = Vec::new();
-        for path in paths {
-            if let Ok(manifest) = mf::read_manifest(&path) {
-                let dict = pyo3::types::PyDict::new(py);
-                dict.set_item("timestamp", manifest.version_ts)?;
-                dict.set_item("segments_count", manifest.segments.len())?;
-                dict.set_item("branch", manifest.branch)?;
-                snapshots.push(dict.into());
-            }
+        for ts in timestamps {
+            let dict = pyo3::types::PyDict::new(py);
+            dict.set_item("timestamp", ts)?;
+            dict.set_item("branch", branch_name.clone())?;
+            snapshots.push(dict.into());
         }
-        
         Ok(snapshots.into_py(py))
     }
 
@@ -115,83 +154,24 @@ struct CasysBranch {
     engine: Arc<Mutex<engine::Engine>>,
 }
 
+#[allow(non_local_definitions, dead_code)]
 #[pymethods]
 impl CasysBranch {
     #[pyo3(signature = (gql, params=None))]
     fn query(&self, gql: String, params: Option<Py<PyDict>>, py: Python) -> PyResult<PyObject> {
-        // Parse la requête GQL
-        let ast = parser::parse(&gql)
-            .map_err(|e| PyValueError::new_err(format!("Parse error: {:?}", e)))?;
-        if std::env::var("CASYS_DEBUG_PLAN").ok().as_deref() == Some("1") {
-            println!("AST create_clause present? {}", ast.create_clause.is_some());
-        }
-        
-        // Extract required parameters from AST
-        let required_params = ast.extract_parameters();
-        
-        // Planifie l'exécution
-        let plan = Planner::plan(&ast)
-            .map_err(|e| PyRuntimeError::new_err(format!("Planning error: {:?}", e)))?;
-        if std::env::var("CASYS_DEBUG_PLAN").ok().as_deref() == Some("1") {
-            use engine::exec::planner::PlanNode;
-            let kind = match &plan.root {
-                PlanNode::Create { .. } => "Create",
-                PlanNode::MatchCreate { .. } => "MatchCreate",
-                PlanNode::Filter { .. } => "Filter",
-                PlanNode::Project { .. } => "Project",
-                PlanNode::OrderBy { .. } => "OrderBy",
-                PlanNode::Aggregate { .. } => "Aggregate",
-                PlanNode::Limit { .. } => "Limit",
-                PlanNode::Expand { .. } => "Expand",
-                PlanNode::CartesianProduct { .. } => "CartesianProduct",
-                PlanNode::LabelScan { .. } => "LabelScan",
-                PlanNode::FullScan { .. } => "FullScan",
-            };
-            println!("PLAN ROOT: {}", kind);
-        }
-        
-        // Convert params to HashMap<String, Value>
-        let mut parameters = std::collections::HashMap::new();
-        if let Some(params_dict) = params {
-            for (k, v) in params_dict.as_ref(py).iter() {
+        let mut params_json: std::collections::HashMap<String, serde_json::Value> = std::collections::HashMap::new();
+        if let Some(p) = params {
+            for (k, v) in p.as_ref(py).iter() {
                 let key = k.to_string();
-                let value = py_to_value(v)?;
-                parameters.insert(key, value);
+                let value = py_to_json(py, v)?;
+                params_json.insert(key, value);
             }
         }
-        
-        // Validate that all required parameters are provided
-        for required_param in &required_params {
-            if !parameters.contains_key(required_param) {
-                return Err(PyValueError::new_err(format!(
-                    "Required parameter ${} is not provided. Query parameters: {:?}",
-                    required_param,
-                    required_params
-                )));
-            }
-        }
-        
-        // Exécute
+
+        let gql = GqlQuery(gql);
         let mut store = self.store.lock().unwrap();
-        // If CREATE is present, route through write handle and no explicit read handle (Option B)
-        let result = if ast.create_clause.is_some() {
-            let mut write: Option<&mut dyn GraphWriteStore> = Some(&mut *store);
-            let executor = if parameters.is_empty() {
-                Executor::new_no_read()
-            } else {
-                Executor::with_parameters_no_read(parameters)
-            };
-            executor.execute(&plan, write)
-        } else {
-            // Read-only path: use explicit read store and no write handle
-            let read = &*store as &dyn GraphReadStore;
-            let executor = if parameters.is_empty() {
-                Executor::new(read)
-            } else {
-                Executor::with_parameters(read, parameters)
-            };
-            executor.execute(&plan, None)
-        }
+        let engine = self.engine.lock().unwrap();
+        let result = engine.execute_gql_on_store(&mut *store, &gql, if params_json.is_empty() { None } else { Some(params_json) })
             .map_err(|e| PyRuntimeError::new_err(format!("Execution error: {:?}", e)))?;
         
         // Convert to Python dict
@@ -228,10 +208,12 @@ impl CasysBranch {
             .map_err(|e| PyValueError::new_err(format!("Invalid branch name: {:?}", e)))?;
         
         let engine = self.engine.lock().unwrap();
+        let db_handle = engine.open_database(db.as_str())
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to open database: {:?}", e)))?;
+        let branch_handle = engine.open_branch(&db_handle, branch.as_str())
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to open branch: {:?}", e)))?;
         let store = self.store.lock().unwrap();
-        
-        // Flush to segments
-        store.flush_to_segments(engine.data_dir(), &db, &branch)
+        engine.flush_branch(&db_handle, &branch_handle, &store)
             .map_err(|e| PyRuntimeError::new_err(format!("Flush error: {:?}", e)))?;
         
         Ok(())
@@ -250,11 +232,12 @@ impl CasysBranch {
             .map_err(|e| PyValueError::new_err(format!("Invalid branch name: {:?}", e)))?;
         
         let engine = self.engine.lock().unwrap();
-        
-        // Load from segments
-        let loaded_store = InMemoryGraphStore::load_from_segments(engine.data_dir(), &db, &branch)
+        let db_handle = engine.open_database(db.as_str())
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to open database: {:?}", e)))?;
+        let branch_handle = engine.open_branch(&db_handle, branch.as_str())
+            .map_err(|e| PyRuntimeError::new_err(format!("Failed to open branch: {:?}", e)))?;
+        let loaded_store = engine.load_branch(&db_handle, &branch_handle)
             .map_err(|e| PyRuntimeError::new_err(format!("Load error: {:?}", e)))?;
-        
         let mut store = self.store.lock().unwrap();
         *store = loaded_store;
         

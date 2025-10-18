@@ -1,5 +1,5 @@
 use casys::{Engine, DatabaseName, BranchName};
-use casys::storage::manifest as mf;
+use casys_storage_fs::manifest as mf;
 
 #[test]
 fn create_branch_writes_manifest_and_lists_branch() {

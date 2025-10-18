@@ -1,5 +1,5 @@
 use casys::{Engine, DatabaseName, BranchName};
-use casys::storage::{catalog, manifest as mf};
+use casys_storage_fs::{catalog, manifest as mf};
 use std::fs;
 
 #[test]

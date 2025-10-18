@@ -1,5 +1,5 @@
 use casys::{Engine, DatabaseName, BranchName};
-use casys::storage::wal;
+use casys_storage_fs::wal;
 
 #[test]
 fn wal_write_and_read_records() {

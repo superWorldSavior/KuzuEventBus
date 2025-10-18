@@ -149,6 +149,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "casys_engine",
+ "casys_storage_fs",
  "crc32fast",
  "serde",
  "serde_json",

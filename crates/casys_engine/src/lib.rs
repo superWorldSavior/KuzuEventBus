@@ -76,6 +76,34 @@ impl Engine {
         })
     }
 
+    /// Open an engine with a custom storage backend (only when `fs` feature is enabled).
+    #[cfg(feature = "fs")]
+    pub fn open_with_backend<P: AsRef<Path>>(data_dir: P, backend: Arc<dyn StorageBackend>) -> Result<Self, EngineError> {
+        let dir = data_dir.as_ref();
+        std::fs::create_dir_all(dir)
+            .map_err(|e| EngineError::StorageIo(format!("create_dir_all({}): {e}", dir.display())))?;
+        Ok(Engine {
+            data_dir: dir.to_path_buf(),
+            writer_locks: Mutex::new(HashMap::new()),
+            backend,
+        })
+    }
+
+    /// Open an engine using a CompositeBackend composed from the FS adapter implementing granular ports.
+    /// This keeps the injection surface consistent when mixing adapters in the future.
+    #[cfg(feature = "fs")]
+    pub fn open_fs_composite<P: AsRef<Path>>(data_dir: P) -> Result<Self, EngineError> {
+        use casys_core::CompositeBackend;
+        let fsb = Arc::new(casys_storage_fs::backend::FsBackend::new());
+        let catalog: Arc<dyn casys_core::StorageCatalog> = fsb.clone();
+        let manifest: Arc<dyn casys_core::ManifestStore> = fsb.clone();
+        let segments: Arc<dyn casys_core::SegmentStore> = fsb.clone();
+        let wal_sink: Option<Arc<dyn casys_core::WalSink>> = Some(fsb.clone());
+        let wal_source: Option<Arc<dyn casys_core::WalSource>> = Some(fsb.clone());
+        let composite = CompositeBackend::new(catalog, manifest, segments, wal_sink, wal_source);
+        Self::open_with_backend(data_dir, Arc::new(composite))
+    }
+
     /// Open a logical database by name (created lazily upon first write).
     pub fn open_database(&self, name: &str) -> Result<DbHandle, EngineError> {
         let db = DatabaseName::try_from(name)?;
@@ -179,5 +207,83 @@ impl Engine {
     /// Return the engine data directory.
     pub fn data_dir(&self) -> &Path {
         &self.data_dir
+    }
+
+    /// Flush an in-memory store to on-disk segments for the given branch (requires `fs`).
+    #[cfg(feature = "fs")]
+    pub fn flush_branch(&self, db: &DbHandle, branch: &BranchHandle, store: &crate::index::InMemoryGraphStore) -> Result<(), EngineError> {
+        store.flush_to_segments(self.data_dir(), &db.name, &branch.name)
+    }
+
+    #[cfg(not(feature = "fs"))]
+    pub fn flush_branch(&self, _db: &DbHandle, _branch: &BranchHandle, _store: &crate::index::InMemoryGraphStore) -> Result<(), EngineError> {
+        Err(EngineError::NotImplemented("flush_branch requires fs feature".into()))
+    }
+
+    /// Load an in-memory store from on-disk segments for the given branch (requires `fs`).
+    #[cfg(feature = "fs")]
+    pub fn load_branch(&self, db: &DbHandle, branch: &BranchHandle) -> Result<crate::index::InMemoryGraphStore, EngineError> {
+        crate::index::InMemoryGraphStore::load_from_segments(self.data_dir(), &db.name, &branch.name)
+    }
+
+    #[cfg(not(feature = "fs"))]
+    pub fn load_branch(&self, _db: &DbHandle, _branch: &BranchHandle) -> Result<crate::index::InMemoryGraphStore, EngineError> {
+        Err(EngineError::NotImplemented("load_branch requires fs feature".into()))
+    }
+
+    /// List snapshot timestamps for a branch (requires `fs`).
+    #[cfg(feature = "fs")]
+    pub fn list_snapshot_timestamps(&self, db: &DbHandle, branch: &BranchHandle) -> Result<Vec<Timestamp>, EngineError> {
+        self.backend.list_snapshot_timestamps(self.data_dir(), &db.name, &branch.name)
+    }
+
+    #[cfg(not(feature = "fs"))]
+    pub fn list_snapshot_timestamps(&self, _db: &DbHandle, _branch: &BranchHandle) -> Result<Vec<Timestamp>, EngineError> {
+        Err(EngineError::NotImplemented("list_snapshot_timestamps requires fs feature".into()))
+    }
+
+    /// Execute a GQL query against the provided in-memory store, with optional JSON parameters.
+    /// This centralizes parsing, planning, and execution inside the engine so wrappers stay thin.
+    pub fn execute_gql_on_store(
+        &self,
+        store: &mut crate::index::InMemoryGraphStore,
+        gql: &GqlQuery,
+        params: Option<std::collections::HashMap<String, serde_json::Value>>,
+    ) -> Result<QueryResult, EngineError> {
+        use crate::exec::{parser, planner::Planner, executor::{Executor, Value as ExecValue}};
+        use crate::index::{GraphReadStore, GraphWriteStore};
+        use std::collections::HashMap;
+
+        // Parse & plan
+        let ast = parser::parse(&gql.0)?;
+        let _required_params = ast.extract_parameters();
+        let plan = Planner::plan(&ast)?;
+
+        // Convert JSON parameters to executor values
+        let mut param_exec: HashMap<String, ExecValue> = HashMap::new();
+        if let Some(p) = params {
+            for (k, v) in p {
+                if let Some(ev) = ExecValue::from_json(&v) { param_exec.insert(k, ev); }
+            }
+        }
+
+        // Execute with write handle when CREATE is present; otherwise read-only path
+        if ast.create_clause.is_some() {
+            let write: Option<&mut dyn GraphWriteStore> = Some(store);
+            let executor = if param_exec.is_empty() {
+                Executor::new_no_read()
+            } else {
+                Executor::with_parameters_no_read(param_exec)
+            };
+            executor.execute(&plan, write)
+        } else {
+            let read = store as &dyn GraphReadStore;
+            let executor = if param_exec.is_empty() {
+                Executor::new(read)
+            } else {
+                Executor::with_parameters(read, param_exec)
+            };
+            executor.execute(&plan, None)
+        }
     }
 }

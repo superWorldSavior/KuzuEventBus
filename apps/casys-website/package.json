@@ -1,0 +1,43 @@
+{
+  "name": "casys-website",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": "22.x"
+  },
+  "packageManager": "pnpm@10.16.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "vercel": "vercel",
+    "vercel:login": "vercel login",
+    "vercel:link": "vercel link",
+    "vercel:deploy": "vercel deploy --prebuilt --prod",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "*",
+    "@astrojs/starlight": "^0.36.0",
+    "@astrojs/vercel": "*",
+    "@builder.io/qwik": "^1.5.5",
+    "@gitgraph/js": "^1.4.0",
+    "@qwikdev/astro": "^0.8.2",
+    "@types/d3": "^7.4.3",
+    "@vercel/analytics": "^1.5.0",
+    "astro": "^5.11.2",
+    "astro-icon": "^1.1.5",
+    "d3": "^7.9.0",
+    "remark-kroki": "^0.3.8",
+    "sass": "^1.83.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.17.1",
+    "@vitest/ui": "^3.2.4",
+    "vercel": "^47.0.5",
+    "vitest": "^3.2.4"
+  }
+}

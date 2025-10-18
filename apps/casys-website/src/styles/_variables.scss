@@ -1,0 +1,96 @@
+// Colors - Light mode
+$bg-main: #ffffff;
+$bg-hero: linear-gradient(180deg, #faf5ff 0%, #f9f5ff 70%, #f9f5ff 100%);
+$bg-problem: linear-gradient(180deg, #f9f5ff 0%, #ffffff 50%, #fafbfc 100%);
+$bg-benefits: linear-gradient(180deg, #fafbfc 0%, #f8fafc 50%, #ffffff 100%);
+$bg-social: linear-gradient(180deg, #ffffff 0%, #faf5ff 100%);
+$bg-cta: linear-gradient(180deg, #faf5ff 0%, #ffffff 100%);
+
+$text-primary: #0f172a;
+$text-secondary: #475569;
+$text-muted: #64748b;
+
+$card-bg: #ffffff;
+$card-border: #e5e7eb;
+$card-shadow: rgba(0, 0, 0, 0.1);
+
+// Brand colors (Cassis)
+$acc: #5B2E7E;
+$acc-strong: #6C3A94;
+$acc-soft: #F5EFFA;
+$border: #e5e7eb;
+$border-strong: #cbd5e1;
+$surface: #ffffff;
+$ring: #C4B5FD;
+
+// Accents
+$accent-problem: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+$accent-solution: linear-gradient(135deg, #06b6d4 0%, #10b981 100%);
+$accent-benefits: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
+
+// Dark mode colors
+$dark-bg-main: #030712;
+$dark-bg-hero: linear-gradient(180deg, #0f0a15 0%, #030712 70%, #030712 100%);
+$dark-bg-problem: linear-gradient(180deg, #030712 0%, #020509 50%, #0a0a0f 100%);
+$dark-bg-benefits: linear-gradient(180deg, #0a0a0f 0%, #050508 50%, #030712 100%);
+$dark-bg-social: linear-gradient(180deg, #030712 0%, #0f0a15 100%);
+$dark-bg-cta: linear-gradient(180deg, #0f0a15 0%, #030712 100%);
+
+$dark-text-primary: #f8fafc;
+$dark-text-secondary: #cbd5e1;
+$dark-text-muted: #94a3b8;
+
+$dark-card-bg: #1e293b;
+$dark-card-border: #334155;
+$dark-card-shadow: rgba(0, 0, 0, 0.3);
+
+$dark-acc: #7C4BB2;
+$dark-acc-strong: #8A5BC0;
+$dark-acc-soft: #1D1126;
+$dark-border: #1f2937;
+$dark-border-strong: #374151;
+$dark-surface: #0b0f1a;
+$dark-ring: #A78BFA;
+
+$dark-accent-problem: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+$dark-accent-solution: linear-gradient(135deg, #0891b2 0%, #059669 100%);
+$dark-accent-benefits: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
+
+// Breakpoints
+$sm: 640px;
+$md: 768px;
+$lg: 1024px;
+$xl: 1280px;
+$xxl: 1536px;
+
+// Spacing scale
+$spacing: (
+  0: 0,
+  1: 0.25rem,
+  2: 0.5rem,
+  3: 0.75rem,
+  4: 1rem,
+  5: 1.25rem,
+  6: 1.5rem,
+  8: 2rem,
+  10: 2.5rem,
+  12: 3rem,
+  16: 4rem,
+  20: 5rem,
+  24: 6rem,
+  28: 7rem,
+  32: 8rem,
+);
+
+// Font sizes
+$text-xs: 0.75rem;
+$text-sm: 0.875rem;
+$text-base: 1rem;
+$text-lg: 1.125rem;
+$text-xl: 1.25rem;
+$text-2xl: 1.5rem;
+$text-3xl: 1.875rem;
+$text-4xl: 2.25rem;
+$text-5xl: 3rem;
+$text-6xl: 3.75rem;
+$text-7xl: 4.5rem;

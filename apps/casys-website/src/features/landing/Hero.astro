@@ -1,0 +1,653 @@
+---
+import { Icon } from 'astro-icon/components';
+import I18n from '../i18n/I18n.astro';
+---
+
+<section class="hero">
+  <div class="hero__background">
+    <div class="hero__pattern hero__pattern--light"></div>
+    <div class="hero__pattern hero__pattern--dark-gradient"></div>
+    <div class="hero__pattern hero__pattern--dark-dots"></div>
+    <div class="hero__pattern hero__pattern--dark-vignette"></div>
+  </div>
+
+  <div class="hero__container">
+    <div class="hero__grid">
+      
+      <div class="hero__left">
+        <h1 class="hero__title">
+          <span class="hero__title-line hero__title-line--first">
+            <I18n>
+              <Fragment slot="en">Your Data,</Fragment>
+              <Fragment slot="fr">Vos données,</Fragment>
+            </I18n>
+          </span>
+          <span class="hero__title-line hero__title-line--second">
+            <I18n>
+              <Fragment slot="en">Naturally Connected</Fragment>
+              <Fragment slot="fr">connectées naturellement</Fragment>
+            </I18n>
+          </span>
+        </h1>
+
+        <p class="hero__subtitle">
+          <I18n>
+            <Fragment slot="en">Embedded graph database with Git-like branches and time travel.</Fragment>
+            <Fragment slot="fr">Base de données graphe embarquée avec branches Git-like et voyage dans le temps.</Fragment>
+          </I18n>
+        </p>
+
+        <div class="hero__ctas">
+          <a href="/docs/getting-started/installation/" class="hero__btn hero__btn--primary">
+            <I18n>
+              <Fragment slot="en">Documentation</Fragment>
+              <Fragment slot="fr">Documentation</Fragment>
+            </I18n>
+          </a>
+          <a href="https://github.com/casysai/casysdb" target="_blank" rel="noopener noreferrer" class="hero__btn hero__btn--secondary">
+            <span class="hero__btn-content">
+              <svg class="hero__icon" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd" />
+              </svg>
+              <I18n>
+                <Fragment slot="en">GitHub</Fragment>
+                <Fragment slot="fr">GitHub</Fragment>
+              </I18n>
+            </span>
+          </a>
+        </div>
+
+        <div class="hero__install">
+          <p class="hero__install-label">
+            <I18n>
+              <Fragment slot="en">Installation</Fragment>
+              <Fragment slot="fr">Installation</Fragment>
+            </I18n>
+          </p>
+          <div class="hero__install-cards">
+            <div class="hero__install-card">
+              <span style="color: var(--text-muted);"># Python</span><br/>
+              <span style="color: var(--acc);">pip install</span> <span style="color: var(--text-primary);">casys-db</span>
+            </div>
+            <div class="hero__install-card">
+              <span style="color: var(--text-muted);"># TypeScript/Node.js</span><br/>
+              <span style="color: var(--acc);">npm install</span> <span style="color: var(--text-primary);">casys-db</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero__right">
+        <p class="hero__workflow-label">
+          <I18n>
+            <Fragment slot="en">Complete Workflow</Fragment>
+            <Fragment slot="fr">Workflow complet</Fragment>
+          </I18n>
+        </p>
+        
+        <div class="hero__tabs" role="tablist" aria-label="Workflow steps">
+          <button type="button" class="workflow-tab hero__tab" data-step="1" data-active="true" aria-pressed="true">
+            1. Setup
+          </button>
+          <button type="button" class="workflow-tab hero__tab" data-step="2" aria-pressed="false">
+            2. Insert
+          </button>
+          <button type="button" class="workflow-tab hero__tab" data-step="3" aria-pressed="false">
+            3. Branch
+          </button>
+          <button type="button" class="workflow-tab hero__tab" data-step="4" aria-pressed="false">
+            4. Update
+          </button>
+          <button type="button" class="workflow-tab hero__tab" data-step="5" aria-pressed="false">
+            5. Time Travel
+          </button>
+        </div>
+
+        <div class="hero__code">
+          <pre class="hero__code-block" data-content="1" aria-hidden="false"><code><span class="comment"># Setup: Knowledge Graph pour RAG</span>
+<span class="keyword">from</span> casys_db <span class="keyword">import</span> Database, Session
+<span class="keyword">from</span> casys_db <span class="keyword">import</span> NodeEntity, HasMany
+
+<span class="comment"># Ouvrir base de prod</span>
+prod = Database(<span class="string">"knowledge_graph.db"</span>)
+
+<span class="comment"># Schéma ORM (sans strings!)</span>
+<span class="keyword">class</span> <span class="type">Topic</span>(NodeEntity):
+    <span class="keyword">pass</span>  <span class="comment"># label: "Topic"</span>
+
+<span class="keyword">class</span> <span class="type">Document</span>(NodeEntity):
+    topics = HasMany(Topic)  <span class="comment"># via auto: TOPICS</span>
+    related = HasMany(Topic, via=<span class="string">"ABOUT"</span>)  <span class="comment"># override</span>
+
+<span class="comment"># Créer branche main si besoin</span>
+main = prod.branch(<span class="string">"main"</span>)
+</code></pre>
+
+          <!-- Step 2: Insert -->
+          <pre class="hero__code-block hero__code-block--hidden" data-content="2" aria-hidden="true"><code><span class="comment"># Insérer documents + embeddings (OpenAI/LLaMA)</span>
+prod.query(<span class="string">"""  
+  CREATE (doc:Document {'{'}
+    title: 'RAG avec Casys',
+    content: 'Guide complet...',
+    embedding: [<span class="number">0.23</span>, <span class="number">-0.45</span>, <span class="number">0.67</span>]
+  {'}'})
+  CREATE (ai:Topic {'{'} name: 'AI' {'}'})
+  CREATE (db:Topic {'{'} name: 'Databases' {'}'})
+  CREATE (doc)-[:ABOUT]->(ai)
+  CREATE (doc)-[:ABOUT]->(db)
+"""</span>)
+prod.commit()  <span class="comment"># → Snapshot auto créé</span>
+
+<span class="comment"># Ou avec l'ORM</span>
+session = Session(prod)
+adults = session.Document.where(
+    <span class="keyword">lambda</span> d: d.topics.any(<span class="keyword">lambda</span> t: t.name == <span class="string">"AI"</span>)
+).all()
+</code></pre>
+
+          <!-- Step 3: Branch -->
+          <pre class="hero__code-block hero__code-block--hidden" data-content="3" aria-hidden="true"><code><span class="comment"># Créer une branche pour tester nouveau modèle</span>
+experiment = prod.create_branch(<span class="string">"test-llama3"</span>)
+
+<span class="comment"># Voir les snapshots disponibles</span>
+snapshots = prod.snapshots()
+<span class="keyword">for</span> snap <span class="keyword">in</span> snapshots:
+    <span class="function">print</span>(f<span class="string">"{'{'} snap['timestamp'] {'}'}: {'{'} snap['segments_count'] {'}'} segments"</span>)
+
+<span class="comment"># ✅ Prod reste intacte pendant vos tests</span>
+<span class="comment"># ✅ Isolation complète (comme Git)</span>
+<span class="comment"># ✅ Zero downtime</span>
+</code></pre>
+
+          <!-- Step 4: Update -->
+          <pre class="hero__code-block hero__code-block--hidden" data-content="4" aria-hidden="true"><code><span class="comment"># Re-calculer embeddings avec LLaMA 3</span>
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># Récupérer tous les docs via ORM (aperçu)</span>
+session = Session(experiment)
+rows = (
+  session.Document
+    .select(title=<span class="keyword">lambda</span> d: d.title, content=<span class="keyword">lambda</span> d: d.content)
+    .all()
+)
+
+<span class="comment"># Full ORM: read + update</span>
+<span class="keyword">for</span> row <span class="keyword">in</span> rows:
+    new_emb = compute_llama3(row.content)
+    session.Document 
+      .where(<span class="keyword">lambda</span> d: d.title == row.title) 
+      .update(embedding=new_emb)
+
+experiment.commit()
+
+<span class="comment"># Comparer perf prod vs experiment 📊</span>
+</code></pre>
+
+          <!-- Step 5: Time Travel -->
+          <pre class="hero__code-block hero__code-block--hidden" data-content="5" aria-hidden="true"><code><span class="comment"># PITR: Si experiment casse tout ⏰</span>
+
+<span class="comment"># Voir l'historique complet</span>
+history = prod.history(from_time=<span class="string">"yesterday"</span>)
+<span class="function">print</span>(f<span class="string">"{'{'} <span class="function">len</span>(history) {'}'} snapshots depuis hier"</span>)
+
+<span class="comment"># Créer branche depuis un point passé</span>
+recovery = prod.branch_at(
+    name=<span class="string">"safe-state"</span>,
+    timestamp=<span class="string">"2 hours ago"</span>
+)
+
+<span class="comment"># Vérifier l'état avant le bug</span>
+count = recovery.query(<span class="string">"MATCH (d:Document) RETURN count(d)"</span>)
+<span class="function">print</span>(f<span class="string">"Documents à ce moment: {'{'} count {'}'} "</span>)
+
+<span class="comment"># ✅ Zéro perte de données</span>
+</code></pre>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="hero__features">
+      <div class="hero__feature">
+        <div class="hero__feature-icon">⚡</div>
+        <h3 class="hero__feature-title">
+          <I18n>
+            <Fragment slot="en">Embedded</Fragment>
+            <Fragment slot="fr">Embarquée</Fragment>
+          </I18n>
+        </h3>
+        <p class="hero__feature-text">
+          <I18n>
+            <Fragment slot="en">Zero servers, runs in your process</Fragment>
+            <Fragment slot="fr">Zéro serveur, s'exécute dans votre process</Fragment>
+          </I18n>
+        </p>
+      </div>
+      
+      <div class="hero__feature">
+        <div class="hero__feature-icon">📊</div>
+        <h3 class="hero__feature-title">ISO GQL</h3>
+        <p class="hero__feature-text">
+          <I18n>
+            <Fragment slot="en">Standard graph query language</Fragment>
+            <Fragment slot="fr">Langage standard de requêtes graphe</Fragment>
+          </I18n>
+        </p>
+      </div>
+      
+      <div class="hero__feature">
+        <div class="hero__feature-icon">🔄</div>
+        <h3 class="hero__feature-title">MVCC</h3>
+        <p class="hero__feature-text">
+          <I18n>
+            <Fragment slot="en">Isolated transactions, consistent reads</Fragment>
+            <Fragment slot="fr">Transactions isolées, lecture cohérente</Fragment>
+          </I18n>
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+<style lang="scss">
+@use '~/styles/variables' as *;
+@use '~/styles/mixins' as *;
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: var(--bg-hero);
+  padding: 6rem 0;
+
+  @include sm {
+    padding: 7rem 0;
+  }
+
+  &__background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  &__pattern {
+    position: absolute;
+    inset: 0;
+
+    &--light {
+      display: block;
+      background: radial-gradient(circle at 1px 1px, rgba(0,0,0,0.05) 1px, transparent 1px);
+      background-size: 28px 28px;
+
+      @include dark {
+        display: none;
+      }
+    }
+
+    &--dark-gradient {
+      display: none;
+      background: linear-gradient(135deg, rgba(90, 46, 126, 0.2) 0%, transparent 50%, rgba(161, 26, 117, 0.1) 100%);
+
+      @include dark {
+        display: block;
+      }
+    }
+
+    &--dark-dots {
+      display: none;
+      background: radial-gradient(circle at 1px 1px, rgba(139, 92, 135, 0.1) 1px, transparent 1px);
+      background-size: 32px 32px;
+
+      @include dark {
+        display: block;
+      }
+    }
+
+    &--dark-vignette {
+      display: none;
+      background: radial-gradient(ellipse at center, transparent 50%, #030712);
+
+      @include dark {
+        display: block;
+      }
+    }
+  }
+
+  &__container {
+    @include container;
+    position: relative;
+    z-index: 10;
+  }
+
+  &__grid {
+    display: grid;
+    gap: 3rem;
+    align-items: stretch;
+
+    @include lg {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  &__left {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 2rem;
+    height: 100%;
+  }
+
+  &__title {
+    max-width: 100%;
+    font-size: $text-4xl;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    word-wrap: break-word;
+
+    @include sm {
+      font-size: $text-5xl;
+    }
+
+    @include md {
+      max-width: 42rem;
+      font-size: $text-6xl;
+    }
+
+    @include xl {
+      font-size: $text-7xl;
+    }
+  }
+
+  &__title-line {
+    display: block;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+
+    &--first {
+      margin-bottom: 0.75rem;
+      background: linear-gradient(90deg, #000, $acc);
+
+      @include dark {
+        background: linear-gradient(90deg, #fff, $ring);
+      }
+    }
+
+    &--second {
+      padding-bottom: 0.5rem;
+      background: linear-gradient(90deg, $acc, #9f7aea);
+
+      @include dark {
+        background: linear-gradient(90deg, $dark-acc-strong, $ring);
+      }
+    }
+  }
+
+  &__subtitle {
+    max-width: 36rem;
+    font-size: $text-lg;
+    color: var(--text-secondary);
+    line-height: 1.625;
+
+    @include sm {
+      font-size: $text-xl;
+    }
+  }
+
+  &__ctas {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    @include sm {
+      flex-direction: row;
+    }
+  }
+
+  &__btn {
+    @include btn-base;
+    width: 100%;
+
+    @include sm {
+      width: auto;
+    }
+
+    &--primary {
+      border-color: $acc;
+      color: white;
+      background: linear-gradient(135deg, $acc, $acc-strong);
+
+      &:hover {
+        background: linear-gradient(135deg, $acc-strong, $dark-acc);
+      }
+
+      &:focus-visible {
+        outline-color: $acc;
+      }
+    }
+
+    &--secondary {
+      border-color: var(--border);
+      color: var(--text-primary);
+      background: var(--surface);
+
+      &:hover {
+        border-color: $acc;
+      }
+
+      &:focus-visible {
+        outline-color: $acc;
+      }
+    }
+  }
+
+  &__btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  &__icon {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+
+  &__install {
+    &-label {
+      font-size: $text-sm;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.025em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    &-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    &-card {
+      padding: 1rem;
+      font-family: monospace;
+      font-size: $text-sm;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      transition: all 0.2s ease;
+    }
+  }
+
+  &__right {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: 100%;
+  }
+
+  &__workflow-label {
+    font-size: $text-sm;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: var(--text-muted);
+  }
+
+  &__tabs {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  &__tab {
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    font-size: $text-sm;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover {
+      border-color: $acc;
+    }
+
+    &[data-active="true"] {
+      background: var(--acc-soft);
+      color: var(--text-primary);
+      border-color: $acc;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $acc;
+      outline-offset: 2px;
+    }
+  }
+
+  &__code {
+    padding: 1.5rem;
+    font-family: monospace;
+    font-size: $text-sm;
+    line-height: 1.625;
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    max-height: 60vh;
+
+    @include sm {
+      max-height: 32rem;
+    }
+  }
+
+  &__code-block {
+    margin: 0;
+    display: block;
+
+    &--hidden {
+      display: none;
+    }
+  }
+
+  &__features {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 4rem;
+
+    @include md {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  &__feature {
+    text-align: center;
+    padding: 1.5rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: $acc;
+    }
+
+    &-icon {
+      font-size: $text-4xl;
+      margin-bottom: 0.75rem;
+    }
+
+    &-title {
+      font-weight: 700;
+      font-size: $text-lg;
+      margin-bottom: 0.5rem;
+      color: var(--text-primary);
+    }
+
+    &-text {
+      font-size: $text-sm;
+      color: var(--text-secondary);
+    }
+  }
+}
+
+// VS Code syntax highlighting
+.comment { color: #008000; font-style: italic; }
+.keyword { color: #0000FF; font-weight: normal; }
+.string { color: #A31515; }
+.number { color: #098658; }
+
+:global(.dark) .comment { color: #6A9955; font-style: italic; }
+:global(.dark) .keyword { color: #569CD6; font-weight: normal; }
+:global(.dark) .string { color: #CE9178; }
+:global(.dark) .number { color: #B5CEA8; }
+</style>
+
+<script>
+const workflowTabs = Array.from(document.querySelectorAll('.workflow-tab'));
+const workflowPanels = Array.from(document.querySelectorAll('[data-content]'));
+
+const activateWorkflowTab = (tab) => {
+  if (!tab) return;
+  const step = tab.getAttribute('data-step');
+  if (!step) return;
+
+  workflowTabs.forEach((btn) => {
+    const isActive = btn === tab;
+    btn.setAttribute('data-active', isActive ? 'true' : 'false');
+    btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+  });
+
+  workflowPanels.forEach((panel) => {
+    const isMatch = panel.getAttribute('data-content') === step;
+    panel.classList.toggle('hidden', !isMatch);
+    panel.setAttribute('aria-hidden', isMatch ? 'false' : 'true');
+  });
+};
+
+workflowTabs.forEach((tab, index) => {
+  tab.addEventListener('click', () => activateWorkflowTab(tab));
+  tab.addEventListener('keydown', (event) => {
+    const key = event && 'key' in event ? event.key : '';
+    if (key === 'ArrowRight' || key === 'ArrowLeft') {
+      event.preventDefault();
+      const direction = key === 'ArrowRight' ? 1 : -1;
+      const nextIndex = (index + direction + workflowTabs.length) % workflowTabs.length;
+      const nextTab = workflowTabs[nextIndex];
+      if (nextTab && typeof nextTab.focus === 'function') nextTab.focus();
+      activateWorkflowTab(nextTab);
+    }
+  });
+});
+</script>

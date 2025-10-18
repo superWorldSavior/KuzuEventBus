@@ -1,0 +1,160 @@
+@use 'variables' as *;
+
+// Responsive breakpoints
+@mixin sm {
+  @media (min-width: $sm) {
+    @content;
+  }
+}
+
+@mixin md {
+  @media (min-width: $md) {
+    @content;
+  }
+}
+
+@mixin lg {
+  @media (min-width: $lg) {
+    @content;
+  }
+}
+
+@mixin xl {
+  @media (min-width: $xl) {
+    @content;
+  }
+}
+
+@mixin xxl {
+  @media (min-width: $xxl) {
+    @content;
+  }
+}
+
+// Flexbox utilities
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+// Button styles
+@mixin btn-base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 2rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid;
+
+  &:focus-visible {
+    outline: 2px solid;
+    outline-offset: 2px;
+  }
+}
+
+@mixin btn-primary {
+  @include btn-base;
+  border-color: $acc;
+  color: white;
+  background: linear-gradient(135deg, $acc, $acc-strong);
+
+  &:hover {
+    background: linear-gradient(135deg, $acc-strong, $dark-acc);
+  }
+
+  &:focus-visible {
+    outline-color: $acc;
+  }
+}
+
+@mixin btn-secondary {
+  @include btn-base;
+  border-color: $border;
+  color: $text-primary;
+  background: $surface;
+
+  &:hover {
+    border-color: $acc;
+  }
+
+  &:focus-visible {
+    outline-color: $acc;
+  }
+}
+
+// Card styles
+@mixin card {
+  background: $card-bg;
+  border: 1px solid $card-border;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+}
+
+@mixin card-hover {
+  &:hover {
+    border-color: $acc;
+    box-shadow: 0 4px 6px -1px $card-shadow;
+  }
+}
+
+// Container
+@mixin container {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+
+  @include sm {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  @include lg {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+// Grid utilities
+@mixin grid-cols($cols) {
+  display: grid;
+  grid-template-columns: repeat($cols, minmax(0, 1fr));
+}
+
+// Text utilities
+@mixin text-gradient($from, $to) {
+  background: linear-gradient(90deg, $from, $to);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+// Transitions
+@mixin transition($property: all) {
+  transition: $property 0.2s ease;
+}
+
+// Dark mode helper
+@mixin dark {
+  :global(.dark) & {
+    @content;
+  }
+}

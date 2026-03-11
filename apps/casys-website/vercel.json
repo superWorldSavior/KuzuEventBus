@@ -3,5 +3,15 @@
   "framework": "astro",
   "installCommand": "pnpm install",
   "buildCommand": "pnpm build",
-  "outputDirectory": ".vercel/output"
+  "outputDirectory": ".vercel/output",
+  "rewrites": [
+    {
+      "source": "/u/script.js",
+      "destination": "https://analytics.casys.ai/script.js"
+    },
+    {
+      "source": "/u/api/send",
+      "destination": "https://analytics.casys.ai/api/send"
+    }
+  ]
 }
